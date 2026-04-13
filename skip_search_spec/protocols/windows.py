@@ -4,11 +4,12 @@
 
 from dataclasses import dataclass
 
+from transformers import PreTrainedModel, PreTrainedTokenizerBase
+
 
 @dataclass(frozen=True, slots=True)
 class TokenizedWindow:
     token_ids: list[int]
-    T_len: int
     dataset_spec: DatasetSpec
 
 
@@ -28,3 +29,19 @@ class DatasetSpec:
         if self.config_name is not None:
             target = f"{target}/{self.config_name}"
         return f"{self.name}<{target}:{self.split}>"
+    
+
+@dataclass(frozen=True, slots=True)
+class ModelAndTokenizer:
+    """Compact holder for a loaded Hugging Face model and tokenizer."""
+
+    model: PreTrainedModel
+    tokenizer: PreTrainedTokenizerBase
+
+
+
+@dataclass(frozen=True, slots=True)
+class WindowSettings:
+    # C1 is the length of the window, the number of tokens it will contain.
+    # The reason for why it is called C1 is because previous projects where it made sense
+    C1: int
