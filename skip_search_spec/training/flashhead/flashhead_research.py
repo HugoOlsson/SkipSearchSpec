@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from skip_search_spec.helpers.tooling import load_model_and_tokenizer
 from sklearn.decomposition import PCA
 
-from skip_search_spec.training.flashhead.building_clusters import build_clusters, build_equal_size_token_to_cluster_mapping
+from skip_search_spec.training.flashhead.building_clusters import build_clusters
 from skip_search_spec.training.flashhead.inference_testing import compare_dense_vs_routed_until_mismatch
 from skip_search_spec.training.flashhead.inspection import inspect_cluster_tokens, visualize_centroids_2d, visualize_cluster_sizes, visualize_sampled_token_vectors_2d
 from skip_search_spec.training.flashhead.storage import load_flashhead, save_flashhead
@@ -71,7 +71,6 @@ def build_flashhead_head(store_path: str, model_name: str) -> None:
         num_iters=50,
         normalize_vectors=True,
         seed=0,
-        assignment_chunk_size=4096,
     )
 
     print()
