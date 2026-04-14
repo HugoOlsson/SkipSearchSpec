@@ -168,6 +168,7 @@ files = [
 
 [package.dependencies]
 frozenlist = ">=1.1.0"
+typing-extensions = {version = ">=4.2", markers = "python_version < \"3.13\""}
 
 [[package]]
 name = "annotated-doc"
@@ -195,6 +196,7 @@ files = [
 
 [package.dependencies]
 idna = ">=2.8"
+typing_extensions = {version = ">=4.5", markers = "python_version < \"3.13\""}
 
 [package.extras]
 trio = ["trio (>=0.32.0)"]
@@ -668,6 +670,18 @@ groups = ["main"]
 files = [
     {file = "filelock-3.25.2-py3-none-any.whl", hash = "sha256:ca8afb0da15f229774c9ad1b455ed96e85a81373065fb10446672f64444ddf70"},
     {file = "filelock-3.25.2.tar.gz", hash = "sha256:b64ece2b38f4ca29dd3e810287aa8c48182bbecd1ae6e9ae126c9b35f1382694"},
+]
+
+[[package]]
+name = "flash-head"
+version = "0.1.7"
+description = "FlashHead: vLLM Plugin for Fast Language Model Head Inference"
+optional = false
+python-versions = ">=3.10"
+groups = ["main"]
+files = [
+    {file = "flash_head-0.1.7-py3-none-any.whl", hash = "sha256:2bf5e84bba6d3cb12f61c3a4ec7a7cad4c1bcf3c9b8bdde5ad8f76129a6229a0"},
+    {file = "flash_head-0.1.7.tar.gz", hash = "sha256:aa3194daf326fd338ca365eedeb0a7bc4cf48774c646fed1219ae0968065aeb3"},
 ]
 
 [[package]]
@@ -2046,7 +2060,7 @@ files = [
 ]
 
 [package.dependencies]
-numpy = {version = ">=2.3.3", markers = "python_version >= \"3.14\""}
+numpy = {version = ">=1.26.0", markers = "python_version < \"3.14\""}
 python-dateutil = ">=2.8.2"
 tzdata = {version = "*", markers = "sys_platform == \"win32\" or sys_platform == \"emscripten\""}
 
@@ -3497,5 +3511,5 @@ propcache = ">=0.2.1"
 
 [metadata]
 lock-version = "2.1"
-python-versions = ">=3.14,<3.15"
-content-hash = "c338adc2be3122b2198b5472373837167a850a94496f46c6c1aa78a322bb81fb"
+python-versions = ">=3.11,<3.14"
+content-hash = "086a5b4e9195550e4dc8f2a7b6a1605d1f41faf5913bab594de2e1ea737b3257"

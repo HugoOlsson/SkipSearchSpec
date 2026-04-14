@@ -66,3 +66,15 @@ def load_model_and_tokenizer(
     model = AutoModelForCausalLM.from_pretrained(model_name_or_path, **resolved_model_kwargs)
 
     return ModelAndTokenizer(model=model, tokenizer=tokenizer)
+
+
+def assert_same_tokenizer(
+    tok_a: PreTrainedTokenizerBase,
+    tok_b: PreTrainedTokenizerBase,
+) -> None:
+    """Raise if two tokenizers differ in vocab or special tokens."""
+    assert tok_a.vocab_size == tok_b.vocab_size, (
+        f"Vocab size mismatch: {tok_a.vocab_size} vs {tok_b.vocab_size}"
+    )
+    assert tok_a.get_vocab() == tok_b.get_vocab(), "Vocabularies differ"
+    assert tok_a.all_special_tokens == tok_b.all_special_tokens, "Special tokens differ"

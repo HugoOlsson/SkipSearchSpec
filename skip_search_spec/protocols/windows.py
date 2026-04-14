@@ -7,10 +7,6 @@ from dataclasses import dataclass
 from transformers import PreTrainedModel, PreTrainedTokenizerBase
 
 
-@dataclass(frozen=True, slots=True)
-class TokenizedWindow:
-    token_ids: list[int]
-    dataset_spec: DatasetSpec
 
 
 
@@ -29,6 +25,12 @@ class DatasetSpec:
         if self.config_name is not None:
             target = f"{target}/{self.config_name}"
         return f"{self.name}<{target}:{self.split}>"
+    
+@dataclass(frozen=True, slots=True)
+class TokenizedWindow:
+    token_ids: list[int]
+    dataset_spec: DatasetSpec
+
     
 
 @dataclass(frozen=True, slots=True)

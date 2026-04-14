@@ -66,10 +66,11 @@ def build_flashhead_head(store_path: str, model_name: str) -> None:
     print("building clusters...")
 
     built_clusters = build_clusters(
-        loaded.lm_head_vector_table,
-        num_clusters=2374,
-        num_iters=50,
-        normalize_vectors=True,
+        lm_head_vector_table=loaded.lm_head_vector_table,
+        num_clusters=1000,
+        num_iters=30,
+        num_rebalance_rounds=0,
+        normalize_vectors=False,
         seed=0,
     )
 
@@ -122,12 +123,7 @@ def evaluate_flashhead(stored_path:str, model_name: str):
     loaded = load_flashhead_base(model_name)
     stored = load_flashhead(stored_path)
 
-    inspect_cluster_tokens(
-        loaded.tokenizer,
-        stored.cluster_to_token_ids,
-        cluster_id=0,
-        max_tokens=30,
-    )
+   
 
     compare_dense_vs_routed_until_mismatch(
         model=loaded.model,
@@ -136,9 +132,9 @@ def evaluate_flashhead(stored_path:str, model_name: str):
         centroids=stored.centroids,
         cluster_to_token_ids=stored.cluster_to_token_ids,
         prompt="Who were the last 100 presedents of the United States?",
-        top_k_clusters=300,
+        top_k_clusters=2000,
         max_new_tokens=5000,
-        normalize_hidden_for_routing=True,
+        normalize_hidden_for_routing=False,
     )
 
     visualize_cluster_sizes(stored.cluster_sizes)
@@ -148,3 +144,6 @@ def evaluate_flashhead(stored_path:str, model_name: str):
         stored.token_to_cluster_mapping,
     )
     plt.show()
+
+
+
