@@ -54,9 +54,9 @@ def main() -> None:
             text_field="text",
         )
 
-        DRAFT_MODEL_NAME = "Qwen/Qwen2.5-0.5B"
+        DRAFT_MODEL_NAME = "Qwen/Qwen2.5-1.5B"
 
-        VERIFIER_MODEL_NAME = "Qwen/Qwen2.5-1.5B"
+        VERIFIER_MODEL_NAME = "Qwen/Qwen2.5-3B"
 
         train_drafter_for_verifier(
           draft_model_name=DRAFT_MODEL_NAME,
@@ -64,7 +64,7 @@ def main() -> None:
           dataset_spec=DATASET_SPEC_DRAFT_FOR_VERIFIER,
           window_size=500,
           number_of_layers_allowed_to_change=None,
-          batch_size=4,
+          batch_size=2,
           max_examples=50_000
         )
 
