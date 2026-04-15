@@ -64,7 +64,7 @@ def main() -> None:
           dataset_spec=DATASET_SPEC_DRAFT_FOR_VERIFIER,
           window_size=500,
           number_of_layers_allowed_to_change=16,
-          batch_size=8,
+          batch_size=4,
           max_examples=100_000
         )
 
