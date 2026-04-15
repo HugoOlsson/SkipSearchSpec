@@ -10,20 +10,12 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="${PROJECT_ROOT:-$(cd "$SCRIPT_DIR/.." && pwd)}"
+PROJECT_ROOT="${PROJECT_ROOT:-$HOME/projects/SkipSearchSpec}"
 HF_HOME="${HF_HOME:-$PROJECT_ROOT/.hf-cache}"
 TRANSFORMERS_CACHE="${TRANSFORMERS_CACHE:-$HF_HOME/transformers}"
 HF_DATASETS_CACHE="${HF_DATASETS_CACHE:-$HF_HOME/datasets}"
 CUDA_VENV_PATH="${CUDA_VENV_PATH:-$PROJECT_ROOT/.venv-cuda}"
 VENV_PATH="${VENV_PATH:-$CUDA_VENV_PATH}"
-
-if [[ ! -d "$PROJECT_ROOT/skip_search_spec" ]]; then
-  echo "ERROR: PROJECT_ROOT does not look like SkipSearchSpec: $PROJECT_ROOT"
-  echo "Tip: set PROJECT_ROOT explicitly when submitting, e.g."
-  echo "  PROJECT_ROOT=/path/to/SkipSearchSpec sbatch minerva_jobs/minerva_early_exit_train.slurm"
-  exit 1
-fi
 
 cd "$PROJECT_ROOT"
 
