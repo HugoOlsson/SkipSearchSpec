@@ -6,11 +6,14 @@ import torch
 from torch import Tensor
 from transformers import PreTrainedModel, PreTrainedTokenizerBase
 import matplotlib.pyplot as plt
-from skip_search_spec.helpers.tooling import load_model_and_tokenizer
+from skip_search_spec.helpers.tooling import load_dataset, load_model_and_tokenizer
 from sklearn.decomposition import PCA
 
+from skip_search_spec.helpers.window_building import build_all_training_windows, tokenize_dataset_to_examples
+from skip_search_spec.protocols.windows import DatasetSpec, WindowSettings
 from skip_search_spec.training.flashhead.building_clusters import build_clusters
 from skip_search_spec.training.flashhead.inference_testing import compare_dense_vs_routed_until_mismatch
+from skip_search_spec.training.flashhead.inference_testing2 import evaluate_topk_containment_on_token_windows
 from skip_search_spec.training.flashhead.inspection import inspect_cluster_tokens, visualize_centroids_2d, visualize_cluster_sizes, visualize_sampled_token_vectors_2d
 from skip_search_spec.training.flashhead.storage import load_flashhead, save_flashhead
 
@@ -67,8 +70,8 @@ def build_flashhead_head(store_path: str, model_name: str) -> None:
 
     built_clusters = build_clusters(
         lm_head_vector_table=loaded.lm_head_vector_table,
-        num_clusters=1000,
-        num_iters=30,
+        num_clusters=8000,
+        num_iters=300,
         num_rebalance_rounds=0,
         normalize_vectors=False,
         seed=0,
@@ -119,23 +122,54 @@ def build_flashhead_head(store_path: str, model_name: str) -> None:
 
    
 
-def evaluate_flashhead(stored_path:str, model_name: str):
+def evaluate_flashhead(stored_path: str, model_name: str) -> None:
     loaded = load_flashhead_base(model_name)
     stored = load_flashhead(stored_path)
 
-   
+    dataset_spec = DatasetSpec(
+        name="FineWeb-Edu-1B",
+        huggingface_path="codelion/fineweb-edu-1B",
+        config_name="default",
+        split="train",
+        text_field="text",
+    )
 
-    compare_dense_vs_routed_until_mismatch(
+    max_examples = 100
+    window_settings = WindowSettings(C1=200)
+
+    dataset = load_dataset(dataset_spec)
+
+    tokenized_examples = tokenize_dataset_to_examples(
+        dataset,
+        loaded.tokenizer,
+        dataset_spec,
+        max_examples=max_examples,
+    )
+
+    training_windows = build_all_training_windows(
+        tokenized_examples,
+        window_settings,
+        dataset_spec,
+    )
+
+    window_tensors = [
+        torch.tensor(window.token_ids, dtype=torch.long)
+        for window in training_windows
+    ]
+
+    metrics = evaluate_topk_containment_on_token_windows(
         model=loaded.model,
-        tokenizer=loaded.tokenizer,
-        lm_head_vector_table=loaded.lm_head_vector_table,
         centroids=stored.centroids,
         cluster_to_token_ids=stored.cluster_to_token_ids,
-        prompt="Who were the last 100 presedents of the United States?",
-        top_k_clusters=2000,
-        max_new_tokens=5000,
+        token_windows=window_tensors,
+        top_k_clusters=800,
+        max_windows=100,
+        max_positions_per_window=256,
         normalize_hidden_for_routing=False,
+        tokenizer=loaded.tokenizer
     )
+
+    print(metrics)
 
     visualize_cluster_sizes(stored.cluster_sizes)
     visualize_centroids_2d(stored.centroids)
@@ -144,6 +178,3 @@ def evaluate_flashhead(stored_path:str, model_name: str):
         stored.token_to_cluster_mapping,
     )
     plt.show()
-
-
-

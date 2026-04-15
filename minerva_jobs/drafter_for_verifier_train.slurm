@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -J sss-dfv
 #SBATCH -p long
-#SBATCH --gres=gpu:L4:1
+#SBATCH --gres=gpu:L40s:1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=64G
 #SBATCH --time=18:00:00

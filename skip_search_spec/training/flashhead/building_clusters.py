@@ -7,6 +7,7 @@ torch.set_num_threads(os.cpu_count() or 1)
 torch.set_num_interop_threads(1)
 
 
+
 # The final clutering result
 
 @dataclass(frozen=True, slots=True)
@@ -79,6 +80,60 @@ def assign_to_nearest_centroid(
 
 
 @torch.no_grad()
+def assign_with_greedy_capacity_rebalancing(
+    vectors: Tensor,
+    centroids: Tensor,
+    cluster_capacities: Tensor,
+) -> tuple[Tensor, Tensor]:
+    scores = vectors @ centroids.transpose(0, 1)
+    token_to_cluster_mapping = scores.argmax(dim=-1)
+    num_clusters = centroids.shape[0]
+
+    cluster_sizes = torch.bincount(
+        token_to_cluster_mapping,
+        minlength=num_clusters,
+    )
+
+    assigned_scores = scores[
+        torch.arange(vectors.shape[0], device=vectors.device),
+        token_to_cluster_mapping,
+    ]
+
+    evicted_token_ids_parts: list[Tensor] = []
+
+    for cluster_id in torch.nonzero(cluster_sizes > cluster_capacities, as_tuple=False).flatten().tolist():
+        overflow = int((cluster_sizes[cluster_id] - cluster_capacities[cluster_id]).item())
+        member_token_ids = torch.nonzero(token_to_cluster_mapping == cluster_id, as_tuple=False).flatten()
+        member_scores = assigned_scores[member_token_ids]
+        worst_member_ids = member_token_ids[torch.argsort(member_scores)[:overflow]]
+        evicted_token_ids_parts.append(worst_member_ids)
+
+    if evicted_token_ids_parts:
+        evicted_token_ids = torch.cat(evicted_token_ids_parts, dim=0)
+
+        old_cluster_ids = token_to_cluster_mapping[evicted_token_ids]
+        token_to_cluster_mapping[evicted_token_ids] = -1
+        cluster_sizes = cluster_sizes.clone()
+        cluster_sizes.scatter_add_(
+            0,
+            old_cluster_ids,
+            -torch.ones_like(old_cluster_ids),
+        )
+
+        for token_id in evicted_token_ids.tolist():
+            available_cluster_ids = torch.nonzero(cluster_sizes < cluster_capacities, as_tuple=False).flatten()
+            new_cluster_id = int(
+                available_cluster_ids[
+                    scores[token_id, available_cluster_ids].argmax()
+                ].item()
+            )
+            token_to_cluster_mapping[token_id] = new_cluster_id
+            cluster_sizes[new_cluster_id] += 1
+
+    return token_to_cluster_mapping, cluster_sizes
+
+
+@torch.no_grad()
 def recompute_centroids(
     vectors: Tensor,
     token_to_cluster_mapping: Tensor,
@@ -110,14 +165,51 @@ def recompute_centroids(
             / cluster_sizes[non_empty].unsqueeze(-1).to(vectors.dtype)
         )
 
-    num_empty = int((~non_empty).sum().item())
-    if num_empty > 0:
-        refill_ids = torch.randperm(
-            vectors.shape[0],
-            generator=generator,
+    empty_cluster_ids = torch.nonzero(~non_empty, as_tuple=False).flatten()
+
+    if empty_cluster_ids.numel() > 0:
+        print("Number of empty clusters:", empty_cluster_ids.numel())
+        sorted_token_ids = torch.argsort(token_to_cluster_mapping, stable=True)
+
+        offsets = torch.zeros(
+            num_clusters + 1,
+            dtype=torch.long,
             device=vectors.device,
-        )[:num_empty]
-        centroids[~non_empty] = vectors[refill_ids]
+        )
+        offsets[1:] = cluster_sizes.cumsum(dim=0)
+
+        virtual_cluster_sizes = cluster_sizes.clone()
+
+
+        for empty_cluster_id in empty_cluster_ids.tolist():
+            source_cluster_id = int(virtual_cluster_sizes.argmax().item())
+
+            start = int(offsets[source_cluster_id].item())
+            end = int(offsets[source_cluster_id + 1].item())
+            source_cluster_size = end - start
+
+            if source_cluster_size == 0:
+                 raise RuntimeError(
+                        f"Expected source cluster {source_cluster_id} to be non-empty, "
+                        f"but computed source_cluster_size=0 while refilling empty cluster {empty_cluster_id}."
+                    )
+            else:
+                epsilon = torch.randn(
+                    hidden_size,
+                    generator=generator,
+                    device=vectors.device,
+                    dtype=vectors.dtype,
+                )
+
+                epsilon = l2_normalize(epsilon.unsqueeze(0), dim=-1).squeeze(0)
+                epsilon = 1e-3 * epsilon
+
+                centroids[empty_cluster_id] = centroids[source_cluster_id] + epsilon
+
+                virtual_cluster_sizes[source_cluster_id] = (
+                    virtual_cluster_sizes[source_cluster_id] // 2
+                )
+
 
     if normalize_vectors:
         centroids = l2_normalize(centroids, dim=-1)
@@ -184,7 +276,12 @@ def build_clusters(
 
     # Stage 1: ordinary spherical k-means
     for iter_idx in range(num_iters):
-        token_to_cluster_mapping = assign_to_nearest_centroid(vectors, centroids)
+
+        token_to_cluster_mapping, cluster_sizes = assign_with_greedy_capacity_rebalancing(
+            vectors=vectors,
+            centroids=centroids,
+            cluster_capacities=cluster_capacities
+        )
 
         centroids, cluster_sizes = recompute_centroids(
             vectors=vectors,
@@ -209,7 +306,14 @@ def build_clusters(
             f"size_min={int(cluster_sizes.min().item())} "
             f"size_max={int(cluster_sizes.max().item())}"
         )
+    
+    token_to_cluster_mapping, cluster_sizes = assign_with_greedy_capacity_rebalancing(
+            vectors=vectors,
+            centroids=centroids,
+            cluster_capacities=cluster_capacities
+        )
 
+    
     cluster_to_token_ids = build_cluster_to_token_ids_padded(
         token_to_cluster_mapping=token_to_cluster_mapping,
         num_clusters=num_clusters,
@@ -386,3 +490,5 @@ def compute_clustering_loss(
         "p05_assigned_similarity": p05_similarity,
         "min_assigned_similarity": min_similarity,
     }
+
+
