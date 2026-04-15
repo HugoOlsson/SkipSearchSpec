@@ -14,8 +14,7 @@ PROJECT_ROOT="${PROJECT_ROOT:-$HOME/projects/SkipSearchSpec}"
 HF_HOME="${HF_HOME:-$PROJECT_ROOT/.hf-cache}"
 TRANSFORMERS_CACHE="${TRANSFORMERS_CACHE:-$HF_HOME/transformers}"
 HF_DATASETS_CACHE="${HF_DATASETS_CACHE:-$HF_HOME/datasets}"
-CUDA_VENV_PATH="${CUDA_VENV_PATH:-$PROJECT_ROOT/.venv-cuda}"
-VENV_PATH="${VENV_PATH:-$CUDA_VENV_PATH}"
+VENV_PATH="${VENV_PATH:-$PROJECT_ROOT/.venv}"
 
 cd "$PROJECT_ROOT"
 
@@ -28,7 +27,6 @@ export TRANSFORMERS_CACHE
 export HF_DATASETS_CACHE
 export OMP_NUM_THREADS="${OMP_NUM_THREADS:-$SLURM_CPUS_PER_TASK}"
 export MKL_NUM_THREADS="${MKL_NUM_THREADS:-$SLURM_CPUS_PER_TASK}"
-export PYTHONPATH="$PROJECT_ROOT${PYTHONPATH:+:$PYTHONPATH}"
 
 echo "Job ${SLURM_JOB_ID:-unknown} on $(hostname)"
 echo "Project root: $PROJECT_ROOT"
@@ -37,23 +35,15 @@ echo "CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-unset}"
 
 nvidia-smi
 
-if [[ -x "$VENV_PATH/bin/python" ]]; then
-  run_cmd=("$VENV_PATH/bin/python" -u -m skip_search_spec.main)
-elif [[ -x "$PROJECT_ROOT/.venv/bin/python" ]]; then
-  run_cmd=("$PROJECT_ROOT/.venv/bin/python" -u -m skip_search_spec.main)
-elif command -v poetry >/dev/null 2>&1; then
-  poetry_python="$(poetry env info --executable 2>/dev/null || true)"
-  if [[ -z "$poetry_python" || ! -x "$poetry_python" ]]; then
-    echo "Poetry environment missing; installing dependencies..."
-    poetry install --no-interaction --no-ansi
-    poetry_python="$(poetry env info --executable)"
-  fi
-  run_cmd=("$poetry_python" -u -m skip_search_spec.main)
-else
-  echo "ERROR: no Python environment found."
-  echo "Expected a CUDA venv at $VENV_PATH, a fallback venv at $PROJECT_ROOT/.venv, or Poetry on PATH."
+if [[ ! -x "$VENV_PATH/bin/python" ]]; then
+  echo "ERROR: expected Poetry environment at $VENV_PATH"
+  echo "Create it with:"
+  echo "  cd $PROJECT_ROOT"
+  echo "  poetry config virtualenvs.in-project true --local"
+  echo "  poetry install --sync"
   exit 1
 fi
 
+run_cmd=("$VENV_PATH/bin/python" -u -m skip_search_spec.main)
 echo "Run command: ${run_cmd[*]}"
 "${run_cmd[@]}" train_early_exit

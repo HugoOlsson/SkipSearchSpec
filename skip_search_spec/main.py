@@ -17,7 +17,9 @@ def main() -> None:
 
    
     if mode == "train_early_exit":
+        print("[entry] importing train_early_exit", flush=True)
         from skip_search_spec.training.train_early_exit import train_early_exit
+        print("[entry] imported train_early_exit", flush=True)
 
         DATASET_SPEC_EARLY_EXIT = DatasetSpec(
             name="FineWeb-Edu-1B",
