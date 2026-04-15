@@ -25,7 +25,7 @@ def train_drafter_for_verifier(*,draft_model_name: str,
                                verifier_model_name: str, 
                                dataset_spec: DatasetSpec, 
                                window_size: int, 
-                               number_of_layers_allowed_to_change: int = 10,
+                               number_of_layers_allowed_to_change: int | None = None,
                                batch_size: int = 4,
                                max_examples: int = 10_000):
 
@@ -64,7 +64,18 @@ def train_drafter_for_verifier(*,draft_model_name: str,
 
 
     total_layers = len(draft_model_and_tokenizer.model.model.layers)
-    start = total_layers - number_of_layers_allowed_to_change
+
+    if number_of_layers_allowed_to_change is None:
+        start = 0
+    else:
+        if number_of_layers_allowed_to_change <= 0:
+            raise ValueError("number_of_layers_allowed_to_change must be positive or None.")
+        if number_of_layers_allowed_to_change > total_layers:
+            raise ValueError(
+                f"number_of_layers_allowed_to_change={number_of_layers_allowed_to_change} "
+                f"but model only has {total_layers} layers."
+            )
+        start = total_layers - number_of_layers_allowed_to_change
 
     # Freeze everything first
     for p in draft_model_and_tokenizer.model.parameters():
@@ -85,7 +96,7 @@ def train_drafter_for_verifier(*,draft_model_name: str,
     trainable_params = [p for p in draft_model_and_tokenizer.model.parameters() if p.requires_grad]
 
     optimizer = torch.optim.AdamW(
-        [{"params": trainable_params, "lr": 1e-4}],
+        [{"params": trainable_params, "lr": 5e-5}],
     )
 
     window_dataset = WindowDataset(training_windows)
@@ -116,16 +127,19 @@ def train_drafter_for_verifier(*,draft_model_name: str,
     draft_model_and_tokenizer.model.train()
     verifier_model_and_tokenizer.model.eval()
 
-    alpha = 0.5  # weight for CE_draft vs KL distillation
     ce_draft: torch.Tensor | None = None
     ce_verifier: torch.Tensor | None = None
 
+    grad_accum_steps = 8
+
+    optimizer.zero_grad(set_to_none=True)
+    
     for step, (input_ids, attention_mask) in enumerate(dataloader):
         input_ids = input_ids.to(device, non_blocking=True)
         attention_mask = attention_mask.to(device, non_blocking=True)
         labels = input_ids
 
-        optimizer.zero_grad(set_to_none=True)
+        
 
         # Draft forward (gradients flow)
         draft_outputs = draft_model_and_tokenizer.model(
@@ -146,8 +160,10 @@ def train_drafter_for_verifier(*,draft_model_name: str,
         shift_logits_verifier = logits_verifier[:, :-1, :].contiguous()
         shift_labels = labels[:, 1:].contiguous()
 
-        log_p_draft = F.log_softmax(shift_logits_draft.float(), dim=-1)
-        log_p_verifier = F.log_softmax(shift_logits_verifier.float(), dim=-1)
+        T = 2.0
+
+        log_p_draft = F.log_softmax(shift_logits_draft.float() / T, dim=-1)
+        log_p_verifier = F.log_softmax(shift_logits_verifier.float() / T, dim=-1)
 
         kl_per_token = F.kl_div(
             log_p_draft,
@@ -155,7 +171,8 @@ def train_drafter_for_verifier(*,draft_model_name: str,
             reduction="none",
             log_target=True,
         ).sum(dim=-1)
-        kl_verifier_to_draft = kl_per_token.mean()
+
+        kl_verifier_to_draft = (T * T) * kl_per_token.mean()
 
         ce_draft = F.cross_entropy(
             shift_logits_draft.view(-1, shift_logits_draft.size(-1)),
@@ -166,11 +183,13 @@ def train_drafter_for_verifier(*,draft_model_name: str,
             shift_labels.view(-1),
         )
 
-        loss = alpha * ce_draft + (1.0 - alpha) * kl_verifier_to_draft
+        loss = kl_verifier_to_draft / grad_accum_steps
 
         loss.backward()
-        torch.nn.utils.clip_grad_norm_(trainable_params, max_norm=1.0)
-        optimizer.step()
+        if (step + 1) % grad_accum_steps == 0:
+            torch.nn.utils.clip_grad_norm_(trainable_params, max_norm=1.0)
+            optimizer.step()
+            optimizer.zero_grad(set_to_none=True)
 
         if step % 10 == 0:
             with torch.no_grad():

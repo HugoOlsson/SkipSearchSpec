@@ -80,6 +80,42 @@ def assign_to_nearest_centroid(
 
 
 @torch.no_grad()
+def find_tokens_to_evict_by_regret(
+    scores: Tensor,
+    token_to_cluster_mapping: Tensor,
+    cluster_sizes: Tensor,
+    cluster_capacities: Tensor,
+) -> Tensor:
+    top2_scores, _ = scores.topk(k=2, dim=-1)
+    regrets = top2_scores[:, 0] - top2_scores[:, 1]
+
+    evicted_token_ids_parts: list[Tensor] = []
+
+    overloaded_cluster_ids = torch.nonzero(
+        cluster_sizes > cluster_capacities,
+        as_tuple=False,
+    ).flatten()
+
+    for cluster_id in overloaded_cluster_ids.tolist():
+        overflow = int((cluster_sizes[cluster_id] - cluster_capacities[cluster_id]).item())
+
+        member_token_ids = torch.nonzero(
+            token_to_cluster_mapping == cluster_id,
+            as_tuple=False,
+        ).flatten()
+
+        member_regrets = regrets[member_token_ids]
+        evicted_member_ids = member_token_ids[
+            torch.argsort(member_regrets)[:overflow]
+        ]
+        evicted_token_ids_parts.append(evicted_member_ids)
+
+    if not evicted_token_ids_parts:
+        return torch.empty(0, dtype=torch.long, device=scores.device)
+
+    return torch.cat(evicted_token_ids_parts, dim=0)
+
+@torch.no_grad()
 def assign_with_greedy_capacity_rebalancing(
     vectors: Tensor,
     centroids: Tensor,
@@ -87,48 +123,48 @@ def assign_with_greedy_capacity_rebalancing(
 ) -> tuple[Tensor, Tensor]:
     scores = vectors @ centroids.transpose(0, 1)
     token_to_cluster_mapping = scores.argmax(dim=-1)
-    num_clusters = centroids.shape[0]
 
+    num_clusters = centroids.shape[0]
     cluster_sizes = torch.bincount(
         token_to_cluster_mapping,
         minlength=num_clusters,
     )
 
-    assigned_scores = scores[
-        torch.arange(vectors.shape[0], device=vectors.device),
-        token_to_cluster_mapping,
-    ]
+    evicted_token_ids = find_tokens_to_evict_by_regret(
+        scores=scores,
+        token_to_cluster_mapping=token_to_cluster_mapping,
+        cluster_sizes=cluster_sizes,
+        cluster_capacities=cluster_capacities,
+    )
 
-    evicted_token_ids_parts: list[Tensor] = []
+    if evicted_token_ids.numel() == 0:
+        return token_to_cluster_mapping, cluster_sizes
 
-    for cluster_id in torch.nonzero(cluster_sizes > cluster_capacities, as_tuple=False).flatten().tolist():
-        overflow = int((cluster_sizes[cluster_id] - cluster_capacities[cluster_id]).item())
-        member_token_ids = torch.nonzero(token_to_cluster_mapping == cluster_id, as_tuple=False).flatten()
-        member_scores = assigned_scores[member_token_ids]
-        worst_member_ids = member_token_ids[torch.argsort(member_scores)[:overflow]]
-        evicted_token_ids_parts.append(worst_member_ids)
+    old_cluster_ids = token_to_cluster_mapping[evicted_token_ids]
+    token_to_cluster_mapping = token_to_cluster_mapping.clone()
+    token_to_cluster_mapping[evicted_token_ids] = -1
 
-    if evicted_token_ids_parts:
-        evicted_token_ids = torch.cat(evicted_token_ids_parts, dim=0)
+    cluster_sizes = cluster_sizes.clone()
+    cluster_sizes.scatter_add_(
+        0,
+        old_cluster_ids,
+        -torch.ones_like(old_cluster_ids),
+    )
 
-        old_cluster_ids = token_to_cluster_mapping[evicted_token_ids]
-        token_to_cluster_mapping[evicted_token_ids] = -1
-        cluster_sizes = cluster_sizes.clone()
-        cluster_sizes.scatter_add_(
-            0,
-            old_cluster_ids,
-            -torch.ones_like(old_cluster_ids),
+    for token_id in evicted_token_ids.tolist():
+        available_cluster_ids = torch.nonzero(
+            cluster_sizes < cluster_capacities,
+            as_tuple=False,
+        ).flatten()
+
+        new_cluster_id = int(
+            available_cluster_ids[
+                scores[token_id, available_cluster_ids].argmax()
+            ].item()
         )
 
-        for token_id in evicted_token_ids.tolist():
-            available_cluster_ids = torch.nonzero(cluster_sizes < cluster_capacities, as_tuple=False).flatten()
-            new_cluster_id = int(
-                available_cluster_ids[
-                    scores[token_id, available_cluster_ids].argmax()
-                ].item()
-            )
-            token_to_cluster_mapping[token_id] = new_cluster_id
-            cluster_sizes[new_cluster_id] += 1
+        token_to_cluster_mapping[token_id] = new_cluster_id
+        cluster_sizes[new_cluster_id] += 1
 
     return token_to_cluster_mapping, cluster_sizes
 
@@ -222,8 +258,7 @@ def build_clusters(
     lm_head_vector_table: Tensor,
     *,
     num_clusters: int,
-    num_iters: int = 10,
-    num_rebalance_rounds: int = 2,
+    num_iters: int = 100,
     normalize_vectors: bool = True,
     seed: int = 0,
 ) -> BuiltFlashHeadClusters:
