@@ -38,11 +38,17 @@ echo "CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-unset}"
 nvidia-smi
 
 if [[ -x "$VENV_PATH/bin/python" ]]; then
-  run_cmd=("$VENV_PATH/bin/python" -m skip_search_spec.main)
+  run_cmd=("$VENV_PATH/bin/python" -u -m skip_search_spec.main)
 elif [[ -x "$PROJECT_ROOT/.venv/bin/python" ]]; then
-  run_cmd=("$PROJECT_ROOT/.venv/bin/python" -m skip_search_spec.main)
+  run_cmd=("$PROJECT_ROOT/.venv/bin/python" -u -m skip_search_spec.main)
 elif command -v poetry >/dev/null 2>&1; then
-  run_cmd=(poetry run python -m skip_search_spec.main)
+  poetry_python="$(poetry env info --executable 2>/dev/null || true)"
+  if [[ -z "$poetry_python" || ! -x "$poetry_python" ]]; then
+    echo "Poetry environment missing; installing dependencies..."
+    poetry install --no-interaction --no-ansi
+    poetry_python="$(poetry env info --executable)"
+  fi
+  run_cmd=("$poetry_python" -u -m skip_search_spec.main)
 else
   echo "ERROR: no Python environment found."
   echo "Expected a CUDA venv at $VENV_PATH, a fallback venv at $PROJECT_ROOT/.venv, or Poetry on PATH."

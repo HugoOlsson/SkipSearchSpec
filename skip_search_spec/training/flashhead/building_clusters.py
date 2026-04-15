@@ -135,11 +135,10 @@ def build_clusters(
     normalize_vectors: bool = True,
     seed: int = 0,
 ) -> BuiltFlashHeadClusters:
+    
     if lm_head_vector_table.ndim != 2:
         raise ValueError("lm_head_vector_table must have shape [vocab_size, hidden_size]")
 
-    device = torch.device("cpu")
-    print("Device to build clusters on:", device)
 
     vocab_size, _ = lm_head_vector_table.shape
 
@@ -149,6 +148,10 @@ def build_clusters(
         raise ValueError("num_clusters cannot exceed vocab_size")
     if num_iters < 1:
         raise ValueError("num_iters must be >= 1")
+    
+
+    device = torch.device("cpu")
+    print("Device to build clusters on:", device)
 
     vectors = lm_head_vector_table.to(device=device, dtype=torch.float32)
 

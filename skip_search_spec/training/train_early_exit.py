@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import time
 from typing import Any, cast
 
 from datasets.arrow_dataset import Dataset
@@ -242,32 +243,47 @@ def train_early_exit(
     beta: float,
     save_optimizer: bool,
 ) -> None:
+    def stage(message: str) -> None:
+        print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] {message}", flush=True)
+
+    stage("train_early_exit: start")
     device = get_preferred_device()
     compute_dtype = get_preferred_float_dtype(device)
+    stage(f"device={device}, compute_dtype={compute_dtype}")
 
+    stage(f"loading model+tokenizer: {model_name}")
     model_and_tokenizer: ModelAndTokenizer = load_model_and_tokenizer(
         model_name,
         model_kwargs={"torch_dtype": compute_dtype},
     )
+    stage("loaded model+tokenizer")
 
     base_model = cast(Any, model_and_tokenizer.model)
+    stage("moving base model to target device")
     base_model.to(device=device, dtype=compute_dtype)
+    stage("base model moved to target device")
 
+    stage(f"loading dataset: {dataset_spec}")
     dataset: Dataset = load_dataset(dataset_spec)
+    stage("dataset loaded")
     context_parts = WindowSettings(C1=context_len)
 
+    stage("tokenizing dataset")
     tokenized_examples = tokenize_dataset_to_examples(
         dataset,
         model_and_tokenizer.tokenizer,
         dataset_spec,
         max_examples=max_examples,
     )
+    stage(f"tokenization done: {len(tokenized_examples)} examples")
 
+    stage("building training windows")
     training_windows = build_all_training_windows(
         tokenized_examples,
         context_parts,
         dataset_spec,
     )
+    stage(f"window building done: {len(training_windows)} windows")
 
     num_layers = len(base_model.model.layers)
     inner_exit_layer_index = 15#int(num_layers // 1.2)

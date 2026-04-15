@@ -13,6 +13,7 @@ def main() -> None:
     if len(sys.argv) <= 1:
         raise ValueError("Must provide a run mode")
     mode = sys.argv[1]
+    print(f"[entry] mode={mode}", flush=True)
 
    
     if mode == "train_early_exit":
