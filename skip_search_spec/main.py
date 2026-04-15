@@ -1,6 +1,7 @@
 """Project entrypoint."""
 
 from __future__ import annotations
+from curses import window
 
 import torch
 import sys
@@ -8,6 +9,7 @@ import sys
 from skip_search_spec.helpers.tooling import load_model_and_tokenizer
 from skip_search_spec.protocols.windows import DatasetSpec, WindowSettings
 from skip_search_spec.training.flashhead.flashhead_research import  build_flashhead_head, evaluate_flashhead
+from skip_search_spec.training.train_drafter_ability import train_drafter_for_verifier
 from skip_search_spec.training.train_early_exit import train_early_exit
 
 
@@ -50,6 +52,31 @@ def main() -> None:
             beta=2.0,
             save_optimizer=False,
         )
+    
+    elif mode == "train_drafter_for_verifier":
+
+        DATASET_SPEC_DRAFT_FOR_VERIFIER = DatasetSpec(
+            name="FineWeb-Edu-1B",
+            huggingface_path="codelion/fineweb-edu-1B",
+            config_name="default",
+            split="train",
+            text_field="text",
+        )
+
+        DRAFT_MODEL_NAME = "Qwen/Qwen2.5-0.5B"
+
+        VERIFIER_MODEL_NAME = "Qwen/Qwen2.5-1.5B"
+
+        train_drafter_for_verifier(
+          draft_model_name=DRAFT_MODEL_NAME,
+          verifier_model_name=VERIFIER_MODEL_NAME,
+          dataset_spec=DATASET_SPEC_DRAFT_FOR_VERIFIER,
+          window_size=500,
+          number_of_layers_allowed_to_change=10,
+          batch_size=1,
+          max_examples=1_000
+        )
+
 
     elif mode == "build_flashhead":
         build_flashhead_head(STORE_PATH_FLASH_HEAD, MODEL_NAME_FLASH_HEAD)
