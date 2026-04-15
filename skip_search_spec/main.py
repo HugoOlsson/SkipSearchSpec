@@ -1,23 +1,9 @@
 """Project entrypoint."""
 
 from __future__ import annotations
-from curses import window
-
-import torch
 import sys
 
-from skip_search_spec.helpers.tooling import load_model_and_tokenizer
-from skip_search_spec.protocols.windows import DatasetSpec, WindowSettings
-from skip_search_spec.training.flashhead.flashhead_research import  build_flashhead_head, evaluate_flashhead
-from skip_search_spec.training.train_drafter_ability import train_drafter_for_verifier
-from skip_search_spec.training.train_early_exit import train_early_exit
-
-
-
-
-
-
-CONTEXT_PARTS = WindowSettings(C1=250)
+from skip_search_spec.protocols.windows import DatasetSpec
 
 STORE_PATH_FLASH_HEAD = "checkpoints/flashhead_qwen_0_5b.pt"
 MODEL_NAME_FLASH_HEAD = "Qwen/Qwen2.5-0.5B"
@@ -30,6 +16,7 @@ def main() -> None:
 
    
     if mode == "train_early_exit":
+        from skip_search_spec.training.train_early_exit import train_early_exit
 
         DATASET_SPEC_EARLY_EXIT = DatasetSpec(
             name="FineWeb-Edu-1B",
@@ -54,6 +41,7 @@ def main() -> None:
         )
     
     elif mode == "train_drafter_for_verifier":
+        from skip_search_spec.training.train_drafter_ability import train_drafter_for_verifier
 
         DATASET_SPEC_DRAFT_FOR_VERIFIER = DatasetSpec(
             name="FineWeb-Edu-1B",
@@ -79,9 +67,11 @@ def main() -> None:
 
 
     elif mode == "build_flashhead":
+        from skip_search_spec.training.flashhead.flashhead_research import build_flashhead_head
         build_flashhead_head(STORE_PATH_FLASH_HEAD, MODEL_NAME_FLASH_HEAD)
 
     elif mode == "evaluate_flashhead":
+        from skip_search_spec.training.flashhead.flashhead_research import evaluate_flashhead
         evaluate_flashhead(STORE_PATH_FLASH_HEAD, MODEL_NAME_FLASH_HEAD)
 
     

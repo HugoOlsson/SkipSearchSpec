@@ -1,10 +1,11 @@
 
+from __future__ import annotations
 
-
-
+from typing import TYPE_CHECKING
 from dataclasses import dataclass
 
-from transformers import PreTrainedModel, PreTrainedTokenizerBase
+if TYPE_CHECKING:
+    from transformers import PreTrainedModel, PreTrainedTokenizerBase
 
 
 

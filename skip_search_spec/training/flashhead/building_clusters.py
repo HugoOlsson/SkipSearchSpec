@@ -7,12 +7,14 @@ torch.set_num_threads(os.cpu_count() or 1)
 torch.set_num_interop_threads(1)
 
 
+# The final clutering result
+
 @dataclass(frozen=True, slots=True)
 class BuiltFlashHeadClusters:
-    token_to_cluster_mapping: Tensor
-    cluster_to_token_ids: Tensor
-    centroids: Tensor
-    cluster_sizes: Tensor
+    token_to_cluster_mapping: Tensor # [vocab_size]
+    cluster_to_token_ids: Tensor     # [num_clusters, max_cluster_size] padded with -1
+    centroids: Tensor                # [num_clusters, hidden_size]
+    cluster_sizes: Tensor            # [num_clusters]
 
 @dataclass(frozen=True, slots=True)
 class ClusterQualityMetrics:
@@ -31,6 +33,8 @@ class ClusterQualityMetrics:
 def l2_normalize(x: Tensor, dim: int) -> Tensor:
     return x / x.norm(dim=dim, keepdim=True).clamp_min(1e-12)
 
+
+# Calculate ideal cluster sizes to keep them as balanced as possible
 
 def build_near_equal_cluster_capacities(
     vocab_size: int,
