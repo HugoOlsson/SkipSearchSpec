@@ -39,7 +39,7 @@ def main() -> None:
             text_field="text",
         )
 
-        MODEL_NAME_EARLY_EXIT = "Qwen/Qwen2.5-3B"
+        MODEL_NAME_EARLY_EXIT = "Qwen/Qwen2.5-1.5B"
 
         train_early_exit(
             model_name=MODEL_NAME_EARLY_EXIT,
