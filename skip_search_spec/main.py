@@ -63,9 +63,9 @@ def main() -> None:
           verifier_model_name=VERIFIER_MODEL_NAME,
           dataset_spec=DATASET_SPEC_DRAFT_FOR_VERIFIER,
           window_size=500,
-          number_of_layers_allowed_to_change=10,
-          batch_size=4,
-          max_examples=1_000
+          number_of_layers_allowed_to_change=16,
+          batch_size=8,
+          max_examples=100_000
         )
 
 
