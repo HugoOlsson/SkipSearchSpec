@@ -1,10 +1,10 @@
 #!/bin/bash
 #SBATCH -J sss-dfv
-#SBATCH -p long
+#SBATCH -p short
 #SBATCH --gres=gpu:L40s:1
 #SBATCH --cpus-per-task=4
-#SBATCH --mem=64G
-#SBATCH --time=2:00:00
+#SBATCH --mem=32G
+#SBATCH --time=30:00
 #SBATCH -o logs/sss-dfv-%j.out
 #SBATCH -e logs/sss-dfv-%j.err
 

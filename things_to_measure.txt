@@ -1,0 +1,32 @@
+This is an approximate document of what will be measured:
+
+
+Testing of: Early-exit, head-approximation, speculative-decoding
+
+Note: All fine-tunings are for domain specific tasks like specific datasets. The fine-tuned setups will not be trained for general purpose due to compute and time constraints.
+
+Models to use: Preferably models from different families to get diverse results. Compute is limited so for models to fine tune they must be less than 8B parameters, and no model in use should preferably be bigger than 10B. Sizes up to 14B or 20B can be used without fine-tuning if it seems like it would give interesting insights.
+
+Hardware: My local hardware is Apple M5 with 24 GB of unified memory. The cluster has L40s cards (i cannot use multiple cards at once), but those are often taken so sometimes i will have to just use L4 cards.
+
+Early-exit:
+Just do early exit, no casting, no fine-tuning
+Early-exit with casting (mid projection), no fine-tuning
+Early-exit with casting and fine-tuning.
+For early exit without fine-tuning, all layers can be used to see results. Extra interesting when the layer setup is not just the same repeating.
+For early exit with fine-tuning, this takes longer to train so we are happy with depths of 25%, 50% and 75% (where we might adjust exact layers for models where their layer setup requires this)
+CE difference, KL difference, how does it work in self-speculation?
+
+
+Head-approximation:
+How much computation is usually spent in the head compared to the total inference time per token (theoretically and practical measurements)?
+What are the speedups with FlashHeadResearch (my implementation of FlashHead) compared to baseline for different lm-models?
+What are the speedups with FlashHead (official) compared to baseline for different lm-models?
+
+
+Speculative-decoding:
+What are the acceptance rates and speedups of the most promising early exit variants for the static block sizes of 1, 2, 4, 8, 16. So this is Self-speculation.
+What are the acceptance rates and speedups for off-the-shelf same model combinations as drafter and verifier for regular Speculative-Decoding? 
+What are the acceptance rates and speedups when fine-tuning the draft off-the-shelf model to match the verifiers distribution?
+
+
