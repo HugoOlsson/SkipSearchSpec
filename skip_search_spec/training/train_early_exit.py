@@ -13,6 +13,7 @@ import torch.nn.functional as F
 from skip_search_spec.helpers.storage import save_early_exit_checkpoint
 from skip_search_spec.helpers.tooling import get_preferred_device, get_preferred_float_dtype, load_dataset, load_model_and_tokenizer
 from skip_search_spec.helpers.window_building import WindowDataset, build_all_training_windows, collate_windows, tokenize_dataset_to_examples
+from skip_search_spec.protocols.measurements import RunContext
 from skip_search_spec.protocols.windows import DatasetSpec, ModelAndTokenizer, WindowSettings
 
 
@@ -249,41 +250,32 @@ def train_early_exit(
     stage("train_early_exit: start")
     device = get_preferred_device()
     compute_dtype = get_preferred_float_dtype(device)
-    stage(f"device={device}, compute_dtype={compute_dtype}")
 
-    stage(f"loading model+tokenizer: {model_name}")
+  
+
     model_and_tokenizer: ModelAndTokenizer = load_model_and_tokenizer(
         model_name,
         model_kwargs={"torch_dtype": compute_dtype},
     )
-    stage("loaded model+tokenizer")
 
     base_model = cast(Any, model_and_tokenizer.model)
-    stage("moving base model to target device")
     base_model.to(device=device, dtype=compute_dtype)
-    stage("base model moved to target device")
 
-    stage(f"loading dataset: {dataset_spec}")
     dataset: Dataset = load_dataset(dataset_spec)
-    stage("dataset loaded")
     context_parts = WindowSettings(C1=context_len)
 
-    stage("tokenizing dataset")
     tokenized_examples = tokenize_dataset_to_examples(
         dataset,
         model_and_tokenizer.tokenizer,
         dataset_spec,
         max_examples=max_examples,
     )
-    stage(f"tokenization done: {len(tokenized_examples)} examples")
 
-    stage("building training windows")
     training_windows = build_all_training_windows(
         tokenized_examples,
         context_parts,
         dataset_spec,
     )
-    stage(f"window building done: {len(training_windows)} windows")
 
     num_layers = len(base_model.model.layers)
     inner_exit_layer_index = 15#int(num_layers // 1.2)
@@ -341,16 +333,27 @@ def train_early_exit(
         pin_memory=(device.type == "cuda"),
     )
 
-    print("STARTING EARLY-EXIT TRAINING")
-    print(f"  model={model_name}")
-    print(f"  dataset={dataset_spec}")
-    print(f"  device={device}")
-    print(f"  compute_dtype={compute_dtype}")
-    print(f"  context: C1={context_parts.C1}")
-    print(f"  total_windows={len(training_windows)}")
-    print(f"  batch_size={batch_size}")
-    print(f"  steps_per_epoch={len(dataloader)}")
-    print(f"  early_exit_layer={inner_exit_layer_index}, total_layers={num_layers}")
+
+    run_context = RunContext.create(
+        run_id=f"early-exit-{int(time.time())}",
+        experiment_type="early_exit",
+        model_names=(model_name,),
+        dataset_name=dataset_spec.name,
+        run_config={
+            "model": model_name,
+            "dataset": str(dataset_spec),
+            "device": str(device),
+            "compute_dtype": str(compute_dtype),
+            "C1": context_parts.C1,
+            "total_windows": len(training_windows),
+            "batch_size": batch_size,
+            "steps_per_epoch": len(dataloader),
+            "early_exit_layer": inner_exit_layer_index,
+            "total_layers": num_layers,
+        },
+    )
+
+    run_context.print()
     trained_indices = [
         i for i, layer in enumerate(early_exit_model.layers)
         if layer in trained_blocks

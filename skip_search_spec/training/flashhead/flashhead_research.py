@@ -71,7 +71,7 @@ def build_flashhead_head(store_path: str, model_name: str) -> None:
     built_clusters = build_clusters(
         lm_head_vector_table=loaded.lm_head_vector_table,
         num_clusters=8000,
-        num_iters=100,
+        num_iters=200,
         normalize_vectors=True,
         seed=0,
     )
@@ -161,7 +161,7 @@ def evaluate_flashhead(stored_path: str, model_name: str) -> None:
         centroids=stored.centroids,
         cluster_to_token_ids=stored.cluster_to_token_ids,
         token_windows=window_tensors,
-        top_k_clusters=250,
+        top_k_clusters=200,
         max_windows=100,
         max_positions_per_window=256,
         normalize_hidden_for_routing=True,
