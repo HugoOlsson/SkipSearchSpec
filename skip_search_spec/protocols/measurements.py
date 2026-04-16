@@ -4,7 +4,8 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 import json
 from pathlib import Path
-from typing import Any, Literal, Mapping, TypeAlias
+import time
+from typing import Any, Iterable, Literal, Mapping, TypeAlias
 
 from skip_search_spec.helpers.versioning import get_git_revision
 
@@ -15,6 +16,29 @@ ExperimentType = Literal[
     "speculative_decoding",
 ]
 SummaryType = ExperimentType
+
+
+_LAST_SAVE_MONOTONIC_BY_RUN_ID: dict[str, float] = {}
+
+
+def save_at_interval(
+    run: MeasurementRun,
+    *,
+    min_interval_seconds: float = 60.0,
+    filename: str = "run.json",
+    force: bool = False,
+) -> Path | None:
+    run_id = run.context.run_id
+    now = time.monotonic()
+    last = _LAST_SAVE_MONOTONIC_BY_RUN_ID.get(run_id)
+
+    should_save = force or last is None or (now - last) >= min_interval_seconds
+    if not should_save:
+        return None
+
+    out_path = run.save(filename=filename)
+    _LAST_SAVE_MONOTONIC_BY_RUN_ID[run_id] = now
+    return out_path
 
 
 def utc_now_iso() -> str:
@@ -85,8 +109,15 @@ class RunContext:
     def print(self) -> None:
         title = self.experiment_type.replace("_", "-").upper()
         print(f"STARTING {title} RUN")
+
         for key, value in asdict(self).items():
-            print(f"  {key}={value}")
+            if isinstance(value, Mapping):
+                print(f"  {key}=")
+                pretty = json.dumps(value, indent=2, sort_keys=True, ensure_ascii=False)
+                for line in pretty.splitlines():
+                    print(f"    {line}")
+            else:
+                print(f"  {key}={value}")
 
 
 @dataclass(frozen=True, slots=True)
@@ -128,106 +159,24 @@ class MetricEvent:
             unit=_opt_str(data.get("unit")),
         )
 
+    def format_compact(self, *, decimals: int = 4) -> str:
+        return f"{self.name}={self.value:.{decimals}f}"
 
-@dataclass(frozen=True, slots=True)
-class FlashHeadSummary:
-    summary_type: Literal["flashhead"] = "flashhead"
-    top1_containment: float | None = None
-    top3_containment: float | None = None
-    dense_winner_in_candidate_set_rate: float | None = None
-    mean_candidate_count: float | None = None
-    speedup_vs_baseline: float | None = None
-
-    @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> "FlashHeadSummary":
-        return cls(
-            summary_type="flashhead",
-            top1_containment=_opt_float(data.get("top1_containment")),
-            top3_containment=_opt_float(data.get("top3_containment")),
-            dense_winner_in_candidate_set_rate=_opt_float(data.get("dense_winner_in_candidate_set_rate")),
-            mean_candidate_count=_opt_float(data.get("mean_candidate_count")),
-            speedup_vs_baseline=_opt_float(data.get("speedup_vs_baseline")),
-        )
+    def print(self, *, end: str = "  ", decimals: int = 4) -> None:
+        print(self.format_compact(decimals=decimals), end=end)
 
 
-@dataclass(frozen=True, slots=True)
-class EarlyExitSummary:
-    summary_type: Literal["early_exit"] = "early_exit"
-    ce_gap_final: float | None = None
-    kl_full_to_mid_mean: float | None = None
-    top1_agreement_mean: float | None = None
-    p_mid_on_full_argmax_mean: float | None = None
 
-    @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> "EarlyExitSummary":
-        return cls(
-            summary_type="early_exit",
-            ce_gap_final=_opt_float(data.get("ce_gap_final")),
-            kl_full_to_mid_mean=_opt_float(data.get("kl_full_to_mid_mean")),
-            top1_agreement_mean=_opt_float(data.get("top1_agreement_mean")),
-            p_mid_on_full_argmax_mean=_opt_float(data.get("p_mid_on_full_argmax_mean")),
-        )
-
-
-@dataclass(frozen=True, slots=True)
-class SelfSpeculationSummary:
-    summary_type: Literal["self_speculation"] = "self_speculation"
-    acceptance_rate_macro: float | None = None
-    acceptance_rate_micro: float | None = None
-    accepted_tokens_total: int | None = None
-    proposed_tokens_total: int | None = None
-    speedup_vs_baseline: float | None = None
-
-    @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> "SelfSpeculationSummary":
-        return cls(
-            summary_type="self_speculation",
-            acceptance_rate_macro=_opt_float(data.get("acceptance_rate_macro")),
-            acceptance_rate_micro=_opt_float(data.get("acceptance_rate_micro")),
-            accepted_tokens_total=_opt_int(data.get("accepted_tokens_total")),
-            proposed_tokens_total=_opt_int(data.get("proposed_tokens_total")),
-            speedup_vs_baseline=_opt_float(data.get("speedup_vs_baseline")),
-        )
-
-
-@dataclass(frozen=True, slots=True)
-class SpeculativeDecodingSummary:
-    summary_type: Literal["speculative_decoding"] = "speculative_decoding"
-    acceptance_rate_macro: float | None = None
-    acceptance_rate_micro: float | None = None
-    speedup_vs_baseline: float | None = None
-
-    @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> "SpeculativeDecodingSummary":
-        return cls(
-            summary_type="speculative_decoding",
-            acceptance_rate_macro=_opt_float(data.get("acceptance_rate_macro")),
-            acceptance_rate_micro=_opt_float(data.get("acceptance_rate_micro")),
-            speedup_vs_baseline=_opt_float(data.get("speedup_vs_baseline")),
-        )
-
-
-RunSummary: TypeAlias = (
-    FlashHeadSummary
-    | EarlyExitSummary
-    | SelfSpeculationSummary
-    | SpeculativeDecodingSummary
-)
-
-
-@dataclass(frozen=True, slots=True)
+@dataclass(slots=True)
 class MeasurementRun:
     context: RunContext
-    summary: RunSummary | None = None
-    metric_events: tuple[MetricEvent, ...] = ()
+    metric_events: list[MetricEvent] = field(default_factory=list)
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> "MeasurementRun":
-        summary_raw = data.get("summary")
         return cls(
             context=RunContext.from_dict(data["context"]),
-            summary=parse_run_summary(summary_raw) if isinstance(summary_raw, Mapping) else None,
-            metric_events=tuple(MetricEvent.from_dict(x) for x in list(data.get("metric_events", []))),
+            metric_events=[MetricEvent.from_dict(x) for x in list(data.get("metric_events", []))],
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -255,17 +204,11 @@ class MeasurementRun:
         return out_path
 
 
-def parse_run_summary(data: Mapping[str, Any]) -> RunSummary:
-    summary_type = str(data.get("summary_type"))
-    if summary_type == "flashhead":
-        return FlashHeadSummary.from_dict(data)
-    if summary_type == "early_exit":
-        return EarlyExitSummary.from_dict(data)
-    if summary_type == "self_speculation":
-        return SelfSpeculationSummary.from_dict(data)
-    if summary_type == "speculative_decoding":
-        return SpeculativeDecodingSummary.from_dict(data)
-    raise ValueError(f"Unsupported summary_type: {summary_type}")
+
+def print_metric_events_line(events: Iterable[MetricEvent], *, decimals: int = 4) -> None:
+    for event in events:
+        event.print(end="  ", decimals=decimals)
+    print()
 
 
 def _opt_str(value: Any) -> str | None:

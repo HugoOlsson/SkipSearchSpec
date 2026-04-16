@@ -13,7 +13,7 @@ import torch.nn.functional as F
 from skip_search_spec.helpers.storage import save_early_exit_checkpoint
 from skip_search_spec.helpers.tooling import get_preferred_device, get_preferred_float_dtype, load_dataset, load_model_and_tokenizer
 from skip_search_spec.helpers.window_building import WindowDataset, build_all_training_windows, collate_windows, tokenize_dataset_to_examples
-from skip_search_spec.protocols.measurements import RunContext
+from skip_search_spec.protocols.measurements import  MeasurementRun, MetricEvent, RunContext, save_at_interval, print_metric_events_line
 from skip_search_spec.protocols.windows import DatasetSpec, ModelAndTokenizer, WindowSettings
 
 
@@ -364,6 +364,8 @@ def train_early_exit(
     ce_mid: torch.Tensor | None = None
     ce_full: torch.Tensor | None = None
 
+    metric_events: list[MetricEvent] = []
+
     for step, (input_ids, attention_mask) in enumerate(dataloader):
         input_ids = input_ids.to(device, non_blocking=True)
         attention_mask = attention_mask.to(device, non_blocking=True)
@@ -416,18 +418,33 @@ def train_early_exit(
                     shift_logits_full=shift_logits_full,
                 )
 
-            print(
-                f"[{step}/{len(dataloader)}] "
-                f"loss={loss.item():.4f}  "
-                f"ce_mid={ce_mid.item():.4f}  "
-                f"ce_full={ce_full.item():.4f}  "
-                f"gap={(ce_mid.item() - ce_full.item()):.4f}  "
-                f"kl(full||mid)={metrics['kl_full_to_mid'].item():.4f}  "
-                f"js={metrics['js'].item():.4f}  "
-                f"top1_agree={metrics['top1_agreement'].item():.4f}  "
-                f"overlap={metrics['overlap'].item():.4f}  "
-                f"p_mid@full_argmax={metrics['p_mid_on_full_argmax'].item():.4f}"
-            )
+            batch_metrics = [
+                MetricEvent.create(phase="train", name="loss", value=loss.item(), step=step),
+                MetricEvent.create(phase="train", name="ce_mid", value=ce_mid.item(), step=step),
+                MetricEvent.create(phase="train", name="ce_full", value=ce_full.item(), step=step),
+                MetricEvent.create(phase="train", name="ce_gap", value=(ce_mid.item() - ce_full.item()), step=step),
+                MetricEvent.create(phase="train", name="kl_full_to_mid", value=metrics["kl_full_to_mid"].item(), step=step),
+                MetricEvent.create(phase="train", name="js", value=metrics["js"].item(), step=step),
+                MetricEvent.create(phase="train", name="top1_agreement", value=metrics["top1_agreement"].item(), step=step),
+                MetricEvent.create(phase="train", name="overlap", value=metrics["overlap"].item(), step=step),
+                MetricEvent.create(
+                    phase="train",
+                    name="p_mid_on_full_argmax",
+                    value=metrics["p_mid_on_full_argmax"].item(),
+                    step=step,
+                ),
+            ]
+
+            metric_events.extend(batch_metrics)
+            print(f"[{step}/{len(dataloader)}] ", end="")
+            print_metric_events_line(batch_metrics, decimals=4)
+
+            run = MeasurementRun(context=run_context, metric_events=metric_events)
+            save_at_interval(run) 
+        
+        
+
+        
 
     if ce_mid is not None and ce_full is not None:
         print("Done. Final gap:", (ce_mid.item() - ce_full.item()))
@@ -439,3 +456,11 @@ def train_early_exit(
         optimizer=optimizer if save_optimizer else None,
     )
     print(f"Saved checkpoint to: {checkpoint_path}")
+
+    run = MeasurementRun(
+        context=run_context,
+        metric_events=metric_events,
+    )
+
+    saved_log_path = run.save()
+    print(f"Saved measurement log to: {saved_log_path}")
