@@ -11,7 +11,7 @@ from torch.utils.data import Dataset as TorchDataset, DataLoader
 import torch.nn.functional as F
 
 from skip_search_spec.helpers.storage import save_early_exit_checkpoint
-from skip_search_spec.helpers.tooling import get_preferred_device, get_preferred_float_dtype, load_dataset, load_model_and_tokenizer
+from skip_search_spec.helpers.tooling import distribution_similarity_metrics, get_preferred_device, get_preferred_float_dtype, load_dataset, load_model_and_tokenizer
 from skip_search_spec.helpers.window_building import WindowDataset, build_all_training_windows, collate_windows, tokenize_dataset_to_examples
 from skip_search_spec.protocols.measurements import  MeasurementRun, MetricEvent, RunContext, save_at_interval, print_metric_events_line
 from skip_search_spec.protocols.windows import DatasetSpec, ModelAndTokenizer, WindowSettings
@@ -190,51 +190,10 @@ class EarlyExitModel(nn.Module):
         )
 
 
-def distribution_similarity_metrics(
-    shift_logits_mid: torch.Tensor,
-    shift_logits_full: torch.Tensor,
-) -> dict[str, torch.Tensor]:
-    shift_logits_mid = shift_logits_mid.detach().float()
-    shift_logits_full = shift_logits_full.detach().float()
-
-    log_p_mid = F.log_softmax(shift_logits_mid, dim=-1)
-    log_p_full = F.log_softmax(shift_logits_full, dim=-1)
-
-    p_mid = log_p_mid.exp()
-    p_full = log_p_full.exp()
-
-    kl_full_to_mid = (p_full * (log_p_full - log_p_mid)).sum(dim=-1).mean()
-    kl_mid_to_full = (p_mid * (log_p_mid - log_p_full)).sum(dim=-1).mean()
-
-    m = 0.5 * (p_full + p_mid)
-    log_m = torch.log(m.clamp_min(1e-12))
-    js = 0.5 * (
-        (p_full * (log_p_full - log_m)).sum(dim=-1) +
-        (p_mid * (log_p_mid - log_m)).sum(dim=-1)
-    ).mean()
-
-    top1_mid = shift_logits_mid.argmax(dim=-1)
-    top1_full = shift_logits_full.argmax(dim=-1)
-    top1_agreement = (top1_mid == top1_full).float().mean()
-
-    full_argmax = top1_full.unsqueeze(-1)
-    p_mid_on_full_argmax = p_mid.gather(dim=-1, index=full_argmax).squeeze(-1).mean()
-
-    overlap = torch.minimum(p_mid, p_full).sum(dim=-1).mean()
-
-    return {
-        "kl_full_to_mid": kl_full_to_mid,
-        "kl_mid_to_full": kl_mid_to_full,
-        "js": js,
-        "top1_agreement": top1_agreement,
-        "p_mid_on_full_argmax": p_mid_on_full_argmax,
-        "overlap": overlap,
-    }
-
-
 def train_early_exit(
     *,
     model_name: str,
+    early_exit_layer: int,
     dataset_spec: DatasetSpec,
     batch_size: int,
     checkpoint_path: str,
@@ -278,27 +237,23 @@ def train_early_exit(
     )
 
     num_layers = len(base_model.model.layers)
-    inner_exit_layer_index = 15#int(num_layers // 1.2)
 
     early_exit_model = EarlyExitModel(
         base_model=base_model,
-        inner_exit_layer_index=inner_exit_layer_index,
+        inner_exit_layer_index=early_exit_layer,
     )
     early_exit_model.to(device=device, dtype=compute_dtype)
 
     for p in early_exit_model.parameters():
         p.requires_grad = False
 
-    start = inner_exit_layer_index - 4
-    end = inner_exit_layer_index + 2
+    start = 0
+    end = early_exit_layer + 1 + 1 # Include the layer after the early exit layer
 
-    if start < 0:
-        raise ValueError(
-            f"Trained layer range [{start}:{end}] clips below 0 — model too small or exit layer too early."
-        )
     if end > num_layers:
         raise ValueError(
-            f"Trained layer range [{start}:{end}] exceeds model depth {num_layers}."
+            f"Requested training through layer {early_exit_layer + 1}, "
+            f"but model only has {num_layers} layers."
         )
 
     trained_blocks = list(early_exit_model.layers[start:end])
@@ -348,18 +303,18 @@ def train_early_exit(
             "total_windows": len(training_windows),
             "batch_size": batch_size,
             "steps_per_epoch": len(dataloader),
-            "early_exit_layer": inner_exit_layer_index,
+            "early_exit_layer": early_exit_layer,
             "total_layers": num_layers,
+            "alpha": alpha,
+            "beta": beta,
+            "trained_layers": [
+                i for i, layer in enumerate(early_exit_model.layers)
+                if layer in trained_blocks
+            ]
         },
     )
 
     run_context.print()
-    trained_indices = [
-        i for i, layer in enumerate(early_exit_model.layers)
-        if layer in trained_blocks
-    ]
-    print(f"  trained_layers={trained_indices}")
-    print("")
 
     ce_mid: torch.Tensor | None = None
     ce_full: torch.Tensor | None = None
@@ -441,9 +396,6 @@ def train_early_exit(
 
             run = MeasurementRun(context=run_context, metric_events=metric_events)
             save_at_interval(run) 
-        
-        
-
         
 
     if ce_mid is not None and ce_full is not None:

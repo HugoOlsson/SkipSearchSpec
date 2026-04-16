@@ -4,7 +4,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedTokenize
 from pathlib import Path
 from datasets import Dataset, load_dataset as hf_load_dataset
 from skip_search_spec.protocols.windows import DatasetSpec, ModelAndTokenizer
-
+import torch.nn.functional as F
 
 
 def get_preferred_device() -> torch.device:
@@ -78,3 +78,46 @@ def assert_same_tokenizer(
     )
     assert tok_a.get_vocab() == tok_b.get_vocab(), "Vocabularies differ"
     assert tok_a.all_special_tokens == tok_b.all_special_tokens, "Special tokens differ"
+
+
+
+def distribution_similarity_metrics(
+    shift_logits_mid: torch.Tensor,
+    shift_logits_full: torch.Tensor,
+) -> dict[str, torch.Tensor]:
+    shift_logits_mid = shift_logits_mid.detach().float()
+    shift_logits_full = shift_logits_full.detach().float()
+
+    log_p_mid = F.log_softmax(shift_logits_mid, dim=-1)
+    log_p_full = F.log_softmax(shift_logits_full, dim=-1)
+
+    p_mid = log_p_mid.exp()
+    p_full = log_p_full.exp()
+
+    kl_full_to_mid = (p_full * (log_p_full - log_p_mid)).sum(dim=-1).mean()
+    kl_mid_to_full = (p_mid * (log_p_mid - log_p_full)).sum(dim=-1).mean()
+
+    m = 0.5 * (p_full + p_mid)
+    log_m = torch.log(m.clamp_min(1e-12))
+    js = 0.5 * (
+        (p_full * (log_p_full - log_m)).sum(dim=-1) +
+        (p_mid * (log_p_mid - log_m)).sum(dim=-1)
+    ).mean()
+
+    top1_mid = shift_logits_mid.argmax(dim=-1)
+    top1_full = shift_logits_full.argmax(dim=-1)
+    top1_agreement = (top1_mid == top1_full).float().mean()
+
+    full_argmax = top1_full.unsqueeze(-1)
+    p_mid_on_full_argmax = p_mid.gather(dim=-1, index=full_argmax).squeeze(-1).mean()
+
+    overlap = torch.minimum(p_mid, p_full).sum(dim=-1).mean()
+
+    return {
+        "kl_full_to_mid": kl_full_to_mid,
+        "kl_mid_to_full": kl_mid_to_full,
+        "js": js,
+        "top1_agreement": top1_agreement,
+        "p_mid_on_full_argmax": p_mid_on_full_argmax,
+        "overlap": overlap,
+    }

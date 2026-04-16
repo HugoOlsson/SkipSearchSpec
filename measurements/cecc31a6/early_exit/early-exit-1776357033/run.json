@@ -1,0 +1,3131 @@
+{
+  "context": {
+    "created_at_utc": "2026-04-16T16:30:33+00:00",
+    "dataset_name": "FineWeb-Edu-1B",
+    "experiment_type": "early_exit",
+    "git_commit": "cecc31a6a70824a75f1b41eb3d5748067e574dc9",
+    "git_tag": null,
+    "model_names": [
+      "Qwen/Qwen2.5-1.5B"
+    ],
+    "run_config": {
+      "C1": 300,
+      "alpha": 0.8,
+      "batch_size": 2,
+      "beta": 2.0,
+      "compute_dtype": "torch.bfloat16",
+      "dataset": "FineWeb-Edu-1B<codelion/fineweb-edu-1B/default:train>",
+      "device": "mps",
+      "early_exit_layer": 2,
+      "model": "Qwen/Qwen2.5-1.5B",
+      "steps_per_epoch": 1529,
+      "total_layers": 28,
+      "total_windows": 3058,
+      "trained_layers": [
+        0,
+        1,
+        2,
+        3
+      ]
+    },
+    "run_id": "early-exit-1776357033"
+  },
+  "metric_events": [
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 0,
+      "timestamp_utc": "2026-04-16T16:30:35+00:00",
+      "unit": null,
+      "value": 28.616840362548828
+    },
+    {
+      "name": "ce_mid",
+      "phase": "train",
+      "step": 0,
+      "timestamp_utc": "2026-04-16T16:30:35+00:00",
+      "unit": null,
+      "value": 11.9375
+    },
+    {
+      "name": "ce_full",
+      "phase": "train",
+      "step": 0,
+      "timestamp_utc": "2026-04-16T16:30:35+00:00",
+      "unit": null,
+      "value": 2.921875
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 0,
+      "timestamp_utc": "2026-04-16T16:30:35+00:00",
+      "unit": null,
+      "value": 9.015625
+    },
+    {
+      "name": "kl_full_to_mid",
+      "phase": "train",
+      "step": 0,
+      "timestamp_utc": "2026-04-16T16:30:35+00:00",
+      "unit": null,
+      "value": 9.245920181274414
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 0,
+      "timestamp_utc": "2026-04-16T16:30:35+00:00",
+      "unit": null,
+      "value": 0.6460869908332825
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 0,
+      "timestamp_utc": "2026-04-16T16:30:35+00:00",
+      "unit": null,
+      "value": 0.021739130839705467
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 0,
+      "timestamp_utc": "2026-04-16T16:30:35+00:00",
+      "unit": null,
+      "value": 0.03497156500816345
+    },
+    {
+      "name": "p_mid_on_full_argmax",
+      "phase": "train",
+      "step": 0,
+      "timestamp_utc": "2026-04-16T16:30:35+00:00",
+      "unit": null,
+      "value": 0.010625548660755157
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 10,
+      "timestamp_utc": "2026-04-16T16:30:45+00:00",
+      "unit": null,
+      "value": 18.791343688964844
+    },
+    {
+      "name": "ce_mid",
+      "phase": "train",
+      "step": 10,
+      "timestamp_utc": "2026-04-16T16:30:45+00:00",
+      "unit": null,
+      "value": 8.4375
+    },
+    {
+      "name": "ce_full",
+      "phase": "train",
+      "step": 10,
+      "timestamp_utc": "2026-04-16T16:30:45+00:00",
+      "unit": null,
+      "value": 2.765625
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 10,
+      "timestamp_utc": "2026-04-16T16:30:45+00:00",
+      "unit": null,
+      "value": 5.671875
+    },
+    {
+      "name": "kl_full_to_mid",
+      "phase": "train",
+      "step": 10,
+      "timestamp_utc": "2026-04-16T16:30:45+00:00",
+      "unit": null,
+      "value": 5.739421844482422
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 10,
+      "timestamp_utc": "2026-04-16T16:30:45+00:00",
+      "unit": null,
+      "value": 0.5123512744903564
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 10,
+      "timestamp_utc": "2026-04-16T16:30:45+00:00",
+      "unit": null,
+      "value": 0.13377925753593445
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 10,
+      "timestamp_utc": "2026-04-16T16:30:45+00:00",
+      "unit": null,
+      "value": 0.16910675168037415
+    },
+    {
+      "name": "p_mid_on_full_argmax",
+      "phase": "train",
+      "step": 10,
+      "timestamp_utc": "2026-04-16T16:30:45+00:00",
+      "unit": null,
+      "value": 0.08550086617469788
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 20,
+      "timestamp_utc": "2026-04-16T16:30:54+00:00",
+      "unit": null,
+      "value": 17.001440048217773
+    },
+    {
+      "name": "ce_mid",
+      "phase": "train",
+      "step": 20,
+      "timestamp_utc": "2026-04-16T16:30:54+00:00",
+      "unit": null,
+      "value": 7.75
+    },
+    {
+      "name": "ce_full",
+      "phase": "train",
+      "step": 20,
+      "timestamp_utc": "2026-04-16T16:30:54+00:00",
+      "unit": null,
+      "value": 2.59375
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 20,
+      "timestamp_utc": "2026-04-16T16:30:54+00:00",
+      "unit": null,
+      "value": 5.15625
+    },
+    {
+      "name": "kl_full_to_mid",
+      "phase": "train",
+      "step": 20,
+      "timestamp_utc": "2026-04-16T16:30:54+00:00",
+      "unit": null,
+      "value": 5.141345024108887
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 20,
+      "timestamp_utc": "2026-04-16T16:30:54+00:00",
+      "unit": null,
+      "value": 0.48576241731643677
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 20,
+      "timestamp_utc": "2026-04-16T16:30:54+00:00",
+      "unit": null,
+      "value": 0.15551839768886566
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 20,
+      "timestamp_utc": "2026-04-16T16:30:54+00:00",
+      "unit": null,
+      "value": 0.19618384540081024
+    },
+    {
+      "name": "p_mid_on_full_argmax",
+      "phase": "train",
+      "step": 20,
+      "timestamp_utc": "2026-04-16T16:30:54+00:00",
+      "unit": null,
+      "value": 0.0995260626077652
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 30,
+      "timestamp_utc": "2026-04-16T16:31:03+00:00",
+      "unit": null,
+      "value": 15.540240287780762
+    },
+    {
+      "name": "ce_mid",
+      "phase": "train",
+      "step": 30,
+      "timestamp_utc": "2026-04-16T16:31:03+00:00",
+      "unit": null,
+      "value": 7.5
+    },
+    {
+      "name": "ce_full",
+      "phase": "train",
+      "step": 30,
+      "timestamp_utc": "2026-04-16T16:31:03+00:00",
+      "unit": null,
+      "value": 3.0
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 30,
+      "timestamp_utc": "2026-04-16T16:31:03+00:00",
+      "unit": null,
+      "value": 4.5
+    },
+    {
+      "name": "kl_full_to_mid",
+      "phase": "train",
+      "step": 30,
+      "timestamp_utc": "2026-04-16T16:31:03+00:00",
+      "unit": null,
+      "value": 4.473245143890381
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 30,
+      "timestamp_utc": "2026-04-16T16:31:03+00:00",
+      "unit": null,
+      "value": 0.4516695439815521
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 30,
+      "timestamp_utc": "2026-04-16T16:31:03+00:00",
+      "unit": null,
+      "value": 0.18060199916362762
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 30,
+      "timestamp_utc": "2026-04-16T16:31:03+00:00",
+      "unit": null,
+      "value": 0.23029811680316925
+    },
+    {
+      "name": "p_mid_on_full_argmax",
+      "phase": "train",
+      "step": 30,
+      "timestamp_utc": "2026-04-16T16:31:03+00:00",
+      "unit": null,
+      "value": 0.10336393862962723
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 40,
+      "timestamp_utc": "2026-04-16T16:31:13+00:00",
+      "unit": null,
+      "value": 16.19208526611328
+    },
+    {
+      "name": "ce_mid",
+      "phase": "train",
+      "step": 40,
+      "timestamp_utc": "2026-04-16T16:31:13+00:00",
+      "unit": null,
+      "value": 7.65625
+    },
+    {
+      "name": "ce_full",
+      "phase": "train",
+      "step": 40,
+      "timestamp_utc": "2026-04-16T16:31:13+00:00",
+      "unit": null,
+      "value": 3.015625
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 40,
+      "timestamp_utc": "2026-04-16T16:31:13+00:00",
+      "unit": null,
+      "value": 4.640625
+    },
+    {
+      "name": "kl_full_to_mid",
+      "phase": "train",
+      "step": 40,
+      "timestamp_utc": "2026-04-16T16:31:13+00:00",
+      "unit": null,
+      "value": 4.736667633056641
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 40,
+      "timestamp_utc": "2026-04-16T16:31:13+00:00",
+      "unit": null,
+      "value": 0.47338223457336426
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 40,
+      "timestamp_utc": "2026-04-16T16:31:13+00:00",
+      "unit": null,
+      "value": 0.17391304671764374
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 40,
+      "timestamp_utc": "2026-04-16T16:31:13+00:00",
+      "unit": null,
+      "value": 0.2069029062986374
+    },
+    {
+      "name": "p_mid_on_full_argmax",
+      "phase": "train",
+      "step": 40,
+      "timestamp_utc": "2026-04-16T16:31:13+00:00",
+      "unit": null,
+      "value": 0.09199894964694977
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 50,
+      "timestamp_utc": "2026-04-16T16:31:22+00:00",
+      "unit": null,
+      "value": 15.917288780212402
+    },
+    {
+      "name": "ce_mid",
+      "phase": "train",
+      "step": 50,
+      "timestamp_utc": "2026-04-16T16:31:22+00:00",
+      "unit": null,
+      "value": 7.21875
+    },
+    {
+      "name": "ce_full",
+      "phase": "train",
+      "step": 50,
+      "timestamp_utc": "2026-04-16T16:31:22+00:00",
+      "unit": null,
+      "value": 2.515625
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 50,
+      "timestamp_utc": "2026-04-16T16:31:22+00:00",
+      "unit": null,
+      "value": 4.703125
+    },
+    {
+      "name": "kl_full_to_mid",
+      "phase": "train",
+      "step": 50,
+      "timestamp_utc": "2026-04-16T16:31:22+00:00",
+      "unit": null,
+      "value": 4.818019390106201
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 50,
+      "timestamp_utc": "2026-04-16T16:31:22+00:00",
+      "unit": null,
+      "value": 0.4583669900894165
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 50,
+      "timestamp_utc": "2026-04-16T16:31:22+00:00",
+      "unit": null,
+      "value": 0.23578594624996185
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 50,
+      "timestamp_utc": "2026-04-16T16:31:22+00:00",
+      "unit": null,
+      "value": 0.22875137627124786
+    },
+    {
+      "name": "p_mid_on_full_argmax",
+      "phase": "train",
+      "step": 50,
+      "timestamp_utc": "2026-04-16T16:31:22+00:00",
+      "unit": null,
+      "value": 0.13520866632461548
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 60,
+      "timestamp_utc": "2026-04-16T16:31:31+00:00",
+      "unit": null,
+      "value": 14.113645553588867
+    },
+    {
+      "name": "ce_mid",
+      "phase": "train",
+      "step": 60,
+      "timestamp_utc": "2026-04-16T16:31:31+00:00",
+      "unit": null,
+      "value": 6.78125
+    },
+    {
+      "name": "ce_full",
+      "phase": "train",
+      "step": 60,
+      "timestamp_utc": "2026-04-16T16:31:31+00:00",
+      "unit": null,
+      "value": 2.5625
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 60,
+      "timestamp_utc": "2026-04-16T16:31:31+00:00",
+      "unit": null,
+      "value": 4.21875
+    },
+    {
+      "name": "kl_full_to_mid",
+      "phase": "train",
+      "step": 60,
+      "timestamp_utc": "2026-04-16T16:31:31+00:00",
+      "unit": null,
+      "value": 4.088072776794434
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 60,
+      "timestamp_utc": "2026-04-16T16:31:31+00:00",
+      "unit": null,
+      "value": 0.43373310565948486
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 60,
+      "timestamp_utc": "2026-04-16T16:31:31+00:00",
+      "unit": null,
+      "value": 0.2441471517086029
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 60,
+      "timestamp_utc": "2026-04-16T16:31:31+00:00",
+      "unit": null,
+      "value": 0.2512446939945221
+    },
+    {
+      "name": "p_mid_on_full_argmax",
+      "phase": "train",
+      "step": 60,
+      "timestamp_utc": "2026-04-16T16:31:31+00:00",
+      "unit": null,
+      "value": 0.12357673048973083
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 70,
+      "timestamp_utc": "2026-04-16T16:31:41+00:00",
+      "unit": null,
+      "value": 12.53374195098877
+    },
+    {
+      "name": "ce_mid",
+      "phase": "train",
+      "step": 70,
+      "timestamp_utc": "2026-04-16T16:31:41+00:00",
+      "unit": null,
+      "value": 5.65625
+    },
+    {
+      "name": "ce_full",
+      "phase": "train",
+      "step": 70,
+      "timestamp_utc": "2026-04-16T16:31:41+00:00",
+      "unit": null,
+      "value": 1.7890625
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 70,
+      "timestamp_utc": "2026-04-16T16:31:41+00:00",
+      "unit": null,
+      "value": 3.8671875
+    },
+    {
+      "name": "kl_full_to_mid",
+      "phase": "train",
+      "step": 70,
+      "timestamp_utc": "2026-04-16T16:31:41+00:00",
+      "unit": null,
+      "value": 3.8293709754943848
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 70,
+      "timestamp_utc": "2026-04-16T16:31:41+00:00",
+      "unit": null,
+      "value": 0.4360681176185608
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 70,
+      "timestamp_utc": "2026-04-16T16:31:41+00:00",
+      "unit": null,
+      "value": 0.27424749732017517
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 70,
+      "timestamp_utc": "2026-04-16T16:31:41+00:00",
+      "unit": null,
+      "value": 0.24684157967567444
+    },
+    {
+      "name": "p_mid_on_full_argmax",
+      "phase": "train",
+      "step": 70,
+      "timestamp_utc": "2026-04-16T16:31:41+00:00",
+      "unit": null,
+      "value": 0.15028518438339233
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 80,
+      "timestamp_utc": "2026-04-16T16:31:50+00:00",
+      "unit": null,
+      "value": 13.477161407470703
+    },
+    {
+      "name": "ce_mid",
+      "phase": "train",
+      "step": 80,
+      "timestamp_utc": "2026-04-16T16:31:50+00:00",
+      "unit": null,
+      "value": 6.59375
+    },
+    {
+      "name": "ce_full",
+      "phase": "train",
+      "step": 80,
+      "timestamp_utc": "2026-04-16T16:31:50+00:00",
+      "unit": null,
+      "value": 3.0625
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 80,
+      "timestamp_utc": "2026-04-16T16:31:50+00:00",
+      "unit": null,
+      "value": 3.53125
+    },
+    {
+      "name": "kl_full_to_mid",
+      "phase": "train",
+      "step": 80,
+      "timestamp_utc": "2026-04-16T16:31:50+00:00",
+      "unit": null,
+      "value": 3.7854554653167725
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 80,
+      "timestamp_utc": "2026-04-16T16:31:50+00:00",
+      "unit": null,
+      "value": 0.4194473326206207
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 80,
+      "timestamp_utc": "2026-04-16T16:31:50+00:00",
+      "unit": null,
+      "value": 0.20234113931655884
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 80,
+      "timestamp_utc": "2026-04-16T16:31:50+00:00",
+      "unit": null,
+      "value": 0.2649191617965698
+    },
+    {
+      "name": "p_mid_on_full_argmax",
+      "phase": "train",
+      "step": 80,
+      "timestamp_utc": "2026-04-16T16:31:50+00:00",
+      "unit": null,
+      "value": 0.12068483978509903
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 90,
+      "timestamp_utc": "2026-04-16T16:31:59+00:00",
+      "unit": null,
+      "value": 14.386962890625
+    },
+    {
+      "name": "ce_mid",
+      "phase": "train",
+      "step": 90,
+      "timestamp_utc": "2026-04-16T16:31:59+00:00",
+      "unit": null,
+      "value": 6.59375
+    },
+    {
+      "name": "ce_full",
+      "phase": "train",
+      "step": 90,
+      "timestamp_utc": "2026-04-16T16:31:59+00:00",
+      "unit": null,
+      "value": 2.3125
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 90,
+      "timestamp_utc": "2026-04-16T16:31:59+00:00",
+      "unit": null,
+      "value": 4.28125
+    },
+    {
+      "name": "kl_full_to_mid",
+      "phase": "train",
+      "step": 90,
+      "timestamp_utc": "2026-04-16T16:31:59+00:00",
+      "unit": null,
+      "value": 4.3184814453125
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 90,
+      "timestamp_utc": "2026-04-16T16:31:59+00:00",
+      "unit": null,
+      "value": 0.4539090692996979
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 90,
+      "timestamp_utc": "2026-04-16T16:31:59+00:00",
+      "unit": null,
+      "value": 0.2040133774280548
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 90,
+      "timestamp_utc": "2026-04-16T16:31:59+00:00",
+      "unit": null,
+      "value": 0.22963227331638336
+    },
+    {
+      "name": "p_mid_on_full_argmax",
+      "phase": "train",
+      "step": 90,
+      "timestamp_utc": "2026-04-16T16:31:59+00:00",
+      "unit": null,
+      "value": 0.10189151763916016
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 100,
+      "timestamp_utc": "2026-04-16T16:32:09+00:00",
+      "unit": null,
+      "value": 13.673734664916992
+    },
+    {
+      "name": "ce_mid",
+      "phase": "train",
+      "step": 100,
+      "timestamp_utc": "2026-04-16T16:32:09+00:00",
+      "unit": null,
+      "value": 6.46875
+    },
+    {
+      "name": "ce_full",
+      "phase": "train",
+      "step": 100,
+      "timestamp_utc": "2026-04-16T16:32:09+00:00",
+      "unit": null,
+      "value": 2.390625
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 100,
+      "timestamp_utc": "2026-04-16T16:32:09+00:00",
+      "unit": null,
+      "value": 4.078125
+    },
+    {
+      "name": "kl_full_to_mid",
+      "phase": "train",
+      "step": 100,
+      "timestamp_utc": "2026-04-16T16:32:09+00:00",
+      "unit": null,
+      "value": 4.008742332458496
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 100,
+      "timestamp_utc": "2026-04-16T16:32:09+00:00",
+      "unit": null,
+      "value": 0.4358336329460144
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 100,
+      "timestamp_utc": "2026-04-16T16:32:09+00:00",
+      "unit": null,
+      "value": 0.284280925989151
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 100,
+      "timestamp_utc": "2026-04-16T16:32:09+00:00",
+      "unit": null,
+      "value": 0.2536533772945404
+    },
+    {
+      "name": "p_mid_on_full_argmax",
+      "phase": "train",
+      "step": 100,
+      "timestamp_utc": "2026-04-16T16:32:09+00:00",
+      "unit": null,
+      "value": 0.1362716257572174
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 110,
+      "timestamp_utc": "2026-04-16T16:32:18+00:00",
+      "unit": null,
+      "value": 15.092608451843262
+    },
+    {
+      "name": "ce_mid",
+      "phase": "train",
+      "step": 110,
+      "timestamp_utc": "2026-04-16T16:32:18+00:00",
+      "unit": null,
+      "value": 7.03125
+    },
+    {
+      "name": "ce_full",
+      "phase": "train",
+      "step": 110,
+      "timestamp_utc": "2026-04-16T16:32:18+00:00",
+      "unit": null,
+      "value": 2.65625
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 110,
+      "timestamp_utc": "2026-04-16T16:32:18+00:00",
+      "unit": null,
+      "value": 4.375
+    },
+    {
+      "name": "kl_full_to_mid",
+      "phase": "train",
+      "step": 110,
+      "timestamp_utc": "2026-04-16T16:32:18+00:00",
+      "unit": null,
+      "value": 4.468179225921631
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 110,
+      "timestamp_utc": "2026-04-16T16:32:18+00:00",
+      "unit": null,
+      "value": 0.46184006333351135
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 110,
+      "timestamp_utc": "2026-04-16T16:32:18+00:00",
+      "unit": null,
+      "value": 0.18561872839927673
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 110,
+      "timestamp_utc": "2026-04-16T16:32:18+00:00",
+      "unit": null,
+      "value": 0.21626098453998566
+    },
+    {
+      "name": "p_mid_on_full_argmax",
+      "phase": "train",
+      "step": 110,
+      "timestamp_utc": "2026-04-16T16:32:18+00:00",
+      "unit": null,
+      "value": 0.08371187001466751
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 120,
+      "timestamp_utc": "2026-04-16T16:32:28+00:00",
+      "unit": null,
+      "value": 11.328560829162598
+    },
+    {
+      "name": "ce_mid",
+      "phase": "train",
+      "step": 120,
+      "timestamp_utc": "2026-04-16T16:32:28+00:00",
+      "unit": null,
+      "value": 5.03125
+    },
+    {
+      "name": "ce_full",
+      "phase": "train",
+      "step": 120,
+      "timestamp_utc": "2026-04-16T16:32:28+00:00",
+      "unit": null,
+      "value": 1.546875
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 120,
+      "timestamp_utc": "2026-04-16T16:32:28+00:00",
+      "unit": null,
+      "value": 3.484375
+    },
+    {
+      "name": "kl_full_to_mid",
+      "phase": "train",
+      "step": 120,
+      "timestamp_utc": "2026-04-16T16:32:28+00:00",
+      "unit": null,
+      "value": 3.492405414581299
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 120,
+      "timestamp_utc": "2026-04-16T16:32:28+00:00",
+      "unit": null,
+      "value": 0.3994767367839813
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 120,
+      "timestamp_utc": "2026-04-16T16:32:28+00:00",
+      "unit": null,
+      "value": 0.33946487307548523
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 120,
+      "timestamp_utc": "2026-04-16T16:32:28+00:00",
+      "unit": null,
+      "value": 0.31192684173583984
+    },
+    {
+      "name": "p_mid_on_full_argmax",
+      "phase": "train",
+      "step": 120,
+      "timestamp_utc": "2026-04-16T16:32:28+00:00",
+      "unit": null,
+      "value": 0.21441364288330078
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 130,
+      "timestamp_utc": "2026-04-16T16:32:38+00:00",
+      "unit": null,
+      "value": 13.952767372131348
+    },
+    {
+      "name": "ce_mid",
+      "phase": "train",
+      "step": 130,
+      "timestamp_utc": "2026-04-16T16:32:38+00:00",
+      "unit": null,
+      "value": 7.0
+    },
+    {
+      "name": "ce_full",
+      "phase": "train",
+      "step": 130,
+      "timestamp_utc": "2026-04-16T16:32:38+00:00",
+      "unit": null,
+      "value": 3.046875
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 130,
+      "timestamp_utc": "2026-04-16T16:32:38+00:00",
+      "unit": null,
+      "value": 3.953125
+    },
+    {
+      "name": "kl_full_to_mid",
+      "phase": "train",
+      "step": 130,
+      "timestamp_utc": "2026-04-16T16:32:38+00:00",
+      "unit": null,
+      "value": 3.882633686065674
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 130,
+      "timestamp_utc": "2026-04-16T16:32:38+00:00",
+      "unit": null,
+      "value": 0.4306422770023346
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 130,
+      "timestamp_utc": "2026-04-16T16:32:38+00:00",
+      "unit": null,
+      "value": 0.24916388094425201
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 130,
+      "timestamp_utc": "2026-04-16T16:32:38+00:00",
+      "unit": null,
+      "value": 0.24991513788700104
+    },
+    {
+      "name": "p_mid_on_full_argmax",
+      "phase": "train",
+      "step": 130,
+      "timestamp_utc": "2026-04-16T16:32:38+00:00",
+      "unit": null,
+      "value": 0.11496008932590485
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 140,
+      "timestamp_utc": "2026-04-16T16:32:48+00:00",
+      "unit": null,
+      "value": 13.046972274780273
+    },
+    {
+      "name": "ce_mid",
+      "phase": "train",
+      "step": 140,
+      "timestamp_utc": "2026-04-16T16:32:48+00:00",
+      "unit": null,
+      "value": 6.53125
+    },
+    {
+      "name": "ce_full",
+      "phase": "train",
+      "step": 140,
+      "timestamp_utc": "2026-04-16T16:32:48+00:00",
+      "unit": null,
+      "value": 3.015625
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 140,
+      "timestamp_utc": "2026-04-16T16:32:48+00:00",
+      "unit": null,
+      "value": 3.515625
+    },
+    {
+      "name": "kl_full_to_mid",
+      "phase": "train",
+      "step": 140,
+      "timestamp_utc": "2026-04-16T16:32:48+00:00",
+      "unit": null,
+      "value": 3.617236375808716
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 140,
+      "timestamp_utc": "2026-04-16T16:32:48+00:00",
+      "unit": null,
+      "value": 0.40659675002098083
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 140,
+      "timestamp_utc": "2026-04-16T16:32:48+00:00",
+      "unit": null,
+      "value": 0.2792642116546631
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 140,
+      "timestamp_utc": "2026-04-16T16:32:48+00:00",
+      "unit": null,
+      "value": 0.278888463973999
+    },
+    {
+      "name": "p_mid_on_full_argmax",
+      "phase": "train",
+      "step": 140,
+      "timestamp_utc": "2026-04-16T16:32:48+00:00",
+      "unit": null,
+      "value": 0.1309390813112259
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 150,
+      "timestamp_utc": "2026-04-16T16:32:58+00:00",
+      "unit": null,
+      "value": 13.91653823852539
+    },
+    {
+      "name": "ce_mid",
+      "phase": "train",
+      "step": 150,
+      "timestamp_utc": "2026-04-16T16:32:58+00:00",
+      "unit": null,
+      "value": 6.3125
+    },
+    {
+      "name": "ce_full",
+      "phase": "train",
+      "step": 150,
+      "timestamp_utc": "2026-04-16T16:32:58+00:00",
+      "unit": null,
+      "value": 2.046875
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 150,
+      "timestamp_utc": "2026-04-16T16:32:58+00:00",
+      "unit": null,
+      "value": 4.265625
+    },
+    {
+      "name": "kl_full_to_mid",
+      "phase": "train",
+      "step": 150,
+      "timestamp_utc": "2026-04-16T16:32:58+00:00",
+      "unit": null,
+      "value": 4.223894119262695
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 150,
+      "timestamp_utc": "2026-04-16T16:32:58+00:00",
+      "unit": null,
+      "value": 0.4380624294281006
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 150,
+      "timestamp_utc": "2026-04-16T16:32:58+00:00",
+      "unit": null,
+      "value": 0.2658862769603729
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 150,
+      "timestamp_utc": "2026-04-16T16:32:58+00:00",
+      "unit": null,
+      "value": 0.2575894892215729
+    },
+    {
+      "name": "p_mid_on_full_argmax",
+      "phase": "train",
+      "step": 150,
+      "timestamp_utc": "2026-04-16T16:32:58+00:00",
+      "unit": null,
+      "value": 0.1546691507101059
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 160,
+      "timestamp_utc": "2026-04-16T16:33:07+00:00",
+      "unit": null,
+      "value": 13.058871269226074
+    },
+    {
+      "name": "ce_mid",
+      "phase": "train",
+      "step": 160,
+      "timestamp_utc": "2026-04-16T16:33:07+00:00",
+      "unit": null,
+      "value": 6.375
+    },
+    {
+      "name": "ce_full",
+      "phase": "train",
+      "step": 160,
+      "timestamp_utc": "2026-04-16T16:33:07+00:00",
+      "unit": null,
+      "value": 2.640625
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 160,
+      "timestamp_utc": "2026-04-16T16:33:07+00:00",
+      "unit": null,
+      "value": 3.734375
+    },
+    {
+      "name": "kl_full_to_mid",
+      "phase": "train",
+      "step": 160,
+      "timestamp_utc": "2026-04-16T16:33:07+00:00",
+      "unit": null,
+      "value": 3.716935634613037
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 160,
+      "timestamp_utc": "2026-04-16T16:33:07+00:00",
+      "unit": null,
+      "value": 0.4153037667274475
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 160,
+      "timestamp_utc": "2026-04-16T16:33:07+00:00",
+      "unit": null,
+      "value": 0.2324414700269699
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 160,
+      "timestamp_utc": "2026-04-16T16:33:07+00:00",
+      "unit": null,
+      "value": 0.2674623429775238
+    },
+    {
+      "name": "p_mid_on_full_argmax",
+      "phase": "train",
+      "step": 160,
+      "timestamp_utc": "2026-04-16T16:33:07+00:00",
+      "unit": null,
+      "value": 0.11659557372331619
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 170,
+      "timestamp_utc": "2026-04-16T16:33:17+00:00",
+      "unit": null,
+      "value": 11.997564315795898
+    },
+    {
+      "name": "ce_mid",
+      "phase": "train",
+      "step": 170,
+      "timestamp_utc": "2026-04-16T16:33:17+00:00",
+      "unit": null,
+      "value": 6.1875
+    },
+    {
+      "name": "ce_full",
+      "phase": "train",
+      "step": 170,
+      "timestamp_utc": "2026-04-16T16:33:17+00:00",
+      "unit": null,
+      "value": 3.0
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 170,
+      "timestamp_utc": "2026-04-16T16:33:17+00:00",
+      "unit": null,
+      "value": 3.1875
+    },
+    {
+      "name": "kl_full_to_mid",
+      "phase": "train",
+      "step": 170,
+      "timestamp_utc": "2026-04-16T16:33:17+00:00",
+      "unit": null,
+      "value": 3.233157157897949
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 170,
+      "timestamp_utc": "2026-04-16T16:33:17+00:00",
+      "unit": null,
+      "value": 0.4052729308605194
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 170,
+      "timestamp_utc": "2026-04-16T16:33:17+00:00",
+      "unit": null,
+      "value": 0.2324414700269699
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 170,
+      "timestamp_utc": "2026-04-16T16:33:17+00:00",
+      "unit": null,
+      "value": 0.2731911540031433
+    },
+    {
+      "name": "p_mid_on_full_argmax",
+      "phase": "train",
+      "step": 170,
+      "timestamp_utc": "2026-04-16T16:33:17+00:00",
+      "unit": null,
+      "value": 0.10715073347091675
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 180,
+      "timestamp_utc": "2026-04-16T16:33:26+00:00",
+      "unit": null,
+      "value": 11.912153244018555
+    },
+    {
+      "name": "ce_mid",
+      "phase": "train",
+      "step": 180,
+      "timestamp_utc": "2026-04-16T16:33:26+00:00",
+      "unit": null,
+      "value": 5.84375
+    },
+    {
+      "name": "ce_full",
+      "phase": "train",
+      "step": 180,
+      "timestamp_utc": "2026-04-16T16:33:26+00:00",
+      "unit": null,
+      "value": 2.484375
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 180,
+      "timestamp_utc": "2026-04-16T16:33:26+00:00",
+      "unit": null,
+      "value": 3.359375
+    },
+    {
+      "name": "kl_full_to_mid",
+      "phase": "train",
+      "step": 180,
+      "timestamp_utc": "2026-04-16T16:33:26+00:00",
+      "unit": null,
+      "value": 3.3623263835906982
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 180,
+      "timestamp_utc": "2026-04-16T16:33:26+00:00",
+      "unit": null,
+      "value": 0.4036693274974823
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 180,
+      "timestamp_utc": "2026-04-16T16:33:26+00:00",
+      "unit": null,
+      "value": 0.3010033369064331
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 180,
+      "timestamp_utc": "2026-04-16T16:33:26+00:00",
+      "unit": null,
+      "value": 0.28922489285469055
+    },
+    {
+      "name": "p_mid_on_full_argmax",
+      "phase": "train",
+      "step": 180,
+      "timestamp_utc": "2026-04-16T16:33:26+00:00",
+      "unit": null,
+      "value": 0.1587393432855606
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 190,
+      "timestamp_utc": "2026-04-16T16:33:35+00:00",
+      "unit": null,
+      "value": 11.6383695602417
+    },
+    {
+      "name": "ce_mid",
+      "phase": "train",
+      "step": 190,
+      "timestamp_utc": "2026-04-16T16:33:35+00:00",
+      "unit": null,
+      "value": 5.21875
+    },
+    {
+      "name": "ce_full",
+      "phase": "train",
+      "step": 190,
+      "timestamp_utc": "2026-04-16T16:33:35+00:00",
+      "unit": null,
+      "value": 1.7734375
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 190,
+      "timestamp_utc": "2026-04-16T16:33:35+00:00",
+      "unit": null,
+      "value": 3.4453125
+    },
+    {
+      "name": "kl_full_to_mid",
+      "phase": "train",
+      "step": 190,
+      "timestamp_utc": "2026-04-16T16:33:35+00:00",
+      "unit": null,
+      "value": 3.5535597801208496
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 190,
+      "timestamp_utc": "2026-04-16T16:33:35+00:00",
+      "unit": null,
+      "value": 0.40519285202026367
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 190,
+      "timestamp_utc": "2026-04-16T16:33:35+00:00",
+      "unit": null,
+      "value": 0.31438127160072327
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 190,
+      "timestamp_utc": "2026-04-16T16:33:35+00:00",
+      "unit": null,
+      "value": 0.30278804898262024
+    },
+    {
+      "name": "p_mid_on_full_argmax",
+      "phase": "train",
+      "step": 190,
+      "timestamp_utc": "2026-04-16T16:33:35+00:00",
+      "unit": null,
+      "value": 0.19050727784633636
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 200,
+      "timestamp_utc": "2026-04-16T16:33:45+00:00",
+      "unit": null,
+      "value": 12.515924453735352
+    },
+    {
+      "name": "ce_mid",
+      "phase": "train",
+      "step": 200,
+      "timestamp_utc": "2026-04-16T16:33:45+00:00",
+      "unit": null,
+      "value": 6.59375
+    },
+    {
+      "name": "ce_full",
+      "phase": "train",
+      "step": 200,
+      "timestamp_utc": "2026-04-16T16:33:45+00:00",
+      "unit": null,
+      "value": 3.421875
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 200,
+      "timestamp_utc": "2026-04-16T16:33:45+00:00",
+      "unit": null,
+      "value": 3.171875
+    },
+    {
+      "name": "kl_full_to_mid",
+      "phase": "train",
+      "step": 200,
+      "timestamp_utc": "2026-04-16T16:33:45+00:00",
+      "unit": null,
+      "value": 3.2735869884490967
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 200,
+      "timestamp_utc": "2026-04-16T16:33:45+00:00",
+      "unit": null,
+      "value": 0.38813918828964233
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 200,
+      "timestamp_utc": "2026-04-16T16:33:45+00:00",
+      "unit": null,
+      "value": 0.29264214634895325
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 200,
+      "timestamp_utc": "2026-04-16T16:33:45+00:00",
+      "unit": null,
+      "value": 0.296039342880249
+    },
+    {
+      "name": "p_mid_on_full_argmax",
+      "phase": "train",
+      "step": 200,
+      "timestamp_utc": "2026-04-16T16:33:45+00:00",
+      "unit": null,
+      "value": 0.1261824518442154
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 210,
+      "timestamp_utc": "2026-04-16T16:33:54+00:00",
+      "unit": null,
+      "value": 12.332991600036621
+    },
+    {
+      "name": "ce_mid",
+      "phase": "train",
+      "step": 210,
+      "timestamp_utc": "2026-04-16T16:33:54+00:00",
+      "unit": null,
+      "value": 6.03125
+    },
+    {
+      "name": "ce_full",
+      "phase": "train",
+      "step": 210,
+      "timestamp_utc": "2026-04-16T16:33:54+00:00",
+      "unit": null,
+      "value": 2.640625
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 210,
+      "timestamp_utc": "2026-04-16T16:33:54+00:00",
+      "unit": null,
+      "value": 3.390625
+    },
+    {
+      "name": "kl_full_to_mid",
+      "phase": "train",
+      "step": 210,
+      "timestamp_utc": "2026-04-16T16:33:54+00:00",
+      "unit": null,
+      "value": 3.4946208000183105
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 210,
+      "timestamp_utc": "2026-04-16T16:33:54+00:00",
+      "unit": null,
+      "value": 0.4146508574485779
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 210,
+      "timestamp_utc": "2026-04-16T16:33:54+00:00",
+      "unit": null,
+      "value": 0.28762540221214294
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 210,
+      "timestamp_utc": "2026-04-16T16:33:54+00:00",
+      "unit": null,
+      "value": 0.27156224846839905
+    },
+    {
+      "name": "p_mid_on_full_argmax",
+      "phase": "train",
+      "step": 210,
+      "timestamp_utc": "2026-04-16T16:33:54+00:00",
+      "unit": null,
+      "value": 0.12518827617168427
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 220,
+      "timestamp_utc": "2026-04-16T16:34:04+00:00",
+      "unit": null,
+      "value": 12.134896278381348
+    },
+    {
+      "name": "ce_mid",
+      "phase": "train",
+      "step": 220,
+      "timestamp_utc": "2026-04-16T16:34:04+00:00",
+      "unit": null,
+      "value": 5.75
+    },
+    {
+      "name": "ce_full",
+      "phase": "train",
+      "step": 220,
+      "timestamp_utc": "2026-04-16T16:34:04+00:00",
+      "unit": null,
+      "value": 2.203125
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 220,
+      "timestamp_utc": "2026-04-16T16:34:04+00:00",
+      "unit": null,
+      "value": 3.546875
+    },
+    {
+      "name": "kl_full_to_mid",
+      "phase": "train",
+      "step": 220,
+      "timestamp_utc": "2026-04-16T16:34:04+00:00",
+      "unit": null,
+      "value": 3.551823139190674
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 220,
+      "timestamp_utc": "2026-04-16T16:34:04+00:00",
+      "unit": null,
+      "value": 0.4183480143547058
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 220,
+      "timestamp_utc": "2026-04-16T16:34:04+00:00",
+      "unit": null,
+      "value": 0.2725752592086792
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 220,
+      "timestamp_utc": "2026-04-16T16:34:04+00:00",
+      "unit": null,
+      "value": 0.27005335688591003
+    },
+    {
+      "name": "p_mid_on_full_argmax",
+      "phase": "train",
+      "step": 220,
+      "timestamp_utc": "2026-04-16T16:34:04+00:00",
+      "unit": null,
+      "value": 0.1412844955921173
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 230,
+      "timestamp_utc": "2026-04-16T16:34:13+00:00",
+      "unit": null,
+      "value": 10.581060409545898
+    },
+    {
+      "name": "ce_mid",
+      "phase": "train",
+      "step": 230,
+      "timestamp_utc": "2026-04-16T16:34:13+00:00",
+      "unit": null,
+      "value": 4.96875
+    },
+    {
+      "name": "ce_full",
+      "phase": "train",
+      "step": 230,
+      "timestamp_utc": "2026-04-16T16:34:13+00:00",
+      "unit": null,
+      "value": 2.0625
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 230,
+      "timestamp_utc": "2026-04-16T16:34:13+00:00",
+      "unit": null,
+      "value": 2.90625
+    },
+    {
+      "name": "kl_full_to_mid",
+      "phase": "train",
+      "step": 230,
+      "timestamp_utc": "2026-04-16T16:34:13+00:00",
+      "unit": null,
+      "value": 3.1030304431915283
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 230,
+      "timestamp_utc": "2026-04-16T16:34:13+00:00",
+      "unit": null,
+      "value": 0.38103437423706055
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 230,
+      "timestamp_utc": "2026-04-16T16:34:13+00:00",
+      "unit": null,
+      "value": 0.33779263496398926
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 230,
+      "timestamp_utc": "2026-04-16T16:34:13+00:00",
+      "unit": null,
+      "value": 0.3129710555076599
+    },
+    {
+      "name": "p_mid_on_full_argmax",
+      "phase": "train",
+      "step": 230,
+      "timestamp_utc": "2026-04-16T16:34:13+00:00",
+      "unit": null,
+      "value": 0.18041665852069855
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 240,
+      "timestamp_utc": "2026-04-16T16:34:23+00:00",
+      "unit": null,
+      "value": 12.420619010925293
+    },
+    {
+      "name": "ce_mid",
+      "phase": "train",
+      "step": 240,
+      "timestamp_utc": "2026-04-16T16:34:23+00:00",
+      "unit": null,
+      "value": 5.84375
+    },
+    {
+      "name": "ce_full",
+      "phase": "train",
+      "step": 240,
+      "timestamp_utc": "2026-04-16T16:34:23+00:00",
+      "unit": null,
+      "value": 2.328125
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 240,
+      "timestamp_utc": "2026-04-16T16:34:23+00:00",
+      "unit": null,
+      "value": 3.515625
+    },
+    {
+      "name": "kl_full_to_mid",
+      "phase": "train",
+      "step": 240,
+      "timestamp_utc": "2026-04-16T16:34:23+00:00",
+      "unit": null,
+      "value": 3.6321845054626465
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 240,
+      "timestamp_utc": "2026-04-16T16:34:23+00:00",
+      "unit": null,
+      "value": 0.43461543321609497
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 240,
+      "timestamp_utc": "2026-04-16T16:34:23+00:00",
+      "unit": null,
+      "value": 0.23578594624996185
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 240,
+      "timestamp_utc": "2026-04-16T16:34:23+00:00",
+      "unit": null,
+      "value": 0.24858401715755463
+    },
+    {
+      "name": "p_mid_on_full_argmax",
+      "phase": "train",
+      "step": 240,
+      "timestamp_utc": "2026-04-16T16:34:23+00:00",
+      "unit": null,
+      "value": 0.11542796343564987
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 250,
+      "timestamp_utc": "2026-04-16T16:34:32+00:00",
+      "unit": null,
+      "value": 11.158426284790039
+    },
+    {
+      "name": "ce_mid",
+      "phase": "train",
+      "step": 250,
+      "timestamp_utc": "2026-04-16T16:34:32+00:00",
+      "unit": null,
+      "value": 5.875
+    },
+    {
+      "name": "ce_full",
+      "phase": "train",
+      "step": 250,
+      "timestamp_utc": "2026-04-16T16:34:32+00:00",
+      "unit": null,
+      "value": 2.953125
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 250,
+      "timestamp_utc": "2026-04-16T16:34:32+00:00",
+      "unit": null,
+      "value": 2.921875
+    },
+    {
+      "name": "kl_full_to_mid",
+      "phase": "train",
+      "step": 250,
+      "timestamp_utc": "2026-04-16T16:34:32+00:00",
+      "unit": null,
+      "value": 2.9385881423950195
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 250,
+      "timestamp_utc": "2026-04-16T16:34:32+00:00",
+      "unit": null,
+      "value": 0.36865970492362976
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 250,
+      "timestamp_utc": "2026-04-16T16:34:32+00:00",
+      "unit": null,
+      "value": 0.26421403884887695
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 250,
+      "timestamp_utc": "2026-04-16T16:34:32+00:00",
+      "unit": null,
+      "value": 0.31471073627471924
+    },
+    {
+      "name": "p_mid_on_full_argmax",
+      "phase": "train",
+      "step": 250,
+      "timestamp_utc": "2026-04-16T16:34:32+00:00",
+      "unit": null,
+      "value": 0.1282162219285965
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 260,
+      "timestamp_utc": "2026-04-16T16:34:42+00:00",
+      "unit": null,
+      "value": 14.345141410827637
+    },
+    {
+      "name": "ce_mid",
+      "phase": "train",
+      "step": 260,
+      "timestamp_utc": "2026-04-16T16:34:42+00:00",
+      "unit": null,
+      "value": 6.71875
+    },
+    {
+      "name": "ce_full",
+      "phase": "train",
+      "step": 260,
+      "timestamp_utc": "2026-04-16T16:34:42+00:00",
+      "unit": null,
+      "value": 2.4375
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 260,
+      "timestamp_utc": "2026-04-16T16:34:42+00:00",
+      "unit": null,
+      "value": 4.28125
+    },
+    {
+      "name": "kl_full_to_mid",
+      "phase": "train",
+      "step": 260,
+      "timestamp_utc": "2026-04-16T16:34:42+00:00",
+      "unit": null,
+      "value": 4.235070705413818
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 260,
+      "timestamp_utc": "2026-04-16T16:34:42+00:00",
+      "unit": null,
+      "value": 0.44647470116615295
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 260,
+      "timestamp_utc": "2026-04-16T16:34:42+00:00",
+      "unit": null,
+      "value": 0.24749164283275604
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 260,
+      "timestamp_utc": "2026-04-16T16:34:42+00:00",
+      "unit": null,
+      "value": 0.23676598072052002
+    },
+    {
+      "name": "p_mid_on_full_argmax",
+      "phase": "train",
+      "step": 260,
+      "timestamp_utc": "2026-04-16T16:34:42+00:00",
+      "unit": null,
+      "value": 0.11643894761800766
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 270,
+      "timestamp_utc": "2026-04-16T16:34:51+00:00",
+      "unit": null,
+      "value": 12.73955249786377
+    },
+    {
+      "name": "ce_mid",
+      "phase": "train",
+      "step": 270,
+      "timestamp_utc": "2026-04-16T16:34:51+00:00",
+      "unit": null,
+      "value": 5.78125
+    },
+    {
+      "name": "ce_full",
+      "phase": "train",
+      "step": 270,
+      "timestamp_utc": "2026-04-16T16:34:51+00:00",
+      "unit": null,
+      "value": 1.8046875
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 270,
+      "timestamp_utc": "2026-04-16T16:34:51+00:00",
+      "unit": null,
+      "value": 3.9765625
+    },
+    {
+      "name": "kl_full_to_mid",
+      "phase": "train",
+      "step": 270,
+      "timestamp_utc": "2026-04-16T16:34:51+00:00",
+      "unit": null,
+      "value": 3.8697762489318848
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 270,
+      "timestamp_utc": "2026-04-16T16:34:51+00:00",
+      "unit": null,
+      "value": 0.4258638620376587
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 270,
+      "timestamp_utc": "2026-04-16T16:34:51+00:00",
+      "unit": null,
+      "value": 0.24916388094425201
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 270,
+      "timestamp_utc": "2026-04-16T16:34:51+00:00",
+      "unit": null,
+      "value": 0.2623654901981354
+    },
+    {
+      "name": "p_mid_on_full_argmax",
+      "phase": "train",
+      "step": 270,
+      "timestamp_utc": "2026-04-16T16:34:51+00:00",
+      "unit": null,
+      "value": 0.1398307830095291
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 280,
+      "timestamp_utc": "2026-04-16T16:35:01+00:00",
+      "unit": null,
+      "value": 11.020262718200684
+    },
+    {
+      "name": "ce_mid",
+      "phase": "train",
+      "step": 280,
+      "timestamp_utc": "2026-04-16T16:35:01+00:00",
+      "unit": null,
+      "value": 5.5
+    },
+    {
+      "name": "ce_full",
+      "phase": "train",
+      "step": 280,
+      "timestamp_utc": "2026-04-16T16:35:01+00:00",
+      "unit": null,
+      "value": 2.5
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 280,
+      "timestamp_utc": "2026-04-16T16:35:01+00:00",
+      "unit": null,
+      "value": 3.0
+    },
+    {
+      "name": "kl_full_to_mid",
+      "phase": "train",
+      "step": 280,
+      "timestamp_utc": "2026-04-16T16:35:01+00:00",
+      "unit": null,
+      "value": 3.057006359100342
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 280,
+      "timestamp_utc": "2026-04-16T16:35:01+00:00",
+      "unit": null,
+      "value": 0.3898477256298065
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 280,
+      "timestamp_utc": "2026-04-16T16:35:01+00:00",
+      "unit": null,
+      "value": 0.2892976701259613
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 280,
+      "timestamp_utc": "2026-04-16T16:35:01+00:00",
+      "unit": null,
+      "value": 0.2925684452056885
+    },
+    {
+      "name": "p_mid_on_full_argmax",
+      "phase": "train",
+      "step": 280,
+      "timestamp_utc": "2026-04-16T16:35:01+00:00",
+      "unit": null,
+      "value": 0.12788377702236176
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 290,
+      "timestamp_utc": "2026-04-16T16:35:10+00:00",
+      "unit": null,
+      "value": 12.603534698486328
+    },
+    {
+      "name": "ce_mid",
+      "phase": "train",
+      "step": 290,
+      "timestamp_utc": "2026-04-16T16:35:10+00:00",
+      "unit": null,
+      "value": 5.96875
+    },
+    {
+      "name": "ce_full",
+      "phase": "train",
+      "step": 290,
+      "timestamp_utc": "2026-04-16T16:35:10+00:00",
+      "unit": null,
+      "value": 2.15625
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 290,
+      "timestamp_utc": "2026-04-16T16:35:10+00:00",
+      "unit": null,
+      "value": 3.8125
+    },
+    {
+      "name": "kl_full_to_mid",
+      "phase": "train",
+      "step": 290,
+      "timestamp_utc": "2026-04-16T16:35:10+00:00",
+      "unit": null,
+      "value": 3.692392587661743
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 290,
+      "timestamp_utc": "2026-04-16T16:35:10+00:00",
+      "unit": null,
+      "value": 0.4266149401664734
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 290,
+      "timestamp_utc": "2026-04-16T16:35:10+00:00",
+      "unit": null,
+      "value": 0.2943143844604492
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 290,
+      "timestamp_utc": "2026-04-16T16:35:10+00:00",
+      "unit": null,
+      "value": 0.2574522793292999
+    },
+    {
+      "name": "p_mid_on_full_argmax",
+      "phase": "train",
+      "step": 290,
+      "timestamp_utc": "2026-04-16T16:35:10+00:00",
+      "unit": null,
+      "value": 0.12498445808887482
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 300,
+      "timestamp_utc": "2026-04-16T16:35:20+00:00",
+      "unit": null,
+      "value": 11.76960563659668
+    },
+    {
+      "name": "ce_mid",
+      "phase": "train",
+      "step": 300,
+      "timestamp_utc": "2026-04-16T16:35:20+00:00",
+      "unit": null,
+      "value": 6.09375
+    },
+    {
+      "name": "ce_full",
+      "phase": "train",
+      "step": 300,
+      "timestamp_utc": "2026-04-16T16:35:20+00:00",
+      "unit": null,
+      "value": 3.078125
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 300,
+      "timestamp_utc": "2026-04-16T16:35:20+00:00",
+      "unit": null,
+      "value": 3.015625
+    },
+    {
+      "name": "kl_full_to_mid",
+      "phase": "train",
+      "step": 300,
+      "timestamp_utc": "2026-04-16T16:35:20+00:00",
+      "unit": null,
+      "value": 3.134803056716919
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 300,
+      "timestamp_utc": "2026-04-16T16:35:20+00:00",
+      "unit": null,
+      "value": 0.37169215083122253
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 300,
+      "timestamp_utc": "2026-04-16T16:35:20+00:00",
+      "unit": null,
+      "value": 0.3193979859352112
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 300,
+      "timestamp_utc": "2026-04-16T16:35:20+00:00",
+      "unit": null,
+      "value": 0.3169407248497009
+    },
+    {
+      "name": "p_mid_on_full_argmax",
+      "phase": "train",
+      "step": 300,
+      "timestamp_utc": "2026-04-16T16:35:20+00:00",
+      "unit": null,
+      "value": 0.1486944556236267
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 310,
+      "timestamp_utc": "2026-04-16T16:35:29+00:00",
+      "unit": null,
+      "value": 12.286962509155273
+    },
+    {
+      "name": "ce_mid",
+      "phase": "train",
+      "step": 310,
+      "timestamp_utc": "2026-04-16T16:35:29+00:00",
+      "unit": null,
+      "value": 5.96875
+    },
+    {
+      "name": "ce_full",
+      "phase": "train",
+      "step": 310,
+      "timestamp_utc": "2026-04-16T16:35:29+00:00",
+      "unit": null,
+      "value": 2.5
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 310,
+      "timestamp_utc": "2026-04-16T16:35:29+00:00",
+      "unit": null,
+      "value": 3.46875
+    },
+    {
+      "name": "kl_full_to_mid",
+      "phase": "train",
+      "step": 310,
+      "timestamp_utc": "2026-04-16T16:35:29+00:00",
+      "unit": null,
+      "value": 3.5028562545776367
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 310,
+      "timestamp_utc": "2026-04-16T16:35:29+00:00",
+      "unit": null,
+      "value": 0.4107789993286133
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 310,
+      "timestamp_utc": "2026-04-16T16:35:29+00:00",
+      "unit": null,
+      "value": 0.2792642116546631
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 310,
+      "timestamp_utc": "2026-04-16T16:35:29+00:00",
+      "unit": null,
+      "value": 0.2735295593738556
+    },
+    {
+      "name": "p_mid_on_full_argmax",
+      "phase": "train",
+      "step": 310,
+      "timestamp_utc": "2026-04-16T16:35:29+00:00",
+      "unit": null,
+      "value": 0.12546588480472565
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 320,
+      "timestamp_utc": "2026-04-16T16:35:39+00:00",
+      "unit": null,
+      "value": 10.77813720703125
+    },
+    {
+      "name": "ce_mid",
+      "phase": "train",
+      "step": 320,
+      "timestamp_utc": "2026-04-16T16:35:39+00:00",
+      "unit": null,
+      "value": 5.75
+    },
+    {
+      "name": "ce_full",
+      "phase": "train",
+      "step": 320,
+      "timestamp_utc": "2026-04-16T16:35:39+00:00",
+      "unit": null,
+      "value": 3.078125
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 320,
+      "timestamp_utc": "2026-04-16T16:35:39+00:00",
+      "unit": null,
+      "value": 2.671875
+    },
+    {
+      "name": "kl_full_to_mid",
+      "phase": "train",
+      "step": 320,
+      "timestamp_utc": "2026-04-16T16:35:39+00:00",
+      "unit": null,
+      "value": 2.779693365097046
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 320,
+      "timestamp_utc": "2026-04-16T16:35:39+00:00",
+      "unit": null,
+      "value": 0.3709425628185272
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 320,
+      "timestamp_utc": "2026-04-16T16:35:39+00:00",
+      "unit": null,
+      "value": 0.3244147002696991
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 320,
+      "timestamp_utc": "2026-04-16T16:35:39+00:00",
+      "unit": null,
+      "value": 0.3154565393924713
+    },
+    {
+      "name": "p_mid_on_full_argmax",
+      "phase": "train",
+      "step": 320,
+      "timestamp_utc": "2026-04-16T16:35:39+00:00",
+      "unit": null,
+      "value": 0.13006263971328735
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 330,
+      "timestamp_utc": "2026-04-16T16:35:48+00:00",
+      "unit": null,
+      "value": 12.05728530883789
+    },
+    {
+      "name": "ce_mid",
+      "phase": "train",
+      "step": 330,
+      "timestamp_utc": "2026-04-16T16:35:48+00:00",
+      "unit": null,
+      "value": 5.78125
+    },
+    {
+      "name": "ce_full",
+      "phase": "train",
+      "step": 330,
+      "timestamp_utc": "2026-04-16T16:35:48+00:00",
+      "unit": null,
+      "value": 2.4375
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 330,
+      "timestamp_utc": "2026-04-16T16:35:48+00:00",
+      "unit": null,
+      "value": 3.34375
+    },
+    {
+      "name": "kl_full_to_mid",
+      "phase": "train",
+      "step": 330,
+      "timestamp_utc": "2026-04-16T16:35:48+00:00",
+      "unit": null,
+      "value": 3.4661428928375244
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 330,
+      "timestamp_utc": "2026-04-16T16:35:48+00:00",
+      "unit": null,
+      "value": 0.417216420173645
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 330,
+      "timestamp_utc": "2026-04-16T16:35:48+00:00",
+      "unit": null,
+      "value": 0.25919732451438904
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 330,
+      "timestamp_utc": "2026-04-16T16:35:48+00:00",
+      "unit": null,
+      "value": 0.2705298364162445
+    },
+    {
+      "name": "p_mid_on_full_argmax",
+      "phase": "train",
+      "step": 330,
+      "timestamp_utc": "2026-04-16T16:35:48+00:00",
+      "unit": null,
+      "value": 0.13639172911643982
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 340,
+      "timestamp_utc": "2026-04-16T16:35:58+00:00",
+      "unit": null,
+      "value": 13.387420654296875
+    },
+    {
+      "name": "ce_mid",
+      "phase": "train",
+      "step": 340,
+      "timestamp_utc": "2026-04-16T16:35:58+00:00",
+      "unit": null,
+      "value": 6.46875
+    },
+    {
+      "name": "ce_full",
+      "phase": "train",
+      "step": 340,
+      "timestamp_utc": "2026-04-16T16:35:58+00:00",
+      "unit": null,
+      "value": 2.8125
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 340,
+      "timestamp_utc": "2026-04-16T16:35:58+00:00",
+      "unit": null,
+      "value": 3.65625
+    },
+    {
+      "name": "kl_full_to_mid",
+      "phase": "train",
+      "step": 340,
+      "timestamp_utc": "2026-04-16T16:35:58+00:00",
+      "unit": null,
+      "value": 3.8187105655670166
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 340,
+      "timestamp_utc": "2026-04-16T16:35:58+00:00",
+      "unit": null,
+      "value": 0.406017541885376
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 340,
+      "timestamp_utc": "2026-04-16T16:35:58+00:00",
+      "unit": null,
+      "value": 0.31605350971221924
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 340,
+      "timestamp_utc": "2026-04-16T16:35:58+00:00",
+      "unit": null,
+      "value": 0.28914543986320496
+    },
+    {
+      "name": "p_mid_on_full_argmax",
+      "phase": "train",
+      "step": 340,
+      "timestamp_utc": "2026-04-16T16:35:58+00:00",
+      "unit": null,
+      "value": 0.15757296979427338
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 350,
+      "timestamp_utc": "2026-04-16T16:36:07+00:00",
+      "unit": null,
+      "value": 12.088253021240234
+    },
+    {
+      "name": "ce_mid",
+      "phase": "train",
+      "step": 350,
+      "timestamp_utc": "2026-04-16T16:36:07+00:00",
+      "unit": null,
+      "value": 5.6875
+    },
+    {
+      "name": "ce_full",
+      "phase": "train",
+      "step": 350,
+      "timestamp_utc": "2026-04-16T16:36:07+00:00",
+      "unit": null,
+      "value": 2.265625
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 350,
+      "timestamp_utc": "2026-04-16T16:36:07+00:00",
+      "unit": null,
+      "value": 3.421875
+    },
+    {
+      "name": "kl_full_to_mid",
+      "phase": "train",
+      "step": 350,
+      "timestamp_utc": "2026-04-16T16:36:07+00:00",
+      "unit": null,
+      "value": 3.544126510620117
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 350,
+      "timestamp_utc": "2026-04-16T16:36:07+00:00",
+      "unit": null,
+      "value": 0.41156134009361267
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 350,
+      "timestamp_utc": "2026-04-16T16:36:07+00:00",
+      "unit": null,
+      "value": 0.2892976701259613
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 350,
+      "timestamp_utc": "2026-04-16T16:36:07+00:00",
+      "unit": null,
+      "value": 0.2758856415748596
+    },
+    {
+      "name": "p_mid_on_full_argmax",
+      "phase": "train",
+      "step": 350,
+      "timestamp_utc": "2026-04-16T16:36:07+00:00",
+      "unit": null,
+      "value": 0.13637779653072357
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 360,
+      "timestamp_utc": "2026-04-16T16:36:17+00:00",
+      "unit": null,
+      "value": 11.217536926269531
+    },
+    {
+      "name": "ce_mid",
+      "phase": "train",
+      "step": 360,
+      "timestamp_utc": "2026-04-16T16:36:17+00:00",
+      "unit": null,
+      "value": 5.25
+    },
+    {
+      "name": "ce_full",
+      "phase": "train",
+      "step": 360,
+      "timestamp_utc": "2026-04-16T16:36:17+00:00",
+      "unit": null,
+      "value": 2.015625
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 360,
+      "timestamp_utc": "2026-04-16T16:36:17+00:00",
+      "unit": null,
+      "value": 3.234375
+    },
+    {
+      "name": "kl_full_to_mid",
+      "phase": "train",
+      "step": 360,
+      "timestamp_utc": "2026-04-16T16:36:17+00:00",
+      "unit": null,
+      "value": 3.3118932247161865
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 360,
+      "timestamp_utc": "2026-04-16T16:36:17+00:00",
+      "unit": null,
+      "value": 0.4060956835746765
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 360,
+      "timestamp_utc": "2026-04-16T16:36:17+00:00",
+      "unit": null,
+      "value": 0.31438127160072327
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 360,
+      "timestamp_utc": "2026-04-16T16:36:17+00:00",
+      "unit": null,
+      "value": 0.29098325967788696
+    },
+    {
+      "name": "p_mid_on_full_argmax",
+      "phase": "train",
+      "step": 360,
+      "timestamp_utc": "2026-04-16T16:36:17+00:00",
+      "unit": null,
+      "value": 0.17574553191661835
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 370,
+      "timestamp_utc": "2026-04-16T16:36:27+00:00",
+      "unit": null,
+      "value": 11.017132759094238
+    },
+    {
+      "name": "ce_mid",
+      "phase": "train",
+      "step": 370,
+      "timestamp_utc": "2026-04-16T16:36:27+00:00",
+      "unit": null,
+      "value": 5.8125
+    },
+    {
+      "name": "ce_full",
+      "phase": "train",
+      "step": 370,
+      "timestamp_utc": "2026-04-16T16:36:27+00:00",
+      "unit": null,
+      "value": 3.125
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 370,
+      "timestamp_utc": "2026-04-16T16:36:27+00:00",
+      "unit": null,
+      "value": 2.6875
+    },
+    {
+      "name": "kl_full_to_mid",
+      "phase": "train",
+      "step": 370,
+      "timestamp_utc": "2026-04-16T16:36:27+00:00",
+      "unit": null,
+      "value": 2.867941379547119
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 370,
+      "timestamp_utc": "2026-04-16T16:36:27+00:00",
+      "unit": null,
+      "value": 0.35603711009025574
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 370,
+      "timestamp_utc": "2026-04-16T16:36:27+00:00",
+      "unit": null,
+      "value": 0.3127090334892273
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 370,
+      "timestamp_utc": "2026-04-16T16:36:27+00:00",
+      "unit": null,
+      "value": 0.33682459592819214
+    },
+    {
+      "name": "p_mid_on_full_argmax",
+      "phase": "train",
+      "step": 370,
+      "timestamp_utc": "2026-04-16T16:36:27+00:00",
+      "unit": null,
+      "value": 0.15083251893520355
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 380,
+      "timestamp_utc": "2026-04-16T16:36:36+00:00",
+      "unit": null,
+      "value": 12.275062561035156
+    },
+    {
+      "name": "ce_mid",
+      "phase": "train",
+      "step": 380,
+      "timestamp_utc": "2026-04-16T16:36:36+00:00",
+      "unit": null,
+      "value": 6.0625
+    },
+    {
+      "name": "ce_full",
+      "phase": "train",
+      "step": 380,
+      "timestamp_utc": "2026-04-16T16:36:36+00:00",
+      "unit": null,
+      "value": 2.671875
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 380,
+      "timestamp_utc": "2026-04-16T16:36:36+00:00",
+      "unit": null,
+      "value": 3.390625
+    },
+    {
+      "name": "kl_full_to_mid",
+      "phase": "train",
+      "step": 380,
+      "timestamp_utc": "2026-04-16T16:36:36+00:00",
+      "unit": null,
+      "value": 3.450031280517578
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 380,
+      "timestamp_utc": "2026-04-16T16:36:36+00:00",
+      "unit": null,
+      "value": 0.40379077196121216
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 380,
+      "timestamp_utc": "2026-04-16T16:36:36+00:00",
+      "unit": null,
+      "value": 0.2324414700269699
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 380,
+      "timestamp_utc": "2026-04-16T16:36:36+00:00",
+      "unit": null,
+      "value": 0.28189241886138916
+    },
+    {
+      "name": "p_mid_on_full_argmax",
+      "phase": "train",
+      "step": 380,
+      "timestamp_utc": "2026-04-16T16:36:36+00:00",
+      "unit": null,
+      "value": 0.12343083322048187
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 390,
+      "timestamp_utc": "2026-04-16T16:36:46+00:00",
+      "unit": null,
+      "value": 11.315004348754883
+    },
+    {
+      "name": "ce_mid",
+      "phase": "train",
+      "step": 390,
+      "timestamp_utc": "2026-04-16T16:36:46+00:00",
+      "unit": null,
+      "value": 5.375
+    },
+    {
+      "name": "ce_full",
+      "phase": "train",
+      "step": 390,
+      "timestamp_utc": "2026-04-16T16:36:46+00:00",
+      "unit": null,
+      "value": 2.1875
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 390,
+      "timestamp_utc": "2026-04-16T16:36:46+00:00",
+      "unit": null,
+      "value": 3.1875
+    },
+    {
+      "name": "kl_full_to_mid",
+      "phase": "train",
+      "step": 390,
+      "timestamp_utc": "2026-04-16T16:36:46+00:00",
+      "unit": null,
+      "value": 3.2825024127960205
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 390,
+      "timestamp_utc": "2026-04-16T16:36:46+00:00",
+      "unit": null,
+      "value": 0.38573968410491943
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 390,
+      "timestamp_utc": "2026-04-16T16:36:46+00:00",
+      "unit": null,
+      "value": 0.3294314444065094
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 390,
+      "timestamp_utc": "2026-04-16T16:36:46+00:00",
+      "unit": null,
+      "value": 0.31658488512039185
+    },
+    {
+      "name": "p_mid_on_full_argmax",
+      "phase": "train",
+      "step": 390,
+      "timestamp_utc": "2026-04-16T16:36:46+00:00",
+      "unit": null,
+      "value": 0.17563976347446442
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 400,
+      "timestamp_utc": "2026-04-16T16:36:56+00:00",
+      "unit": null,
+      "value": 12.33918571472168
+    },
+    {
+      "name": "ce_mid",
+      "phase": "train",
+      "step": 400,
+      "timestamp_utc": "2026-04-16T16:36:56+00:00",
+      "unit": null,
+      "value": 5.96875
+    },
+    {
+      "name": "ce_full",
+      "phase": "train",
+      "step": 400,
+      "timestamp_utc": "2026-04-16T16:36:56+00:00",
+      "unit": null,
+      "value": 2.4375
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 400,
+      "timestamp_utc": "2026-04-16T16:36:56+00:00",
+      "unit": null,
+      "value": 3.53125
+    },
+    {
+      "name": "kl_full_to_mid",
+      "phase": "train",
+      "step": 400,
+      "timestamp_utc": "2026-04-16T16:36:56+00:00",
+      "unit": null,
+      "value": 3.52896785736084
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 400,
+      "timestamp_utc": "2026-04-16T16:36:56+00:00",
+      "unit": null,
+      "value": 0.4127393066883087
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 400,
+      "timestamp_utc": "2026-04-16T16:36:56+00:00",
+      "unit": null,
+      "value": 0.306020051240921
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 400,
+      "timestamp_utc": "2026-04-16T16:36:56+00:00",
+      "unit": null,
+      "value": 0.2717392146587372
+    },
+    {
+      "name": "p_mid_on_full_argmax",
+      "phase": "train",
+      "step": 400,
+      "timestamp_utc": "2026-04-16T16:36:56+00:00",
+      "unit": null,
+      "value": 0.12794280052185059
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 410,
+      "timestamp_utc": "2026-04-16T16:37:06+00:00",
+      "unit": null,
+      "value": 11.25706672668457
+    },
+    {
+      "name": "ce_mid",
+      "phase": "train",
+      "step": 410,
+      "timestamp_utc": "2026-04-16T16:37:06+00:00",
+      "unit": null,
+      "value": 5.78125
+    },
+    {
+      "name": "ce_full",
+      "phase": "train",
+      "step": 410,
+      "timestamp_utc": "2026-04-16T16:37:06+00:00",
+      "unit": null,
+      "value": 2.671875
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 410,
+      "timestamp_utc": "2026-04-16T16:37:06+00:00",
+      "unit": null,
+      "value": 3.109375
+    },
+    {
+      "name": "kl_full_to_mid",
+      "phase": "train",
+      "step": 410,
+      "timestamp_utc": "2026-04-16T16:37:06+00:00",
+      "unit": null,
+      "value": 3.050408124923706
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 410,
+      "timestamp_utc": "2026-04-16T16:37:06+00:00",
+      "unit": null,
+      "value": 0.3889908790588379
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 410,
+      "timestamp_utc": "2026-04-16T16:37:06+00:00",
+      "unit": null,
+      "value": 0.27591973543167114
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 410,
+      "timestamp_utc": "2026-04-16T16:37:06+00:00",
+      "unit": null,
+      "value": 0.29177385568618774
+    },
+    {
+      "name": "p_mid_on_full_argmax",
+      "phase": "train",
+      "step": 410,
+      "timestamp_utc": "2026-04-16T16:37:06+00:00",
+      "unit": null,
+      "value": 0.10802809149026871
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 420,
+      "timestamp_utc": "2026-04-16T16:37:15+00:00",
+      "unit": null,
+      "value": 12.388394355773926
+    },
+    {
+      "name": "ce_mid",
+      "phase": "train",
+      "step": 420,
+      "timestamp_utc": "2026-04-16T16:37:15+00:00",
+      "unit": null,
+      "value": 6.0
+    },
+    {
+      "name": "ce_full",
+      "phase": "train",
+      "step": 420,
+      "timestamp_utc": "2026-04-16T16:37:15+00:00",
+      "unit": null,
+      "value": 2.53125
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 420,
+      "timestamp_utc": "2026-04-16T16:37:15+00:00",
+      "unit": null,
+      "value": 3.46875
+    },
+    {
+      "name": "kl_full_to_mid",
+      "phase": "train",
+      "step": 420,
+      "timestamp_utc": "2026-04-16T16:37:15+00:00",
+      "unit": null,
+      "value": 3.537947177886963
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 420,
+      "timestamp_utc": "2026-04-16T16:37:15+00:00",
+      "unit": null,
+      "value": 0.41646507382392883
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 420,
+      "timestamp_utc": "2026-04-16T16:37:15+00:00",
+      "unit": null,
+      "value": 0.262541800737381
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 420,
+      "timestamp_utc": "2026-04-16T16:37:15+00:00",
+      "unit": null,
+      "value": 0.2679096460342407
+    },
+    {
+      "name": "p_mid_on_full_argmax",
+      "phase": "train",
+      "step": 420,
+      "timestamp_utc": "2026-04-16T16:37:15+00:00",
+      "unit": null,
+      "value": 0.11787471920251846
+    }
+  ]
+}

@@ -13,10 +13,9 @@ import torch.nn.functional as F
 from transformers import PreTrainedModel
 
 from skip_search_spec.helpers.storage import save_early_exit_checkpoint
-from skip_search_spec.helpers.tooling import assert_same_tokenizer, get_preferred_device, get_preferred_float_dtype, load_dataset, load_model_and_tokenizer
+from skip_search_spec.helpers.tooling import assert_same_tokenizer, distribution_similarity_metrics, get_preferred_device, get_preferred_float_dtype, load_dataset, load_model_and_tokenizer
 from skip_search_spec.helpers.window_building import WindowDataset, build_all_training_windows, collate_windows, tokenize_dataset_to_examples
 from skip_search_spec.protocols.windows import DatasetSpec, ModelAndTokenizer, WindowSettings
-from skip_search_spec.training.train_early_exit import distribution_similarity_metrics
 
 
 

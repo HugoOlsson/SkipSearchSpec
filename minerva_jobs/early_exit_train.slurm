@@ -1,10 +1,10 @@
 #!/bin/bash
 #SBATCH -J sss-early-exit
 #SBATCH -p long
-#SBATCH --gres=gpu:L4:1
+#SBATCH --gres=gpu:L40s:1
 #SBATCH --cpus-per-task=8
-#SBATCH --mem=64G
-#SBATCH --time=18:00:00
+#SBATCH --mem=32G
+#SBATCH --time=2:00:00
 #SBATCH -o logs/sss-early-exit-%j.out
 #SBATCH -e logs/sss-early-exit-%j.err
 

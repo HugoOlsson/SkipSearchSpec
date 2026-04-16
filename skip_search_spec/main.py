@@ -31,17 +31,21 @@ def main() -> None:
 
         MODEL_NAME_EARLY_EXIT = "Qwen/Qwen2.5-1.5B"
 
-        train_early_exit(
-            model_name=MODEL_NAME_EARLY_EXIT,
-            dataset_spec=DATASET_SPEC_EARLY_EXIT,
-            batch_size=2,
-            checkpoint_path="checkpoints/early_exit_model15B.pt",
-            max_examples=10_000,
-            context_len=300,
-            alpha=0.8,
-            beta=2.0,
-            save_optimizer=False,
-        )
+        early_exit_layers = [2,4,8,12,16,20]
+
+        for early_exit_layer in early_exit_layers:
+            train_early_exit(
+                model_name=MODEL_NAME_EARLY_EXIT,
+                dataset_spec=DATASET_SPEC_EARLY_EXIT,
+                early_exit_layer=early_exit_layer,
+                batch_size=4,
+                checkpoint_path="checkpoints/early_exit_model15B.pt",
+                max_examples=1_000,
+                context_len=300,
+                alpha=0.8,
+                beta=2.0,
+                save_optimizer=False,
+            )
     
     elif mode == "train_drafter_for_verifier":
         from skip_search_spec.training.train_drafter_ability import train_drafter_for_verifier
