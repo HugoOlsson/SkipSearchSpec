@@ -38,9 +38,9 @@ def main() -> None:
                 model_name=MODEL_NAME_EARLY_EXIT,
                 dataset_spec=DATASET_SPEC_EARLY_EXIT,
                 early_exit_layer=early_exit_layer,
-                batch_size=4,
+                batch_size=2,
                 checkpoint_path="checkpoints/early_exit_model15B.pt",
-                max_examples=1_000,
+                max_examples=100,
                 context_len=300,
                 alpha=0.8,
                 beta=2.0,
@@ -80,6 +80,28 @@ def main() -> None:
     elif mode == "evaluate_flashhead":
         from skip_search_spec.training.flashhead.flashhead_research import evaluate_flashhead
         evaluate_flashhead(STORE_PATH_FLASH_HEAD, MODEL_NAME_FLASH_HEAD)
+
+
+    elif mode == "evaluate_layer_ablations":
+        from skip_search_spec.training.evaluate_layer_ablations import evaluate_layer_ablations
+
+        DATASET_SPEC = DatasetSpec(
+            name="FineWeb-Edu-1B",
+            huggingface_path="codelion/fineweb-edu-1B",
+            config_name="default",
+            split="train",
+            text_field="text",
+        )
+
+
+        results = evaluate_layer_ablations(
+            model_name="meta-llama/Llama-3.2-3B",
+            dataset_spec=DATASET_SPEC,
+            context_len=256,
+            max_examples=100,
+            num_windows_to_use=10,
+            batch_size=2,
+        )
 
     
     # elif mode == "run_early_exit":

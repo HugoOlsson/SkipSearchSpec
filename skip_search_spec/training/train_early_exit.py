@@ -307,6 +307,8 @@ def train_early_exit(
             "total_layers": num_layers,
             "alpha": alpha,
             "beta": beta,
+            "device": str(device),
+            "compute_dtype": str(compute_dtype),
             "trained_layers": [
                 i for i, layer in enumerate(early_exit_model.layers)
                 if layer in trained_blocks
