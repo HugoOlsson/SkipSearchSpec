@@ -98,7 +98,7 @@ def main() -> None:
             gap_start=9,
             gap_length=18, 
             num_epochs=2,
-            max_steps=1000,
+            max_steps=100000,
             lr=1e-4,
             kl_loss_weight=1.0,
             hidden_loss_weight=1.0,
