@@ -3,7 +3,9 @@
 from __future__ import annotations
 import sys
 
+from skip_search_spec.analysis.plot_ablation_heatmap import plot_ablation_heatmap_from_json
 from skip_search_spec.protocols.windows import DatasetSpec
+from skip_search_spec.training.train_gap_bridge import train_gap_bridge
 
 STORE_PATH_FLASH_HEAD = "checkpoints/flashhead_qwen_0_5b.pt"
 MODEL_NAME_FLASH_HEAD = "Qwen/Qwen2.5-0.5B"
@@ -46,6 +48,62 @@ def main() -> None:
                 beta=2.0,
                 save_optimizer=False,
             )
+
+    elif mode == "train_middle_gap_skip":
+        from skip_search_spec.training.train_middle_gap_skip import train_middle_gap_skip
+
+        DATASET_SPEC= DatasetSpec(
+            name="FineWeb-Edu-1B",
+            huggingface_path="codelion/fineweb-edu-1B",
+            config_name="default",
+            split="train",
+            text_field="text",
+        )
+
+        MODEL_NAME= "Qwen/Qwen2.5-0.5B"
+
+
+        train_middle_gap_skip(
+            model_name=MODEL_NAME,
+            gap_start_layer=9,
+            gap_end_layer=13,
+            dataset_spec=DATASET_SPEC,
+            batch_size=2,
+            checkpoint_path="checkpoints/middle_gap_skip.pt",
+            max_examples=3_000,
+            context_len=512,
+            alpha=1.0,
+            beta=1.0,
+            save_optimizer=False,
+        )
+
+    elif mode == "train_gap_bridge":
+        from skip_search_spec.training.train_middle_gap_skip import train_middle_gap_skip
+
+        DATASET_SPEC= DatasetSpec(
+            name="FineWeb-Edu-1B",
+            huggingface_path="codelion/fineweb-edu-1B",
+            config_name="default",
+            split="train",
+            text_field="text",
+        )
+
+        out = train_gap_bridge(
+            model_name="Qwen/Qwen2.5-3B",
+            dataset_spec=DATASET_SPEC,
+            context_len=512,
+            max_examples=20000,
+            num_windows_to_use=30000,
+            batch_size=4,
+            gap_start=9,
+            gap_length=18, 
+            num_epochs=2,
+            max_steps=1000,
+            lr=1e-4,
+            kl_loss_weight=1.0,
+            hidden_loss_weight=1.0,
+            ce_loss_weight=0.0,
+        )
     
     elif mode == "train_drafter_for_verifier":
         from skip_search_spec.training.train_drafter_ability import train_drafter_for_verifier
@@ -95,13 +153,26 @@ def main() -> None:
 
 
         results = evaluate_layer_ablations(
-            model_name="meta-llama/Llama-3.2-3B",
+            model_name="Qwen/Qwen2.5-0.5B",
             dataset_spec=DATASET_SPEC,
             context_len=256,
             max_examples=100,
             num_windows_to_use=10,
-            batch_size=2,
+            batch_size=5,
         )
+
+    elif mode == "plot_layer_ablation_results":
+        from skip_search_spec.analysis.plot_ablations_results import plot_ablation_json
+
+
+        plot_ablation_json(
+            "ablation_results/layer_ablations_Qwen_Qwen2.5-0.5B_20260418_141840.json",
+            metric="mean_top1_agreement",
+            top_k=None,   # or e.g. 50
+        )
+
+        # plot_ablation_heatmap_from_json( "ablation_results/layer_ablations_Qwen_Qwen2.5-0.5B_20260418_122333.json")
+
 
     
     # elif mode == "run_early_exit":

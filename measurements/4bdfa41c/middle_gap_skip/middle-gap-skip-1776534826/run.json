@@ -1,0 +1,1835 @@
+{
+  "context": {
+    "created_at_utc": "2026-04-18T17:53:46+00:00",
+    "dataset_name": "FineWeb-Edu-1B",
+    "experiment_type": "middle_gap_skip",
+    "git_commit": "4bdfa41c5dac1647c8507e22ab8cd26b48d8e952",
+    "git_tag": null,
+    "model_names": [
+      "Qwen/Qwen2.5-0.5B"
+    ],
+    "run_config": {
+      "alpha": 1.0,
+      "batch_size": 2,
+      "beta": 1.0,
+      "compute_dtype": "torch.bfloat16",
+      "context_len": 512,
+      "dataset": "FineWeb-Edu-1B<codelion/fineweb-edu-1B/default:train>",
+      "device": "mps",
+      "gap_end_layer": 13,
+      "gap_length": 5,
+      "gap_start_layer": 9,
+      "model": "Qwen/Qwen2.5-0.5B",
+      "steps_per_epoch": 2467,
+      "total_layers": 24,
+      "total_windows": 4934,
+      "train_layers_after_gap": 0,
+      "train_layers_before_gap": 0,
+      "trained_layers": [],
+      "use_bridge_proj": true
+    },
+    "run_id": "middle-gap-skip-1776534826"
+  },
+  "metric_events": [
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 0,
+      "timestamp_utc": "2026-04-18T17:53:48+00:00",
+      "unit": null,
+      "value": 3.1681625843048096
+    },
+    {
+      "name": "ce_student",
+      "phase": "train",
+      "step": 0,
+      "timestamp_utc": "2026-04-18T17:53:48+00:00",
+      "unit": null,
+      "value": 2.625
+    },
+    {
+      "name": "ce_teacher",
+      "phase": "train",
+      "step": 0,
+      "timestamp_utc": "2026-04-18T17:53:48+00:00",
+      "unit": null,
+      "value": 2.09375
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 0,
+      "timestamp_utc": "2026-04-18T17:53:48+00:00",
+      "unit": null,
+      "value": 0.53125
+    },
+    {
+      "name": "kl_teacher_to_student",
+      "phase": "train",
+      "step": 0,
+      "timestamp_utc": "2026-04-18T17:53:48+00:00",
+      "unit": null,
+      "value": 0.5431625247001648
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 0,
+      "timestamp_utc": "2026-04-18T17:53:48+00:00",
+      "unit": null,
+      "value": 0.11900023370981216
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 0,
+      "timestamp_utc": "2026-04-18T17:53:48+00:00",
+      "unit": null,
+      "value": 0.6643835306167603
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 0,
+      "timestamp_utc": "2026-04-18T17:53:48+00:00",
+      "unit": null,
+      "value": 0.67052161693573
+    },
+    {
+      "name": "p_student_on_teacher_argmax",
+      "phase": "train",
+      "step": 0,
+      "timestamp_utc": "2026-04-18T17:53:48+00:00",
+      "unit": null,
+      "value": 0.37711581587791443
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 10,
+      "timestamp_utc": "2026-04-18T17:53:56+00:00",
+      "unit": null,
+      "value": 3.4989049434661865
+    },
+    {
+      "name": "ce_student",
+      "phase": "train",
+      "step": 10,
+      "timestamp_utc": "2026-04-18T17:53:56+00:00",
+      "unit": null,
+      "value": 3.1875
+    },
+    {
+      "name": "ce_teacher",
+      "phase": "train",
+      "step": 10,
+      "timestamp_utc": "2026-04-18T17:53:56+00:00",
+      "unit": null,
+      "value": 2.9375
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 10,
+      "timestamp_utc": "2026-04-18T17:53:56+00:00",
+      "unit": null,
+      "value": 0.25
+    },
+    {
+      "name": "kl_teacher_to_student",
+      "phase": "train",
+      "step": 10,
+      "timestamp_utc": "2026-04-18T17:53:56+00:00",
+      "unit": null,
+      "value": 0.31140488386154175
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 10,
+      "timestamp_utc": "2026-04-18T17:53:56+00:00",
+      "unit": null,
+      "value": 0.06921672075986862
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 10,
+      "timestamp_utc": "2026-04-18T17:53:56+00:00",
+      "unit": null,
+      "value": 0.6996086239814758
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 10,
+      "timestamp_utc": "2026-04-18T17:53:56+00:00",
+      "unit": null,
+      "value": 0.7426522970199585
+    },
+    {
+      "name": "p_student_on_teacher_argmax",
+      "phase": "train",
+      "step": 10,
+      "timestamp_utc": "2026-04-18T17:53:56+00:00",
+      "unit": null,
+      "value": 0.3571019768714905
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 20,
+      "timestamp_utc": "2026-04-18T17:54:03+00:00",
+      "unit": null,
+      "value": 3.1959214210510254
+    },
+    {
+      "name": "ce_student",
+      "phase": "train",
+      "step": 20,
+      "timestamp_utc": "2026-04-18T17:54:03+00:00",
+      "unit": null,
+      "value": 2.84375
+    },
+    {
+      "name": "ce_teacher",
+      "phase": "train",
+      "step": 20,
+      "timestamp_utc": "2026-04-18T17:54:03+00:00",
+      "unit": null,
+      "value": 2.484375
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 20,
+      "timestamp_utc": "2026-04-18T17:54:03+00:00",
+      "unit": null,
+      "value": 0.359375
+    },
+    {
+      "name": "kl_teacher_to_student",
+      "phase": "train",
+      "step": 20,
+      "timestamp_utc": "2026-04-18T17:54:03+00:00",
+      "unit": null,
+      "value": 0.3521713316440582
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 20,
+      "timestamp_utc": "2026-04-18T17:54:03+00:00",
+      "unit": null,
+      "value": 0.07938311249017715
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 20,
+      "timestamp_utc": "2026-04-18T17:54:03+00:00",
+      "unit": null,
+      "value": 0.6878669261932373
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 20,
+      "timestamp_utc": "2026-04-18T17:54:03+00:00",
+      "unit": null,
+      "value": 0.7259930968284607
+    },
+    {
+      "name": "p_student_on_teacher_argmax",
+      "phase": "train",
+      "step": 20,
+      "timestamp_utc": "2026-04-18T17:54:03+00:00",
+      "unit": null,
+      "value": 0.36235731840133667
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 30,
+      "timestamp_utc": "2026-04-18T17:54:11+00:00",
+      "unit": null,
+      "value": 2.6148486137390137
+    },
+    {
+      "name": "ce_student",
+      "phase": "train",
+      "step": 30,
+      "timestamp_utc": "2026-04-18T17:54:11+00:00",
+      "unit": null,
+      "value": 2.328125
+    },
+    {
+      "name": "ce_teacher",
+      "phase": "train",
+      "step": 30,
+      "timestamp_utc": "2026-04-18T17:54:11+00:00",
+      "unit": null,
+      "value": 2.078125
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 30,
+      "timestamp_utc": "2026-04-18T17:54:11+00:00",
+      "unit": null,
+      "value": 0.25
+    },
+    {
+      "name": "kl_teacher_to_student",
+      "phase": "train",
+      "step": 30,
+      "timestamp_utc": "2026-04-18T17:54:11+00:00",
+      "unit": null,
+      "value": 0.2867234945297241
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 30,
+      "timestamp_utc": "2026-04-18T17:54:11+00:00",
+      "unit": null,
+      "value": 0.06559687107801437
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 30,
+      "timestamp_utc": "2026-04-18T17:54:11+00:00",
+      "unit": null,
+      "value": 0.7005870938301086
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 30,
+      "timestamp_utc": "2026-04-18T17:54:11+00:00",
+      "unit": null,
+      "value": 0.7757787108421326
+    },
+    {
+      "name": "p_student_on_teacher_argmax",
+      "phase": "train",
+      "step": 30,
+      "timestamp_utc": "2026-04-18T17:54:11+00:00",
+      "unit": null,
+      "value": 0.446924090385437
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 40,
+      "timestamp_utc": "2026-04-18T17:54:18+00:00",
+      "unit": null,
+      "value": 3.13433837890625
+    },
+    {
+      "name": "ce_student",
+      "phase": "train",
+      "step": 40,
+      "timestamp_utc": "2026-04-18T17:54:18+00:00",
+      "unit": null,
+      "value": 2.796875
+    },
+    {
+      "name": "ce_teacher",
+      "phase": "train",
+      "step": 40,
+      "timestamp_utc": "2026-04-18T17:54:18+00:00",
+      "unit": null,
+      "value": 2.453125
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 40,
+      "timestamp_utc": "2026-04-18T17:54:18+00:00",
+      "unit": null,
+      "value": 0.34375
+    },
+    {
+      "name": "kl_teacher_to_student",
+      "phase": "train",
+      "step": 40,
+      "timestamp_utc": "2026-04-18T17:54:18+00:00",
+      "unit": null,
+      "value": 0.3374633193016052
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 40,
+      "timestamp_utc": "2026-04-18T17:54:18+00:00",
+      "unit": null,
+      "value": 0.07542340457439423
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 40,
+      "timestamp_utc": "2026-04-18T17:54:18+00:00",
+      "unit": null,
+      "value": 0.6898238658905029
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 40,
+      "timestamp_utc": "2026-04-18T17:54:18+00:00",
+      "unit": null,
+      "value": 0.7300261855125427
+    },
+    {
+      "name": "p_student_on_teacher_argmax",
+      "phase": "train",
+      "step": 40,
+      "timestamp_utc": "2026-04-18T17:54:18+00:00",
+      "unit": null,
+      "value": 0.3654964864253998
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 50,
+      "timestamp_utc": "2026-04-18T17:54:26+00:00",
+      "unit": null,
+      "value": 3.3980696201324463
+    },
+    {
+      "name": "ce_student",
+      "phase": "train",
+      "step": 50,
+      "timestamp_utc": "2026-04-18T17:54:26+00:00",
+      "unit": null,
+      "value": 3.09375
+    },
+    {
+      "name": "ce_teacher",
+      "phase": "train",
+      "step": 50,
+      "timestamp_utc": "2026-04-18T17:54:26+00:00",
+      "unit": null,
+      "value": 2.84375
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 50,
+      "timestamp_utc": "2026-04-18T17:54:26+00:00",
+      "unit": null,
+      "value": 0.25
+    },
+    {
+      "name": "kl_teacher_to_student",
+      "phase": "train",
+      "step": 50,
+      "timestamp_utc": "2026-04-18T17:54:26+00:00",
+      "unit": null,
+      "value": 0.30431967973709106
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 50,
+      "timestamp_utc": "2026-04-18T17:54:26+00:00",
+      "unit": null,
+      "value": 0.06980697065591812
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 50,
+      "timestamp_utc": "2026-04-18T17:54:26+00:00",
+      "unit": null,
+      "value": 0.694716215133667
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 50,
+      "timestamp_utc": "2026-04-18T17:54:26+00:00",
+      "unit": null,
+      "value": 0.7357133626937866
+    },
+    {
+      "name": "p_student_on_teacher_argmax",
+      "phase": "train",
+      "step": 50,
+      "timestamp_utc": "2026-04-18T17:54:26+00:00",
+      "unit": null,
+      "value": 0.33852025866508484
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 60,
+      "timestamp_utc": "2026-04-18T17:54:34+00:00",
+      "unit": null,
+      "value": 2.979147434234619
+    },
+    {
+      "name": "ce_student",
+      "phase": "train",
+      "step": 60,
+      "timestamp_utc": "2026-04-18T17:54:34+00:00",
+      "unit": null,
+      "value": 2.640625
+    },
+    {
+      "name": "ce_teacher",
+      "phase": "train",
+      "step": 60,
+      "timestamp_utc": "2026-04-18T17:54:34+00:00",
+      "unit": null,
+      "value": 2.296875
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 60,
+      "timestamp_utc": "2026-04-18T17:54:34+00:00",
+      "unit": null,
+      "value": 0.34375
+    },
+    {
+      "name": "kl_teacher_to_student",
+      "phase": "train",
+      "step": 60,
+      "timestamp_utc": "2026-04-18T17:54:34+00:00",
+      "unit": null,
+      "value": 0.33852243423461914
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 60,
+      "timestamp_utc": "2026-04-18T17:54:34+00:00",
+      "unit": null,
+      "value": 0.07487796247005463
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 60,
+      "timestamp_utc": "2026-04-18T17:54:34+00:00",
+      "unit": null,
+      "value": 0.7289628386497498
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 60,
+      "timestamp_utc": "2026-04-18T17:54:34+00:00",
+      "unit": null,
+      "value": 0.7403925061225891
+    },
+    {
+      "name": "p_student_on_teacher_argmax",
+      "phase": "train",
+      "step": 60,
+      "timestamp_utc": "2026-04-18T17:54:34+00:00",
+      "unit": null,
+      "value": 0.4124264121055603
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 70,
+      "timestamp_utc": "2026-04-18T17:54:42+00:00",
+      "unit": null,
+      "value": 3.296569347381592
+    },
+    {
+      "name": "ce_student",
+      "phase": "train",
+      "step": 70,
+      "timestamp_utc": "2026-04-18T17:54:42+00:00",
+      "unit": null,
+      "value": 2.984375
+    },
+    {
+      "name": "ce_teacher",
+      "phase": "train",
+      "step": 70,
+      "timestamp_utc": "2026-04-18T17:54:42+00:00",
+      "unit": null,
+      "value": 2.6875
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 70,
+      "timestamp_utc": "2026-04-18T17:54:42+00:00",
+      "unit": null,
+      "value": 0.296875
+    },
+    {
+      "name": "kl_teacher_to_student",
+      "phase": "train",
+      "step": 70,
+      "timestamp_utc": "2026-04-18T17:54:42+00:00",
+      "unit": null,
+      "value": 0.31219422817230225
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 70,
+      "timestamp_utc": "2026-04-18T17:54:42+00:00",
+      "unit": null,
+      "value": 0.06873191148042679
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 70,
+      "timestamp_utc": "2026-04-18T17:54:42+00:00",
+      "unit": null,
+      "value": 0.7367905974388123
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 70,
+      "timestamp_utc": "2026-04-18T17:54:42+00:00",
+      "unit": null,
+      "value": 0.7554244995117188
+    },
+    {
+      "name": "p_student_on_teacher_argmax",
+      "phase": "train",
+      "step": 70,
+      "timestamp_utc": "2026-04-18T17:54:42+00:00",
+      "unit": null,
+      "value": 0.4263806939125061
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 80,
+      "timestamp_utc": "2026-04-18T17:54:50+00:00",
+      "unit": null,
+      "value": 3.367105722427368
+    },
+    {
+      "name": "ce_student",
+      "phase": "train",
+      "step": 80,
+      "timestamp_utc": "2026-04-18T17:54:50+00:00",
+      "unit": null,
+      "value": 3.03125
+    },
+    {
+      "name": "ce_teacher",
+      "phase": "train",
+      "step": 80,
+      "timestamp_utc": "2026-04-18T17:54:50+00:00",
+      "unit": null,
+      "value": 2.734375
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 80,
+      "timestamp_utc": "2026-04-18T17:54:50+00:00",
+      "unit": null,
+      "value": 0.296875
+    },
+    {
+      "name": "kl_teacher_to_student",
+      "phase": "train",
+      "step": 80,
+      "timestamp_utc": "2026-04-18T17:54:50+00:00",
+      "unit": null,
+      "value": 0.3358558118343353
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 80,
+      "timestamp_utc": "2026-04-18T17:54:50+00:00",
+      "unit": null,
+      "value": 0.07532032579183578
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 80,
+      "timestamp_utc": "2026-04-18T17:54:50+00:00",
+      "unit": null,
+      "value": 0.6898238658905029
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 80,
+      "timestamp_utc": "2026-04-18T17:54:50+00:00",
+      "unit": null,
+      "value": 0.7296627163887024
+    },
+    {
+      "name": "p_student_on_teacher_argmax",
+      "phase": "train",
+      "step": 80,
+      "timestamp_utc": "2026-04-18T17:54:50+00:00",
+      "unit": null,
+      "value": 0.36813417077064514
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 90,
+      "timestamp_utc": "2026-04-18T17:54:58+00:00",
+      "unit": null,
+      "value": 3.501782178878784
+    },
+    {
+      "name": "ce_student",
+      "phase": "train",
+      "step": 90,
+      "timestamp_utc": "2026-04-18T17:54:58+00:00",
+      "unit": null,
+      "value": 3.1875
+    },
+    {
+      "name": "ce_teacher",
+      "phase": "train",
+      "step": 90,
+      "timestamp_utc": "2026-04-18T17:54:58+00:00",
+      "unit": null,
+      "value": 2.875
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 90,
+      "timestamp_utc": "2026-04-18T17:54:58+00:00",
+      "unit": null,
+      "value": 0.3125
+    },
+    {
+      "name": "kl_teacher_to_student",
+      "phase": "train",
+      "step": 90,
+      "timestamp_utc": "2026-04-18T17:54:58+00:00",
+      "unit": null,
+      "value": 0.31428220868110657
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 90,
+      "timestamp_utc": "2026-04-18T17:54:58+00:00",
+      "unit": null,
+      "value": 0.07234317064285278
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 90,
+      "timestamp_utc": "2026-04-18T17:54:58+00:00",
+      "unit": null,
+      "value": 0.6956946849822998
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 90,
+      "timestamp_utc": "2026-04-18T17:54:58+00:00",
+      "unit": null,
+      "value": 0.7495344281196594
+    },
+    {
+      "name": "p_student_on_teacher_argmax",
+      "phase": "train",
+      "step": 90,
+      "timestamp_utc": "2026-04-18T17:54:58+00:00",
+      "unit": null,
+      "value": 0.3712438941001892
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 100,
+      "timestamp_utc": "2026-04-18T17:55:05+00:00",
+      "unit": null,
+      "value": 3.050220489501953
+    },
+    {
+      "name": "ce_student",
+      "phase": "train",
+      "step": 100,
+      "timestamp_utc": "2026-04-18T17:55:05+00:00",
+      "unit": null,
+      "value": 2.75
+    },
+    {
+      "name": "ce_teacher",
+      "phase": "train",
+      "step": 100,
+      "timestamp_utc": "2026-04-18T17:55:05+00:00",
+      "unit": null,
+      "value": 2.421875
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 100,
+      "timestamp_utc": "2026-04-18T17:55:05+00:00",
+      "unit": null,
+      "value": 0.328125
+    },
+    {
+      "name": "kl_teacher_to_student",
+      "phase": "train",
+      "step": 100,
+      "timestamp_utc": "2026-04-18T17:55:05+00:00",
+      "unit": null,
+      "value": 0.30022045969963074
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 100,
+      "timestamp_utc": "2026-04-18T17:55:05+00:00",
+      "unit": null,
+      "value": 0.06956690549850464
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 100,
+      "timestamp_utc": "2026-04-18T17:55:05+00:00",
+      "unit": null,
+      "value": 0.71330726146698
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 100,
+      "timestamp_utc": "2026-04-18T17:55:05+00:00",
+      "unit": null,
+      "value": 0.7545933723449707
+    },
+    {
+      "name": "p_student_on_teacher_argmax",
+      "phase": "train",
+      "step": 100,
+      "timestamp_utc": "2026-04-18T17:55:05+00:00",
+      "unit": null,
+      "value": 0.4098787307739258
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 110,
+      "timestamp_utc": "2026-04-18T17:55:14+00:00",
+      "unit": null,
+      "value": 4.042137622833252
+    },
+    {
+      "name": "ce_student",
+      "phase": "train",
+      "step": 110,
+      "timestamp_utc": "2026-04-18T17:55:14+00:00",
+      "unit": null,
+      "value": 3.75
+    },
+    {
+      "name": "ce_teacher",
+      "phase": "train",
+      "step": 110,
+      "timestamp_utc": "2026-04-18T17:55:14+00:00",
+      "unit": null,
+      "value": 3.4375
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 110,
+      "timestamp_utc": "2026-04-18T17:55:14+00:00",
+      "unit": null,
+      "value": 0.3125
+    },
+    {
+      "name": "kl_teacher_to_student",
+      "phase": "train",
+      "step": 110,
+      "timestamp_utc": "2026-04-18T17:55:14+00:00",
+      "unit": null,
+      "value": 0.29213759303092957
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 110,
+      "timestamp_utc": "2026-04-18T17:55:14+00:00",
+      "unit": null,
+      "value": 0.065437451004982
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 110,
+      "timestamp_utc": "2026-04-18T17:55:14+00:00",
+      "unit": null,
+      "value": 0.7358121275901794
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 110,
+      "timestamp_utc": "2026-04-18T17:55:14+00:00",
+      "unit": null,
+      "value": 0.7522169947624207
+    },
+    {
+      "name": "p_student_on_teacher_argmax",
+      "phase": "train",
+      "step": 110,
+      "timestamp_utc": "2026-04-18T17:55:14+00:00",
+      "unit": null,
+      "value": 0.35308530926704407
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 120,
+      "timestamp_utc": "2026-04-18T17:55:21+00:00",
+      "unit": null,
+      "value": 3.0349388122558594
+    },
+    {
+      "name": "ce_student",
+      "phase": "train",
+      "step": 120,
+      "timestamp_utc": "2026-04-18T17:55:21+00:00",
+      "unit": null,
+      "value": 2.578125
+    },
+    {
+      "name": "ce_teacher",
+      "phase": "train",
+      "step": 120,
+      "timestamp_utc": "2026-04-18T17:55:21+00:00",
+      "unit": null,
+      "value": 2.109375
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 120,
+      "timestamp_utc": "2026-04-18T17:55:21+00:00",
+      "unit": null,
+      "value": 0.46875
+    },
+    {
+      "name": "kl_teacher_to_student",
+      "phase": "train",
+      "step": 120,
+      "timestamp_utc": "2026-04-18T17:55:21+00:00",
+      "unit": null,
+      "value": 0.4568139314651489
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 120,
+      "timestamp_utc": "2026-04-18T17:55:21+00:00",
+      "unit": null,
+      "value": 0.09388234466314316
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 120,
+      "timestamp_utc": "2026-04-18T17:55:21+00:00",
+      "unit": null,
+      "value": 0.6888453960418701
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 120,
+      "timestamp_utc": "2026-04-18T17:55:21+00:00",
+      "unit": null,
+      "value": 0.7139058113098145
+    },
+    {
+      "name": "p_student_on_teacher_argmax",
+      "phase": "train",
+      "step": 120,
+      "timestamp_utc": "2026-04-18T17:55:21+00:00",
+      "unit": null,
+      "value": 0.40116143226623535
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 130,
+      "timestamp_utc": "2026-04-18T17:55:29+00:00",
+      "unit": null,
+      "value": 3.474632978439331
+    },
+    {
+      "name": "ce_student",
+      "phase": "train",
+      "step": 130,
+      "timestamp_utc": "2026-04-18T17:55:29+00:00",
+      "unit": null,
+      "value": 3.1875
+    },
+    {
+      "name": "ce_teacher",
+      "phase": "train",
+      "step": 130,
+      "timestamp_utc": "2026-04-18T17:55:29+00:00",
+      "unit": null,
+      "value": 2.953125
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 130,
+      "timestamp_utc": "2026-04-18T17:55:29+00:00",
+      "unit": null,
+      "value": 0.234375
+    },
+    {
+      "name": "kl_teacher_to_student",
+      "phase": "train",
+      "step": 130,
+      "timestamp_utc": "2026-04-18T17:55:29+00:00",
+      "unit": null,
+      "value": 0.28713303804397583
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 130,
+      "timestamp_utc": "2026-04-18T17:55:29+00:00",
+      "unit": null,
+      "value": 0.06587711721658707
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 130,
+      "timestamp_utc": "2026-04-18T17:55:29+00:00",
+      "unit": null,
+      "value": 0.7240704298019409
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 130,
+      "timestamp_utc": "2026-04-18T17:55:29+00:00",
+      "unit": null,
+      "value": 0.747199535369873
+    },
+    {
+      "name": "p_student_on_teacher_argmax",
+      "phase": "train",
+      "step": 130,
+      "timestamp_utc": "2026-04-18T17:55:29+00:00",
+      "unit": null,
+      "value": 0.3550732135772705
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 140,
+      "timestamp_utc": "2026-04-18T17:55:37+00:00",
+      "unit": null,
+      "value": 3.2060389518737793
+    },
+    {
+      "name": "ce_student",
+      "phase": "train",
+      "step": 140,
+      "timestamp_utc": "2026-04-18T17:55:37+00:00",
+      "unit": null,
+      "value": 2.921875
+    },
+    {
+      "name": "ce_teacher",
+      "phase": "train",
+      "step": 140,
+      "timestamp_utc": "2026-04-18T17:55:37+00:00",
+      "unit": null,
+      "value": 2.65625
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 140,
+      "timestamp_utc": "2026-04-18T17:55:37+00:00",
+      "unit": null,
+      "value": 0.265625
+    },
+    {
+      "name": "kl_teacher_to_student",
+      "phase": "train",
+      "step": 140,
+      "timestamp_utc": "2026-04-18T17:55:37+00:00",
+      "unit": null,
+      "value": 0.28416383266448975
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 140,
+      "timestamp_utc": "2026-04-18T17:55:37+00:00",
+      "unit": null,
+      "value": 0.0649554580450058
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 140,
+      "timestamp_utc": "2026-04-18T17:55:37+00:00",
+      "unit": null,
+      "value": 0.7074363827705383
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 140,
+      "timestamp_utc": "2026-04-18T17:55:37+00:00",
+      "unit": null,
+      "value": 0.7552499175071716
+    },
+    {
+      "name": "p_student_on_teacher_argmax",
+      "phase": "train",
+      "step": 140,
+      "timestamp_utc": "2026-04-18T17:55:37+00:00",
+      "unit": null,
+      "value": 0.3866373896598816
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 150,
+      "timestamp_utc": "2026-04-18T17:55:44+00:00",
+      "unit": null,
+      "value": 3.4463422298431396
+    },
+    {
+      "name": "ce_student",
+      "phase": "train",
+      "step": 150,
+      "timestamp_utc": "2026-04-18T17:55:44+00:00",
+      "unit": null,
+      "value": 2.953125
+    },
+    {
+      "name": "ce_teacher",
+      "phase": "train",
+      "step": 150,
+      "timestamp_utc": "2026-04-18T17:55:44+00:00",
+      "unit": null,
+      "value": 2.421875
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 150,
+      "timestamp_utc": "2026-04-18T17:55:44+00:00",
+      "unit": null,
+      "value": 0.53125
+    },
+    {
+      "name": "kl_teacher_to_student",
+      "phase": "train",
+      "step": 150,
+      "timestamp_utc": "2026-04-18T17:55:44+00:00",
+      "unit": null,
+      "value": 0.49321720004081726
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 150,
+      "timestamp_utc": "2026-04-18T17:55:44+00:00",
+      "unit": null,
+      "value": 0.10136915743350983
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 150,
+      "timestamp_utc": "2026-04-18T17:55:44+00:00",
+      "unit": null,
+      "value": 0.6761252284049988
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 150,
+      "timestamp_utc": "2026-04-18T17:55:44+00:00",
+      "unit": null,
+      "value": 0.6998730301856995
+    },
+    {
+      "name": "p_student_on_teacher_argmax",
+      "phase": "train",
+      "step": 150,
+      "timestamp_utc": "2026-04-18T17:55:44+00:00",
+      "unit": null,
+      "value": 0.3686566948890686
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 160,
+      "timestamp_utc": "2026-04-18T17:55:52+00:00",
+      "unit": null,
+      "value": 3.3296329975128174
+    },
+    {
+      "name": "ce_student",
+      "phase": "train",
+      "step": 160,
+      "timestamp_utc": "2026-04-18T17:55:52+00:00",
+      "unit": null,
+      "value": 2.953125
+    },
+    {
+      "name": "ce_teacher",
+      "phase": "train",
+      "step": 160,
+      "timestamp_utc": "2026-04-18T17:55:52+00:00",
+      "unit": null,
+      "value": 2.59375
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 160,
+      "timestamp_utc": "2026-04-18T17:55:52+00:00",
+      "unit": null,
+      "value": 0.359375
+    },
+    {
+      "name": "kl_teacher_to_student",
+      "phase": "train",
+      "step": 160,
+      "timestamp_utc": "2026-04-18T17:55:52+00:00",
+      "unit": null,
+      "value": 0.3765079081058502
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 160,
+      "timestamp_utc": "2026-04-18T17:55:52+00:00",
+      "unit": null,
+      "value": 0.08201758563518524
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 160,
+      "timestamp_utc": "2026-04-18T17:55:52+00:00",
+      "unit": null,
+      "value": 0.6927592754364014
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 160,
+      "timestamp_utc": "2026-04-18T17:55:52+00:00",
+      "unit": null,
+      "value": 0.7216510772705078
+    },
+    {
+      "name": "p_student_on_teacher_argmax",
+      "phase": "train",
+      "step": 160,
+      "timestamp_utc": "2026-04-18T17:55:52+00:00",
+      "unit": null,
+      "value": 0.3667847812175751
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 170,
+      "timestamp_utc": "2026-04-18T17:56:00+00:00",
+      "unit": null,
+      "value": 3.013659715652466
+    },
+    {
+      "name": "ce_student",
+      "phase": "train",
+      "step": 170,
+      "timestamp_utc": "2026-04-18T17:56:00+00:00",
+      "unit": null,
+      "value": 2.703125
+    },
+    {
+      "name": "ce_teacher",
+      "phase": "train",
+      "step": 170,
+      "timestamp_utc": "2026-04-18T17:56:00+00:00",
+      "unit": null,
+      "value": 2.40625
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 170,
+      "timestamp_utc": "2026-04-18T17:56:00+00:00",
+      "unit": null,
+      "value": 0.296875
+    },
+    {
+      "name": "kl_teacher_to_student",
+      "phase": "train",
+      "step": 170,
+      "timestamp_utc": "2026-04-18T17:56:00+00:00",
+      "unit": null,
+      "value": 0.31053468585014343
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 170,
+      "timestamp_utc": "2026-04-18T17:56:00+00:00",
+      "unit": null,
+      "value": 0.0687023401260376
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 170,
+      "timestamp_utc": "2026-04-18T17:56:00+00:00",
+      "unit": null,
+      "value": 0.7720156311988831
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 170,
+      "timestamp_utc": "2026-04-18T17:56:00+00:00",
+      "unit": null,
+      "value": 0.7599912285804749
+    },
+    {
+      "name": "p_student_on_teacher_argmax",
+      "phase": "train",
+      "step": 170,
+      "timestamp_utc": "2026-04-18T17:56:00+00:00",
+      "unit": null,
+      "value": 0.4532565176486969
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 180,
+      "timestamp_utc": "2026-04-18T17:56:07+00:00",
+      "unit": null,
+      "value": 3.1752631664276123
+    },
+    {
+      "name": "ce_student",
+      "phase": "train",
+      "step": 180,
+      "timestamp_utc": "2026-04-18T17:56:07+00:00",
+      "unit": null,
+      "value": 2.890625
+    },
+    {
+      "name": "ce_teacher",
+      "phase": "train",
+      "step": 180,
+      "timestamp_utc": "2026-04-18T17:56:07+00:00",
+      "unit": null,
+      "value": 2.625
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 180,
+      "timestamp_utc": "2026-04-18T17:56:07+00:00",
+      "unit": null,
+      "value": 0.265625
+    },
+    {
+      "name": "kl_teacher_to_student",
+      "phase": "train",
+      "step": 180,
+      "timestamp_utc": "2026-04-18T17:56:07+00:00",
+      "unit": null,
+      "value": 0.2846381366252899
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 180,
+      "timestamp_utc": "2026-04-18T17:56:07+00:00",
+      "unit": null,
+      "value": 0.06421937793493271
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 180,
+      "timestamp_utc": "2026-04-18T17:56:07+00:00",
+      "unit": null,
+      "value": 0.7407044768333435
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 180,
+      "timestamp_utc": "2026-04-18T17:56:07+00:00",
+      "unit": null,
+      "value": 0.7574570178985596
+    },
+    {
+      "name": "p_student_on_teacher_argmax",
+      "phase": "train",
+      "step": 180,
+      "timestamp_utc": "2026-04-18T17:56:07+00:00",
+      "unit": null,
+      "value": 0.3918858468532562
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 190,
+      "timestamp_utc": "2026-04-18T17:56:15+00:00",
+      "unit": null,
+      "value": 3.0847854614257812
+    },
+    {
+      "name": "ce_student",
+      "phase": "train",
+      "step": 190,
+      "timestamp_utc": "2026-04-18T17:56:15+00:00",
+      "unit": null,
+      "value": 2.484375
+    },
+    {
+      "name": "ce_teacher",
+      "phase": "train",
+      "step": 190,
+      "timestamp_utc": "2026-04-18T17:56:15+00:00",
+      "unit": null,
+      "value": 1.8046875
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 190,
+      "timestamp_utc": "2026-04-18T17:56:15+00:00",
+      "unit": null,
+      "value": 0.6796875
+    },
+    {
+      "name": "kl_teacher_to_student",
+      "phase": "train",
+      "step": 190,
+      "timestamp_utc": "2026-04-18T17:56:15+00:00",
+      "unit": null,
+      "value": 0.6004105806350708
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 190,
+      "timestamp_utc": "2026-04-18T17:56:15+00:00",
+      "unit": null,
+      "value": 0.12534703314304352
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 190,
+      "timestamp_utc": "2026-04-18T17:56:15+00:00",
+      "unit": null,
+      "value": 0.6428571343421936
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 190,
+      "timestamp_utc": "2026-04-18T17:56:15+00:00",
+      "unit": null,
+      "value": 0.6631156206130981
+    },
+    {
+      "name": "p_student_on_teacher_argmax",
+      "phase": "train",
+      "step": 190,
+      "timestamp_utc": "2026-04-18T17:56:15+00:00",
+      "unit": null,
+      "value": 0.3922748565673828
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 200,
+      "timestamp_utc": "2026-04-18T17:56:23+00:00",
+      "unit": null,
+      "value": 3.8489129543304443
+    },
+    {
+      "name": "ce_student",
+      "phase": "train",
+      "step": 200,
+      "timestamp_utc": "2026-04-18T17:56:23+00:00",
+      "unit": null,
+      "value": 3.578125
+    },
+    {
+      "name": "ce_teacher",
+      "phase": "train",
+      "step": 200,
+      "timestamp_utc": "2026-04-18T17:56:23+00:00",
+      "unit": null,
+      "value": 3.296875
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 200,
+      "timestamp_utc": "2026-04-18T17:56:23+00:00",
+      "unit": null,
+      "value": 0.28125
+    },
+    {
+      "name": "kl_teacher_to_student",
+      "phase": "train",
+      "step": 200,
+      "timestamp_utc": "2026-04-18T17:56:23+00:00",
+      "unit": null,
+      "value": 0.2707880437374115
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 200,
+      "timestamp_utc": "2026-04-18T17:56:23+00:00",
+      "unit": null,
+      "value": 0.060946762561798096
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 200,
+      "timestamp_utc": "2026-04-18T17:56:23+00:00",
+      "unit": null,
+      "value": 0.6956946849822998
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 200,
+      "timestamp_utc": "2026-04-18T17:56:23+00:00",
+      "unit": null,
+      "value": 0.7543110251426697
+    },
+    {
+      "name": "p_student_on_teacher_argmax",
+      "phase": "train",
+      "step": 200,
+      "timestamp_utc": "2026-04-18T17:56:23+00:00",
+      "unit": null,
+      "value": 0.3213905990123749
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 210,
+      "timestamp_utc": "2026-04-18T17:56:31+00:00",
+      "unit": null,
+      "value": 3.9466805458068848
+    },
+    {
+      "name": "ce_student",
+      "phase": "train",
+      "step": 210,
+      "timestamp_utc": "2026-04-18T17:56:31+00:00",
+      "unit": null,
+      "value": 3.609375
+    },
+    {
+      "name": "ce_teacher",
+      "phase": "train",
+      "step": 210,
+      "timestamp_utc": "2026-04-18T17:56:31+00:00",
+      "unit": null,
+      "value": 3.28125
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 210,
+      "timestamp_utc": "2026-04-18T17:56:31+00:00",
+      "unit": null,
+      "value": 0.328125
+    },
+    {
+      "name": "kl_teacher_to_student",
+      "phase": "train",
+      "step": 210,
+      "timestamp_utc": "2026-04-18T17:56:31+00:00",
+      "unit": null,
+      "value": 0.3373056650161743
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 210,
+      "timestamp_utc": "2026-04-18T17:56:31+00:00",
+      "unit": null,
+      "value": 0.0751441940665245
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 210,
+      "timestamp_utc": "2026-04-18T17:56:31+00:00",
+      "unit": null,
+      "value": 0.660469651222229
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 210,
+      "timestamp_utc": "2026-04-18T17:56:31+00:00",
+      "unit": null,
+      "value": 0.7214337587356567
+    },
+    {
+      "name": "p_student_on_teacher_argmax",
+      "phase": "train",
+      "step": 210,
+      "timestamp_utc": "2026-04-18T17:56:31+00:00",
+      "unit": null,
+      "value": 0.2946285307407379
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 220,
+      "timestamp_utc": "2026-04-18T17:56:39+00:00",
+      "unit": null,
+      "value": 3.0572776794433594
+    },
+    {
+      "name": "ce_student",
+      "phase": "train",
+      "step": 220,
+      "timestamp_utc": "2026-04-18T17:56:39+00:00",
+      "unit": null,
+      "value": 2.78125
+    },
+    {
+      "name": "ce_teacher",
+      "phase": "train",
+      "step": 220,
+      "timestamp_utc": "2026-04-18T17:56:39+00:00",
+      "unit": null,
+      "value": 2.546875
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 220,
+      "timestamp_utc": "2026-04-18T17:56:39+00:00",
+      "unit": null,
+      "value": 0.234375
+    },
+    {
+      "name": "kl_teacher_to_student",
+      "phase": "train",
+      "step": 220,
+      "timestamp_utc": "2026-04-18T17:56:39+00:00",
+      "unit": null,
+      "value": 0.27602773904800415
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 220,
+      "timestamp_utc": "2026-04-18T17:56:39+00:00",
+      "unit": null,
+      "value": 0.06299901753664017
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 220,
+      "timestamp_utc": "2026-04-18T17:56:39+00:00",
+      "unit": null,
+      "value": 0.694716215133667
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 220,
+      "timestamp_utc": "2026-04-18T17:56:39+00:00",
+      "unit": null,
+      "value": 0.7524780035018921
+    },
+    {
+      "name": "p_student_on_teacher_argmax",
+      "phase": "train",
+      "step": 220,
+      "timestamp_utc": "2026-04-18T17:56:39+00:00",
+      "unit": null,
+      "value": 0.3682374060153961
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 230,
+      "timestamp_utc": "2026-04-18T17:56:46+00:00",
+      "unit": null,
+      "value": 4.191948413848877
+    },
+    {
+      "name": "ce_student",
+      "phase": "train",
+      "step": 230,
+      "timestamp_utc": "2026-04-18T17:56:46+00:00",
+      "unit": null,
+      "value": 3.90625
+    },
+    {
+      "name": "ce_teacher",
+      "phase": "train",
+      "step": 230,
+      "timestamp_utc": "2026-04-18T17:56:46+00:00",
+      "unit": null,
+      "value": 3.640625
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 230,
+      "timestamp_utc": "2026-04-18T17:56:46+00:00",
+      "unit": null,
+      "value": 0.265625
+    },
+    {
+      "name": "kl_teacher_to_student",
+      "phase": "train",
+      "step": 230,
+      "timestamp_utc": "2026-04-18T17:56:46+00:00",
+      "unit": null,
+      "value": 0.2856985032558441
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 230,
+      "timestamp_utc": "2026-04-18T17:56:46+00:00",
+      "unit": null,
+      "value": 0.06393323838710785
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 230,
+      "timestamp_utc": "2026-04-18T17:56:46+00:00",
+      "unit": null,
+      "value": 0.71330726146698
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 230,
+      "timestamp_utc": "2026-04-18T17:56:46+00:00",
+      "unit": null,
+      "value": 0.7470786571502686
+    },
+    {
+      "name": "p_student_on_teacher_argmax",
+      "phase": "train",
+      "step": 230,
+      "timestamp_utc": "2026-04-18T17:56:46+00:00",
+      "unit": null,
+      "value": 0.32931920886039734
+    },
+    {
+      "name": "loss",
+      "phase": "train",
+      "step": 240,
+      "timestamp_utc": "2026-04-18T17:56:54+00:00",
+      "unit": null,
+      "value": 3.6097707748413086
+    },
+    {
+      "name": "ce_student",
+      "phase": "train",
+      "step": 240,
+      "timestamp_utc": "2026-04-18T17:56:54+00:00",
+      "unit": null,
+      "value": 3.359375
+    },
+    {
+      "name": "ce_teacher",
+      "phase": "train",
+      "step": 240,
+      "timestamp_utc": "2026-04-18T17:56:54+00:00",
+      "unit": null,
+      "value": 3.125
+    },
+    {
+      "name": "ce_gap",
+      "phase": "train",
+      "step": 240,
+      "timestamp_utc": "2026-04-18T17:56:54+00:00",
+      "unit": null,
+      "value": 0.234375
+    },
+    {
+      "name": "kl_teacher_to_student",
+      "phase": "train",
+      "step": 240,
+      "timestamp_utc": "2026-04-18T17:56:54+00:00",
+      "unit": null,
+      "value": 0.2503957152366638
+    },
+    {
+      "name": "js",
+      "phase": "train",
+      "step": 240,
+      "timestamp_utc": "2026-04-18T17:56:54+00:00",
+      "unit": null,
+      "value": 0.05665303021669388
+    },
+    {
+      "name": "top1_agreement",
+      "phase": "train",
+      "step": 240,
+      "timestamp_utc": "2026-04-18T17:56:54+00:00",
+      "unit": null,
+      "value": 0.7446184158325195
+    },
+    {
+      "name": "overlap",
+      "phase": "train",
+      "step": 240,
+      "timestamp_utc": "2026-04-18T17:56:54+00:00",
+      "unit": null,
+      "value": 0.768267810344696
+    },
+    {
+      "name": "p_student_on_teacher_argmax",
+      "phase": "train",
+      "step": 240,
+      "timestamp_utc": "2026-04-18T17:56:54+00:00",
+      "unit": null,
+      "value": 0.34786951541900635
+    }
+  ]
+}

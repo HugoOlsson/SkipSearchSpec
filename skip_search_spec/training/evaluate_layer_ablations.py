@@ -2,9 +2,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any, cast, Iterable
+import json
 import math
 import time
 from contextlib import ExitStack
+from pathlib import Path
+import re
 
 import torch
 import torch.nn.functional as F
@@ -56,8 +59,26 @@ class AblationResult:
     mean_p_masked_on_full_argmax: float
 
 
-def _stage(message: str) -> None:
-    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] {message}", flush=True)
+def _stage(
+    message: str,
+    *,
+    model_name: str | None = None,
+    ablation_idx: int | None = None,
+    num_ablations: int | None = None,
+) -> None:
+    prefix_parts: list[str] = []
+
+    if ablation_idx is not None and num_ablations is not None:
+        prefix_parts.append(f"ablation={ablation_idx}/{num_ablations}")
+
+    if model_name is not None:
+        prefix_parts.append(f"[model={model_name}]")
+
+    prefix = ""
+    if prefix_parts:
+        prefix = " ".join(prefix_parts) + " "
+
+    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] {prefix}{message}", flush=True)
 
 
 def _get_backbone(model: Any) -> Any:
@@ -131,6 +152,110 @@ def _format_optional_float(value: float | None) -> str:
     if value is None or not math.isfinite(value):
         return "NA"
     return f"{value:.6f}"
+
+
+def _sanitize_for_filename(text: str) -> str:
+    sanitized = re.sub(r"[^A-Za-z0-9._-]+", "_", text)
+    sanitized = sanitized.strip("._")
+    return sanitized or "model"
+
+
+def _json_safe(value: Any) -> Any:
+    if isinstance(value, (str, int, float, bool)) or value is None:
+        return value
+    if isinstance(value, Path):
+        return str(value)
+    if isinstance(value, dict):
+        return {str(k): _json_safe(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_json_safe(v) for v in value]
+    return str(value)
+
+
+def _result_to_json_dict(
+    result: AblationResult,
+    *,
+    ablation_index: int,
+) -> dict[str, Any]:
+    return {
+        "ablation_index": ablation_index,
+        "mask_name": result.mask_name,
+        "visual_mask": result.visual_mask,
+        "binary_mask": list(result.binary_mask),
+        "kept_layers": list(result.kept_layers),
+        "num_kept_layers": result.num_kept_layers,
+        "num_removed_layers": result.num_removed_layers,
+        "num_total_layers": result.num_total_layers,
+        "keep_fraction": result.keep_fraction,
+        "remove_fraction": result.remove_fraction,
+        "mean_ce_masked": result.mean_ce_masked,
+        "mean_ce_full": result.mean_ce_full,
+        "mean_ce_gap": result.mean_ce_gap,
+        "mean_kl_full_to_masked": result.mean_kl_full_to_masked,
+        "kl_per_removed_layer": result.kl_per_removed_layer,
+        "mean_js": result.mean_js,
+        "mean_top1_agreement": result.mean_top1_agreement,
+        "mean_overlap": result.mean_overlap,
+        "mean_p_masked_on_full_argmax": result.mean_p_masked_on_full_argmax,
+    }
+
+
+def _save_ablation_results_json(
+    *,
+    model_name: str,
+    dataset_spec: DatasetSpec,
+    context_len: int,
+    max_examples: int,
+    num_windows_to_use: int,
+    batch_size: int,
+    num_layers: int,
+    num_ablations: int,
+    num_batches: int,
+    device: torch.device,
+    compute_dtype: torch.dtype,
+    model_kwargs: dict[str, Any] | None,
+    results: list[AblationResult],
+    output_dir: str | Path = "ablation_results",
+) -> Path:
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    timestamp_for_filename = time.strftime("%Y%m%d_%H%M%S")
+    timestamp_readable = time.strftime("%Y-%m-%d %H:%M:%S")
+
+    output_path = output_dir / (
+        f"layer_ablations_{_sanitize_for_filename(model_name)}_{timestamp_for_filename}.json"
+    )
+
+    payload = {
+        "schema_version": 1,
+        "created_at": timestamp_readable,
+        "model_name": model_name,
+        "num_layers": num_layers,
+        "evaluation_config": {
+            "context_len": context_len,
+            "max_examples": max_examples,
+            "num_windows_to_use": num_windows_to_use,
+            "batch_size": batch_size,
+            "num_batches": num_batches,
+            "num_ablations": num_ablations,
+            "device": str(device),
+            "compute_dtype": str(compute_dtype),
+            "dataset_spec_repr": repr(dataset_spec),
+            "model_kwargs": _json_safe(model_kwargs or {}),
+        },
+        "results": [
+            _result_to_json_dict(result, ablation_index=i)
+            for i, result in enumerate(results, start=1)
+        ],
+    }
+
+    with output_path.open("w", encoding="utf-8") as f:
+        json.dump(payload, f, indent=2, ensure_ascii=False)
+
+    print()
+    print(f"Saved ablation results JSON to: {output_path}")
+    return output_path
 
 
 @torch.no_grad()
@@ -228,247 +353,267 @@ def _kl_full_to_masked_next_token(
 
 
 def _make_basic_ablation_masks(num_layers: int) -> list[AblationMaskSpec]:
-    all_layers = tuple(range(num_layers))
+    if num_layers <= 0:
+        return []
 
-    def keep(indices: Iterable[int]) -> tuple[int, ...]:
-        return tuple(sorted(i for i in set(indices) if 0 <= i < num_layers))
+    dedup: dict[tuple[int, ...], AblationMaskSpec] = {}
 
-    def add_mask(
-        masks: list[AblationMaskSpec],
-        name: str,
-        indices: Iterable[int],
-    ) -> None:
-        kept = keep(indices)
+    def normalize(indices: Iterable[int]) -> tuple[int, ...]:
+        return tuple(sorted({i for i in indices if 0 <= i < num_layers}))
+
+    def add_mask(name: str, indices: Iterable[int]) -> None:
+        kept = normalize(indices)
         if len(kept) == 0:
             return
-        masks.append(
-            AblationMaskSpec(
+        # Keep the FIRST canonical name for a given kept-layer pattern.
+        if kept not in dedup:
+            dedup[kept] = AblationMaskSpec(
                 name=name,
                 keep_layer_indices=kept,
             )
-        )
 
-    masks: list[AblationMaskSpec] = []
+    def unique_counts(*values: int, upper: int | None = None, lower: int = 1) -> list[int]:
+        max_allowed = num_layers if upper is None else upper
+        return sorted({
+            int(v)
+            for v in values
+            if lower <= int(v) <= max_allowed
+        })
 
-    # ------------------------------------------------------------------
-    # Baselines
-    # ------------------------------------------------------------------
-    add_mask(masks, "full_model", all_layers)
-
-    for frac_num, frac_den in [(1, 4), (1, 3), (1, 2), (2, 3), (3, 4)]:
-        k = max(1, (num_layers * frac_num) // frac_den)
-        add_mask(masks, f"early_exit_{frac_num}_{frac_den}", range(0, k))
-        add_mask(masks, f"late_begin_{frac_num}_{frac_den}", range(num_layers - k, num_layers))
-
-    # ------------------------------------------------------------------
-    # Periodic masks
-    # ------------------------------------------------------------------
-    for step in [2, 3, 4, 5]:
-        for offset in range(step):
-            add_mask(
-                masks,
-                f"every_{step}th_from_{offset}",
-                (i for i in range(num_layers) if i % step == offset),
-            )
-
-    # keep K out of every M consecutive layers
-    for group_size, keep_count in [
-        (2, 1),
-        (3, 2),
-        (4, 2),
-        (4, 3),
-        (5, 2),
-        (5, 3),
-    ]:
-        for offset in range(group_size):
-            add_mask(
-                masks,
-                f"group_{keep_count}_of_{group_size}_offset_{offset}",
-                (
-                    i for i in range(num_layers)
-                    if ((i + offset) % group_size) < keep_count
-                ),
-            )
-
-    # ------------------------------------------------------------------
-    # Middle-only and edge-only
-    # ------------------------------------------------------------------
-    quarter = max(1, num_layers // 4)
-    third = max(1, num_layers // 3)
-    half = max(1, num_layers // 2)
-
-    add_mask(masks, "middle_half", range(num_layers // 4, num_layers - num_layers // 4))
-    add_mask(masks, "middle_third", range(num_layers // 3, num_layers - num_layers // 3))
-
-    add_mask(
-        masks,
-        "outer_halves_only",
-        list(range(0, quarter)) + list(range(num_layers - quarter, num_layers)),
-    )
-
-    add_mask(
-        masks,
-        "outer_thirds_only",
-        list(range(0, third)) + list(range(num_layers - third, num_layers)),
-    )
-
-    for size_name, size in [
-        ("center_2", 2),
-        ("center_4", 4),
-        ("center_quarter", quarter),
-        ("center_half", half),
-    ]:
+    def centered_block(size: int) -> tuple[int, ...]:
+        size = max(1, min(size, num_layers))
         start = max(0, (num_layers - size) // 2)
         end = min(num_layers, start + size)
-        add_mask(masks, size_name, range(start, end))
+        return tuple(range(start, end))
 
-    # ------------------------------------------------------------------
-    # Hybrid: keep one region dense, another sparse
-    # ------------------------------------------------------------------
-    add_mask(
-        masks,
-        "first_half_dense_second_half_even",
-        list(range(0, num_layers // 2))
-        + [i for i in range(num_layers // 2, num_layers) if i % 2 == 0],
-    )
-    add_mask(
-        masks,
-        "first_half_dense_second_half_odd",
-        list(range(0, num_layers // 2))
-        + [i for i in range(num_layers // 2, num_layers) if i % 2 == 1],
-    )
+    def remove_block(start: int, length: int) -> tuple[int, ...]:
+        start = max(0, min(start, num_layers))
+        end = max(start, min(num_layers, start + length))
+        removed = set(range(start, end))
+        return tuple(i for i in range(num_layers) if i not in removed)
 
-    add_mask(
-        masks,
-        "first_half_even_second_half_dense",
-        [i for i in range(0, num_layers // 2) if i % 2 == 0]
-        + list(range(num_layers // 2, num_layers)),
-    )
-    add_mask(
-        masks,
-        "first_half_odd_second_half_dense",
-        [i for i in range(0, num_layers // 2) if i % 2 == 1]
-        + list(range(num_layers // 2, num_layers)),
-    )
-
-    t1 = num_layers // 3
-    t2 = (2 * num_layers) // 3
-
-    add_mask(
-        masks,
-        "first_third_dense_rest_even",
-        list(range(0, t1)) + [i for i in range(t1, num_layers) if i % 2 == 0],
-    )
-    add_mask(
-        masks,
-        "last_third_dense_rest_even",
-        [i for i in range(0, t2) if i % 2 == 0] + list(range(t2, num_layers)),
-    )
-    add_mask(
-        masks,
-        "middle_third_dense_rest_even",
-        [i for i in range(0, t1) if i % 2 == 0]
-        + list(range(t1, t2))
-        + [i for i in range(t2, num_layers) if i % 2 == 0],
-    )
-
-    # ------------------------------------------------------------------
-    # Two-on / two-off and related motifs
-    # ------------------------------------------------------------------
-    for offset in range(4):
-        add_mask(
-            masks,
-            f"two_on_two_off_offset_{offset}",
-            (
-                i for i in range(num_layers)
-                if ((i + offset) % 4) in (0, 1)
-            ),
+    def periodic_indices(step: int, keep_count: int, phase: int) -> tuple[int, ...]:
+        return tuple(
+            i for i in range(num_layers)
+            if ((i + phase) % step) < keep_count
         )
 
-    for offset in range(6):
-        add_mask(
-            masks,
-            f"three_on_three_off_offset_{offset}",
-            (
-                i for i in range(num_layers)
-                if ((i + offset) % 6) in (0, 1, 2)
-            ),
-        )
+    def periodic_indices_anchored(step: int, keep_count: int, phase: int) -> tuple[int, ...]:
+        kept = {
+            i for i in range(num_layers)
+            if ((i + phase) % step) < keep_count
+        }
+        kept.add(0)
+        kept.add(num_layers - 1)
+        return tuple(sorted(kept))
 
     # ------------------------------------------------------------------
-    # Local holes in otherwise dense model
+    # 1) Baseline
     # ------------------------------------------------------------------
-    hole_sizes = [1, 2, 4]
-    anchor_points = [
-        0,
+    add_mask("keep_all", range(num_layers))
+
+    # ------------------------------------------------------------------
+    # 2) Prefix-only (canonical early-exit family)
+    # ------------------------------------------------------------------
+    prefix_sizes = unique_counts(
+        1,
+        2,
+        4,
         num_layers // 4,
+        num_layers // 3,
         num_layers // 2,
+        (2 * num_layers) // 3,
         (3 * num_layers) // 4,
-        max(0, num_layers - 1),
+        num_layers - 1,
+        upper=max(1, num_layers - 1),
+    )
+    for k in prefix_sizes:
+        add_mask(f"keep_prefix__k_{k}", range(0, k))
+
+    # ------------------------------------------------------------------
+    # 3) Suffix-only (canonical late-begin family)
+    # ------------------------------------------------------------------
+    suffix_sizes = prefix_sizes
+    for k in suffix_sizes:
+        add_mask(f"keep_suffix__k_{k}", range(num_layers - k, num_layers))
+
+    # ------------------------------------------------------------------
+    # 4) Internal single-layer drop
+    #    Internal only: idx in [1, num_layers-2]
+    # ------------------------------------------------------------------
+    if num_layers >= 3:
+        for idx in range(1, num_layers - 1):
+            add_mask(
+                f"drop_internal_single__idx_{idx}",
+                remove_block(start=idx, length=1),
+            )
+
+    # ------------------------------------------------------------------
+    # 5) Internal contiguous block drop
+    #    Internal only: block must not touch first/last layer
+    # ------------------------------------------------------------------
+    if num_layers >= 5:
+        block_lengths = unique_counts(
+            2,
+            3,
+            4,
+            num_layers // 8,
+            num_layers // 6,
+            num_layers // 4,
+            upper=max(2, num_layers - 2),
+            lower=2,
+        )
+
+        for length in block_lengths:
+            if length >= num_layers - 1:
+                continue
+
+            candidate_starts = sorted({
+                1,
+                max(1, (num_layers // 4) - (length // 2)),
+                max(1, (num_layers // 2) - (length // 2)),
+                max(1, ((3 * num_layers) // 4) - (length // 2)),
+                max(1, num_layers - length - 1),
+            })
+
+            for start in candidate_starts:
+                if start <= 0:
+                    continue
+                if start + length >= num_layers:
+                    continue
+                add_mask(
+                    f"drop_internal_block__start_{start}__len_{length}",
+                    remove_block(start=start, length=length),
+                )
+
+    # ------------------------------------------------------------------
+    # 6) Center contiguous keep-block
+    # ------------------------------------------------------------------
+    center_lengths = unique_counts(
+        1,
+        2,
+        4,
+        num_layers // 8,
+        num_layers // 6,
+        num_layers // 4,
+        num_layers // 3,
+        num_layers // 2,
+        upper=max(1, num_layers - 1),
+    )
+    for length in center_lengths:
+        add_mask(
+            f"keep_center_block__len_{length}",
+            centered_block(length),
+        )
+
+    # ------------------------------------------------------------------
+    # 7) Edge-only family
+    #    Symmetric + a few asymmetric variants
+    # ------------------------------------------------------------------
+    edge_sizes = unique_counts(
+        1,
+        2,
+        4,
+        num_layers // 8,
+        num_layers // 6,
+        num_layers // 4,
+        num_layers // 3,
+        upper=max(1, num_layers - 1),
+    )
+
+    # Symmetric
+    for edge in edge_sizes:
+        if (2 * edge) >= num_layers:
+            continue
+        add_mask(
+            f"keep_edges__left_{edge}__right_{edge}",
+            list(range(0, edge)) + list(range(num_layers - edge, num_layers)),
+        )
+
+    # A few asymmetric versions
+    quarter = max(1, num_layers // 4)
+    third = max(1, num_layers // 3)
+    asym_pairs = [
+        (1, quarter),
+        (quarter, 1),
+        (2, quarter),
+        (quarter, 2),
+        (1, third),
+        (third, 1),
+    ]
+    for left, right in asym_pairs:
+        if left <= 0 or right <= 0:
+            continue
+        if left + right >= num_layers:
+            continue
+        add_mask(
+            f"keep_edges__left_{left}__right_{right}",
+            list(range(0, left)) + list(range(num_layers - right, num_layers)),
+        )
+
+    # ------------------------------------------------------------------
+    # 8) Periodic / strided family
+    #    Canonical replacement for every_nth, group_k_of_n, two_on_two_off, etc.
+    # ------------------------------------------------------------------
+    periodic_specs = [
+        (2, 1),
+        (3, 1),
+        (3, 2),
+        (4, 1),
+        (4, 2),
+        (4, 3),
     ]
 
-    for hole_size in hole_sizes:
-        for anchor in anchor_points:
-            start = min(max(0, anchor), max(0, num_layers - hole_size))
-            removed = set(range(start, start + hole_size))
+    for step, keep_count in periodic_specs:
+        if step > num_layers:
+            continue
+        if keep_count <= 0 or keep_count >= step:
+            continue
+
+        for phase in range(step):
             add_mask(
-                masks,
-                f"full_minus_hole_size_{hole_size}_start_{start}",
-                (i for i in range(num_layers) if i not in removed),
+                f"keep_periodic__step_{step}__keep_{keep_count}__phase_{phase}",
+                periodic_indices(step=step, keep_count=keep_count, phase=phase),
             )
 
     # ------------------------------------------------------------------
-    # Sparse masks with anchors
+    # 9) Anchored periodic family
+    #    Same as periodic, but always keeps first and last layer
     # ------------------------------------------------------------------
-    for step in [2, 3, 4]:
-        for offset in range(step):
-            interior = [
-                i for i in range(1, num_layers - 1)
-                if i % step == offset
-            ]
+    for step, keep_count in periodic_specs:
+        if step > num_layers:
+            continue
+        if keep_count <= 0 or keep_count >= step:
+            continue
+
+        for phase in range(step):
             add_mask(
-                masks,
-                f"anchored_every_{step}th_from_{offset}",
-                [0] + interior + [num_layers - 1],
+                f"keep_periodic_anchored__step_{step}__keep_{keep_count}__phase_{phase}",
+                periodic_indices_anchored(step=step, keep_count=keep_count, phase=phase),
             )
 
-    edge_width = max(1, num_layers // 6)
-    add_mask(
-        masks,
-        "keep_edges_sparse_middle_even",
-        list(range(0, edge_width))
-        + [i for i in range(edge_width, num_layers - edge_width) if i % 2 == 0]
-        + list(range(num_layers - edge_width, num_layers)),
-    )
-    add_mask(
-        masks,
-        "keep_edges_sparse_middle_odd",
-        list(range(0, edge_width))
-        + [i for i in range(edge_width, num_layers - edge_width) if i % 2 == 1]
-        + list(range(num_layers - edge_width, num_layers)),
-    )
-
     # ------------------------------------------------------------------
-    # Stair-step masks
+    # 10) Landmark family
     # ------------------------------------------------------------------
-    add_mask(
-        masks,
-        "dense_early_medium_middle_sparse_late",
-        list(range(0, t1))
-        + [i for i in range(t1, t2) if i % 2 == 0]
-        + [i for i in range(t2, num_layers) if i % 3 == 0],
-    )
-    add_mask(
-        masks,
-        "sparse_early_medium_middle_dense_late",
-        [i for i in range(0, t1) if i % 3 == 0]
-        + [i for i in range(t1, t2) if i % 2 == 0]
-        + list(range(t2, num_layers)),
-    )
+    quarter_idx = num_layers // 4
+    mid_idx = num_layers // 2
+    third_1 = num_layers // 3
+    third_2 = (2 * num_layers) // 3
+    three_quarter_idx = (3 * num_layers) // 4
+    last_idx = num_layers - 1
 
-    dedup: dict[tuple[int, ...], AblationMaskSpec] = {}
-    for mask in masks:
-        dedup[mask.keep_layer_indices] = mask
+    landmark_schemes: list[tuple[str, list[int]]] = [
+        ("first_mid_last", [0, mid_idx, last_idx]),
+        ("first_quarter_mid_threequarter_last", [0, quarter_idx, mid_idx, three_quarter_idx, last_idx]),
+        ("first_thirds_last", [0, third_1, third_2, last_idx]),
+        ("quarter_mid_threequarter", [quarter_idx, mid_idx, three_quarter_idx]),
+    ]
+
+    for scheme_name, indices in landmark_schemes:
+        add_mask(
+            f"keep_landmarks__scheme_{scheme_name}",
+            indices,
+        )
 
     return list(dedup.values())
 
@@ -512,8 +657,9 @@ def evaluate_layer_ablations(
     batch_size: int = 2,
     model_kwargs: dict[str, Any] | None = None,
     custom_masks: list[AblationMaskSpec] | None = None,
+    json_output_dir: str | Path = "ablation_results",
 ) -> list[AblationResult]:
-    _stage("evaluate_layer_ablations: start")
+    _stage("evaluate_layer_ablations: start", model_name=model_name)
 
     device = get_preferred_device()
     compute_dtype = get_preferred_float_dtype(device)
@@ -533,7 +679,7 @@ def evaluate_layer_ablations(
     dataset: Dataset = load_dataset(dataset_spec)
     window_settings = WindowSettings(C1=context_len)
 
-    _stage("tokenizing dataset")
+    _stage("tokenizing dataset", model_name=model_name)
     tokenized_examples = tokenize_dataset_to_examples(
         dataset,
         model_and_tokenizer.tokenizer,
@@ -541,7 +687,7 @@ def evaluate_layer_ablations(
         max_examples=max_examples,
     )
 
-    _stage("building windows")
+    _stage("building windows", model_name=model_name)
     all_windows = build_all_training_windows(
         tokenized_examples,
         window_settings,
@@ -565,13 +711,16 @@ def evaluate_layer_ablations(
     )
 
     num_layers = len(_get_decoder_layers(model))
-    _stage(f"model has {num_layers} decoder layers")
+    _stage(f"model has {num_layers} decoder layers", model_name=model_name)
 
     masks = custom_masks if custom_masks is not None else _make_basic_ablation_masks(num_layers)
+    num_ablations = len(masks)
+
+    print(f"Generated {num_ablations} unique ablation masks")
 
     print()
     print("=" * 120)
-    print(f"Evaluating {len(masks)} ablations for {model_name}")
+    print(f"Evaluating {num_ablations} ablations for model: {model_name}")
     print("=" * 120)
     for idx, mask_spec in enumerate(masks, start=1):
         binary_mask = _mask_to_binary_tuple(
@@ -591,7 +740,7 @@ def evaluate_layer_ablations(
 
     results: list[AblationResult] = []
 
-    for mask_spec in masks:
+    for ablation_idx, mask_spec in enumerate(masks, start=1):
         if len(mask_spec.keep_layer_indices) == 0:
             print(f"Skipping mask {mask_spec.name} because it keeps zero layers.")
             continue
@@ -621,8 +770,10 @@ def evaluate_layer_ablations(
         p_masked_on_full_argmax_values: list[float] = []
 
         _stage(
-            f"evaluating mask={mask_spec.name} "
-            f"kept={len(mask_spec.keep_layer_indices)}/{num_layers}"
+            f"evaluating mask={mask_spec.name} kept={len(mask_spec.keep_layer_indices)}/{num_layers}",
+            model_name=model_name,
+            ablation_idx=ablation_idx,
+            num_ablations=num_ablations,
         )
         print(f"  visual={visual_mask}")
         print(f"  binary={list(binary_mask)}")
@@ -676,7 +827,9 @@ def evaluate_layer_ablations(
             )
 
             print(
-                f"  batch={batch_idx + 1}/{len(dataloader)} "
+                f"  ablation={ablation_idx}/{num_ablations} "
+                f"[model={model_name}] "
+                f"batch={batch_idx + 1}/{len(dataloader)} "
                 f"ce_masked={ce_masked.item():.4f} "
                 f"ce_full={ce_full.item():.4f} "
                 f"ce_gap={(ce_masked.item() - ce_full.item()):.4f} "
@@ -720,7 +873,7 @@ def evaluate_layer_ablations(
         results.append(result)
 
         print(
-            f"[done] {result.mask_name} | "
+            f"[done] ablation={ablation_idx}/{num_ablations} [model={model_name}] {result.mask_name} | "
             f"kept={result.num_kept_layers}/{result.num_total_layers} | "
             f"removed={result.num_removed_layers} | "
             f"ce_masked={result.mean_ce_masked:.4f} | "
@@ -731,33 +884,61 @@ def evaluate_layer_ablations(
             f"top1={result.mean_top1_agreement:.4f}"
         )
 
-    results_by_ce = sorted(results, key=lambda x: (x.mean_ce_gap, x.mean_kl_full_to_masked, -x.num_removed_layers))
-    results_by_kl = sorted(results, key=lambda x: (x.mean_kl_full_to_masked, x.mean_ce_gap, -x.num_removed_layers))
+    results_by_ce = sorted(
+        results,
+        key=lambda x: (x.mean_ce_gap, x.mean_kl_full_to_masked, -x.num_removed_layers),
+    )
+    results_by_kl = sorted(
+        results,
+        key=lambda x: (x.mean_kl_full_to_masked, x.mean_ce_gap, -x.num_removed_layers),
+    )
     results_by_kl_per_removed = sorted(
         [x for x in results if x.kl_per_removed_layer is not None],
-        key=lambda x: (cast(float, x.kl_per_removed_layer), x.mean_kl_full_to_masked, x.mean_ce_gap),
+        key=lambda x: (
+            cast(float, x.kl_per_removed_layer),
+            x.mean_kl_full_to_masked,
+            x.mean_ce_gap,
+        ),
     )
 
     _print_ranking(
-        title="Top ablations by lowest KL",
+        title=f"Top ablations by lowest KL | model={model_name}",
         ranked_results=results_by_kl,
         score_getter=lambda r: r.mean_kl_full_to_masked,
         top_k=min(15, len(results_by_kl)),
     )
 
     _print_ranking(
-        title="Top ablations by lowest KL per removed layer",
+        title=f"Top ablations by lowest KL per removed layer | model={model_name}",
         ranked_results=results_by_kl_per_removed,
         score_getter=lambda r: r.kl_per_removed_layer,
         top_k=min(15, len(results_by_kl_per_removed)),
     )
 
     _print_ranking(
-        title="Top ablations by lowest CE gap",
+        title=f"Top ablations by lowest CE gap | model={model_name}",
         ranked_results=results_by_ce,
         score_getter=lambda r: r.mean_ce_gap,
         top_k=min(15, len(results_by_ce)),
     )
 
-    _stage("finished evaluation")
+    json_path = _save_ablation_results_json(
+        model_name=model_name,
+        dataset_spec=dataset_spec,
+        context_len=context_len,
+        max_examples=max_examples,
+        num_windows_to_use=num_windows_to_use,
+        batch_size=batch_size,
+        num_layers=num_layers,
+        num_ablations=num_ablations,
+        num_batches=len(dataloader),
+        device=device,
+        compute_dtype=compute_dtype,
+        model_kwargs=model_kwargs,
+        results=results,
+        output_dir=json_output_dir,
+    )
+
+    _stage(f"saved results json to {json_path}", model_name=model_name)
+    _stage("finished evaluation", model_name=model_name)
     return results_by_ce

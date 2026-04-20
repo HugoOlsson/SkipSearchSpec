@@ -14,6 +14,7 @@ ExperimentType = Literal[
     "early_exit",
     "self_speculation",
     "speculative_decoding",
+    "middle_gap_skip"
 ]
 SummaryType = ExperimentType
 
