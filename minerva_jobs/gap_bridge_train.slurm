@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH -J sss-gap-bridge
 #SBATCH -p long
-#SBATCH --gres=gpu:L40s:1
-#SBATCH --cpus-per-task=8
+#SBATCH --gres=gpu:L4:1
+#SBATCH --cpus-per-task=4
 #SBATCH --mem=32G
 #SBATCH --time=2:00:00
 #SBATCH -o logs/sss-gap-bridge-%j.out
