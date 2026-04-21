@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -J sss-eval-ablations
 #SBATCH -p long
-#SBATCH --gres=gpu:L40s:1
+#SBATCH --gres=gpu:L4:1
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=32G
 #SBATCH --time=2:00:00
