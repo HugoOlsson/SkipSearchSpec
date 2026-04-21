@@ -351,6 +351,91 @@ def _kl_full_to_masked_next_token(
 
     return kl_per_token.mean()
 
+def _make_dense_keep_edges_masks(
+    *,
+    num_layers: int,
+    min_remove_fraction: float = 0.60,
+    max_remove_fraction: float = 0.90,
+    min_edge_keep: int = 1,
+    include_all_splits: bool = True,
+    max_splits_per_total: int | None = None,
+) -> list[AblationMaskSpec]:
+    if num_layers <= 0:
+        return []
+
+    dedup: dict[tuple[int, ...], AblationMaskSpec] = {}
+
+    def add_mask(name: str, indices: Iterable[int]) -> None:
+        kept = tuple(sorted({i for i in indices if 0 <= i < num_layers}))
+        if len(kept) == 0:
+            return
+        if kept not in dedup:
+            dedup[kept] = AblationMaskSpec(
+                name=name,
+                keep_layer_indices=kept,
+            )
+
+    min_keep_total = max(
+        2 * min_edge_keep,
+        math.ceil((1.0 - max_remove_fraction) * num_layers),
+    )
+    max_keep_total = min(
+        num_layers - 1,
+        math.floor((1.0 - min_remove_fraction) * num_layers),
+    )
+
+    if min_keep_total > max_keep_total:
+        return []
+
+    for total_kept in range(min_keep_total, max_keep_total + 1):
+        candidate_pairs: list[tuple[int, int]] = []
+
+        for left in range(min_edge_keep, total_kept - min_edge_keep + 1):
+            right = total_kept - left
+            if right < min_edge_keep:
+                continue
+            if left + right >= num_layers:
+                continue
+            candidate_pairs.append((left, right))
+
+        if not candidate_pairs:
+            continue
+
+        if include_all_splits:
+            selected_pairs = candidate_pairs
+        else:
+            # keep a smaller but still informative subset:
+            # left-heavy, balanced, right-heavy
+            mid = len(candidate_pairs) // 2
+            selected_pairs = [candidate_pairs[0], candidate_pairs[mid], candidate_pairs[-1]]
+
+            # dedup while preserving order
+            seen: set[tuple[int, int]] = set()
+            selected_pairs = [
+                pair for pair in selected_pairs
+                if not (pair in seen or seen.add(pair))
+            ]
+
+        if max_splits_per_total is not None and len(selected_pairs) > max_splits_per_total:
+            if max_splits_per_total <= 1:
+                selected_pairs = [selected_pairs[len(selected_pairs) // 2]]
+            else:
+                # evenly subsample across asymmetry range
+                indices = [
+                    round(i * (len(selected_pairs) - 1) / (max_splits_per_total - 1))
+                    for i in range(max_splits_per_total)
+                ]
+                selected_pairs = [selected_pairs[i] for i in sorted(set(indices))]
+
+        for left, right in selected_pairs:
+            kept = list(range(0, left)) + list(range(num_layers - right, num_layers))
+            add_mask(
+                f"keep_edges__left_{left}__right_{right}__total_{total_kept}__remove_{num_layers - total_kept}",
+                kept,
+            )
+
+    return list(dedup.values())
+
 
 def _make_basic_ablation_masks(num_layers: int) -> list[AblationMaskSpec]:
     if num_layers <= 0:
@@ -418,12 +503,28 @@ def _make_basic_ablation_masks(num_layers: int) -> list[AblationMaskSpec]:
     prefix_sizes = unique_counts(
         1,
         2,
+        3,
         4,
+        5,
+        6,
+        num_layers // 4 - 1,
         num_layers // 4,
+        num_layers // 4 + 1,
+        num_layers // 3 - 1,
         num_layers // 3,
+        num_layers // 3 + 1,
+        num_layers // 2 - 2,
+        num_layers // 2 - 1,
         num_layers // 2,
+        num_layers // 2 + 1,
+        num_layers // 2 + 2,
+        (2 * num_layers) // 3 - 1,
         (2 * num_layers) // 3,
+        (2 * num_layers) // 3 + 1,
+        (3 * num_layers) // 4 - 1,
         (3 * num_layers) // 4,
+        (3 * num_layers) // 4 + 1,
+        num_layers - 2,
         num_layers - 1,
         upper=max(1, num_layers - 1),
     )
@@ -441,12 +542,12 @@ def _make_basic_ablation_masks(num_layers: int) -> list[AblationMaskSpec]:
     # 4) Internal single-layer drop
     #    Internal only: idx in [1, num_layers-2]
     # ------------------------------------------------------------------
-    if num_layers >= 3:
-        for idx in range(1, num_layers - 1):
-            add_mask(
-                f"drop_internal_single__idx_{idx}",
-                remove_block(start=idx, length=1),
-            )
+    # if num_layers >= 3:
+    #     for idx in range(1, num_layers - 1):
+    #         add_mask(
+    #             f"drop_internal_single__idx_{idx}",
+    #             remove_block(start=idx, length=1),
+    #         )
 
     # ------------------------------------------------------------------
     # 5) Internal contiguous block drop
@@ -506,50 +607,23 @@ def _make_basic_ablation_masks(num_layers: int) -> list[AblationMaskSpec]:
             centered_block(length),
         )
 
-    # ------------------------------------------------------------------
+   # ------------------------------------------------------------------
     # 7) Edge-only family
-    #    Symmetric + a few asymmetric variants
+    #    Dense middle-gap sweep:
+    #    keep left prefix + right suffix, remove contiguous middle block,
+    #    focused on removing 60-90% of layers.
     # ------------------------------------------------------------------
-    edge_sizes = unique_counts(
-        1,
-        2,
-        4,
-        num_layers // 8,
-        num_layers // 6,
-        num_layers // 4,
-        num_layers // 3,
-        upper=max(1, num_layers - 1),
+    dense_keep_edges = _make_dense_keep_edges_masks(
+        num_layers=num_layers,
+        min_remove_fraction=0.60,
+        max_remove_fraction=0.90,
+        min_edge_keep=1,
+        include_all_splits=True,      # set False if too many
+        max_splits_per_total=None,    # e.g. 7 if you want to cap it
     )
 
-    # Symmetric
-    for edge in edge_sizes:
-        if (2 * edge) >= num_layers:
-            continue
-        add_mask(
-            f"keep_edges__left_{edge}__right_{edge}",
-            list(range(0, edge)) + list(range(num_layers - edge, num_layers)),
-        )
-
-    # A few asymmetric versions
-    quarter = max(1, num_layers // 4)
-    third = max(1, num_layers // 3)
-    asym_pairs = [
-        (1, quarter),
-        (quarter, 1),
-        (2, quarter),
-        (quarter, 2),
-        (1, third),
-        (third, 1),
-    ]
-    for left, right in asym_pairs:
-        if left <= 0 or right <= 0:
-            continue
-        if left + right >= num_layers:
-            continue
-        add_mask(
-            f"keep_edges__left_{left}__right_{right}",
-            list(range(0, left)) + list(range(num_layers - right, num_layers)),
-        )
+    for spec in dense_keep_edges:
+        add_mask(spec.name, spec.keep_layer_indices)
 
     # ------------------------------------------------------------------
     # 8) Periodic / strided family

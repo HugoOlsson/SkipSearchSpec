@@ -84,9 +84,12 @@ def _validate_gap(*, gap: GapSpec, num_layers: int) -> None:
     if gap.length <= 0:
         raise ValueError(f"gap.length must be > 0, got {gap.length}")
 
-    if gap.start <= 0:
+    if gap.start < 0:
+        raise ValueError(f"gap.start must be >= 0, got {gap.start}")
+
+    if gap.start >= num_layers:
         raise ValueError(
-            f"gap.start must be > 0 so there is at least one pre-gap layer, got {gap.start}"
+            f"gap.start must be < num_layers, got gap.start={gap.start}, num_layers={num_layers}"
         )
 
     if gap.end > num_layers:
@@ -94,9 +97,12 @@ def _validate_gap(*, gap: GapSpec, num_layers: int) -> None:
             f"gap.end must be <= num_layers, got gap.end={gap.end}, num_layers={num_layers}"
         )
 
-
-def _is_effective_early_exit(*, gap: GapSpec, num_layers: int) -> bool:
-    return gap.end == num_layers
+def _get_effective_mode(*, gap: GapSpec, num_layers: int) -> str:
+    if gap.start == 0:
+        return "LATE-BEGIN"
+    if gap.end == num_layers:
+        return "EARLY-EXIT"
+    return "GAP"
 
 
 def _get_reentry_module_for_gap(*, model: Any, gap: GapSpec) -> Any:
@@ -423,7 +429,7 @@ def train_gap_bridge(
     gap = GapSpec(start=gap_start, length=gap_length)
     _validate_gap(gap=gap, num_layers=num_layers)
 
-    effective_mode = "EARLY-EXIT" if _is_effective_early_exit(gap=gap, num_layers=num_layers) else "GAP"
+    effective_mode = _get_effective_mode(gap=gap, num_layers=num_layers)
     _stage(f"{effective_mode}")
 
     hidden_size = _get_hidden_size(model)
@@ -476,7 +482,13 @@ def train_gap_bridge(
     history: list[dict[str, float]] = []
     step = 0
 
-    if effective_mode == "EARLY-EXIT":
+    if effective_mode == "LATE-BEGIN":
+        _stage(
+            f"training bridge for LATE-BEGIN skipping prefix [0, {gap.end}) "
+            f"and re-entering at layer {gap.end if gap.end < num_layers else 'final_norm'} "
+            f"on model with {num_layers} layers and hidden_size={hidden_size}"
+        )
+    elif effective_mode == "EARLY-EXIT":
         _stage(
             f"training bridge for EARLY-EXIT keep_prefix=[0, {gap.start}) "
             f"(skipping [{gap.start}, {gap.end})) "

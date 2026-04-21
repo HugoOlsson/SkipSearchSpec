@@ -3,6 +3,7 @@
 from __future__ import annotations
 import sys
 from skip_search_spec.protocols.windows import DatasetSpec
+from skip_search_spec.training.multi_future import train_future_hidden_heads
 
 
 
@@ -80,25 +81,52 @@ def main() -> None:
         from skip_search_spec.training.train_gap_bridge import train_gap_bridge
 
         DATASET_SPEC= DatasetSpec(
-            name="FineWeb-Edu-1B",
-            huggingface_path="codelion/fineweb-edu-1B",
+            name="TinyStories",
+            huggingface_path="roneneldan/TinyStories",
             config_name="default",
             split="train",
             text_field="text",
         )
 
         out = train_gap_bridge(
-            model_name="Qwen/Qwen2.5-1.5B",
+            model_name="Qwen/Qwen2.5-14B",
             dataset_spec=DATASET_SPEC,
-            context_len=512,
-            max_examples=20000,
-            num_windows_to_use=30000,
-            batch_size=2,
-            gap_start=9,
-            gap_length=10, 
+            context_len=256,
+            max_examples=100000,
+            num_windows_to_use=15000,
+            batch_size=12,
+            gap_start=2,
+            gap_length=43, 
             num_epochs=2,
             max_steps=100000,
             kl_loss_weight=1.0,
+            hidden_loss_weight=1.0,
+            ce_loss_weight=0.0,
+        )
+
+    elif mode == "train_future_hidden_heads":
+
+
+        DATASET_SPEC = DatasetSpec(
+            name="TinyStories",
+            huggingface_path="roneneldan/TinyStories",
+            config_name="default",
+            split="train",
+            text_field="text",
+        )
+
+        out = train_future_hidden_heads(
+            model_name="Qwen/Qwen2.5-0.5B",
+            dataset_spec=DATASET_SPEC,
+            context_len=256,
+            max_examples=120000,
+            num_windows_to_use=10000,
+            batch_size=4,
+            num_future_steps=2,
+            bottleneck_dim=256,
+            num_epochs=1,
+            max_steps=2000,
+            lr=1e-4,
             hidden_loss_weight=1.0,
             ce_loss_weight=0.0,
         )
@@ -115,15 +143,15 @@ def main() -> None:
         )
 
         out = train_gap_bridge_teacher(
-            model_name="Qwen/Qwen2.5-1.5B",
+            model_name="Qwen/Qwen2.5-7B",
             dataset_spec=DATASET_SPEC,
             context_len=512,
             max_examples=20000,
             num_windows_to_use=30000,
             batch_size=2,
-            num_trainable_pre_gap_layers=4,
-            gap_start=9,
-            gap_length=10, 
+            num_trainable_pre_gap_layers=10,
+            gap_start=7,
+            gap_length=14, 
             num_epochs=2,
             max_steps=100000,
             kl_loss_weight=1.0,
@@ -183,8 +211,8 @@ def main() -> None:
             dataset_spec=DATASET_SPEC,
             context_len=256,
             max_examples=100,
-            num_windows_to_use=10,
-            batch_size=1,
+            num_windows_to_use=20,
+            batch_size=4,
         )
 
     elif mode == "plot_layer_ablation_results":
@@ -192,8 +220,8 @@ def main() -> None:
 
 
         plot_ablation_json(
-            "ablation_results/layer_ablations_Qwen_Qwen3.5-4B_20260420_203659.json",
-            metric="mean_kl_full_to_masked",
+            "ablation_results/layer_ablations_Qwen_Qwen2.5-14B_20260421_132035.json",
+            metric="kl_per_removed_layer",
             top_k=None,   # or e.g. 50
         )
 
