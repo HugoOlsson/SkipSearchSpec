@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 import sys
-
-from skip_search_spec.analysis.plot_ablation_heatmap import plot_ablation_heatmap_from_json
 from skip_search_spec.protocols.windows import DatasetSpec
-from skip_search_spec.training.train_gap_bridge import train_gap_bridge
+
+
 
 STORE_PATH_FLASH_HEAD = "checkpoints/flashhead_qwen_0_5b.pt"
 MODEL_NAME_FLASH_HEAD = "Qwen/Qwen2.5-0.5B"
@@ -78,7 +77,7 @@ def main() -> None:
         )
 
     elif mode == "train_gap_bridge":
-        from skip_search_spec.training.train_middle_gap_skip import train_middle_gap_skip
+        from skip_search_spec.training.train_gap_bridge import train_gap_bridge
 
         DATASET_SPEC= DatasetSpec(
             name="FineWeb-Edu-1B",
@@ -89,17 +88,44 @@ def main() -> None:
         )
 
         out = train_gap_bridge(
-            model_name="Qwen/Qwen2.5-3B",
+            model_name="Qwen/Qwen2.5-1.5B",
             dataset_spec=DATASET_SPEC,
             context_len=512,
             max_examples=20000,
             num_windows_to_use=30000,
-            batch_size=4,
+            batch_size=2,
             gap_start=9,
-            gap_length=18, 
+            gap_length=10, 
             num_epochs=2,
             max_steps=100000,
-            lr=1e-4,
+            kl_loss_weight=1.0,
+            hidden_loss_weight=1.0,
+            ce_loss_weight=0.0,
+        )
+
+    elif mode == "train_gap_bridge_teacher":
+        from skip_search_spec.training.train_gap_bridge_teacher import train_gap_bridge_teacher
+
+        DATASET_SPEC= DatasetSpec(
+            name="FineWeb-Edu-1B",
+            huggingface_path="codelion/fineweb-edu-1B",
+            config_name="default",
+            split="train",
+            text_field="text",
+        )
+
+        out = train_gap_bridge_teacher(
+            model_name="Qwen/Qwen2.5-1.5B",
+            dataset_spec=DATASET_SPEC,
+            context_len=512,
+            max_examples=20000,
+            num_windows_to_use=30000,
+            batch_size=2,
+            num_trainable_pre_gap_layers=4,
+            gap_start=9,
+            gap_length=10, 
+            num_epochs=2,
+            max_steps=100000,
             kl_loss_weight=1.0,
             hidden_loss_weight=1.0,
             ce_loss_weight=0.0,
@@ -153,12 +179,12 @@ def main() -> None:
 
 
         results = evaluate_layer_ablations(
-            model_name="Qwen/Qwen2.5-0.5B",
+            model_name="Qwen/Qwen2.5-14B",
             dataset_spec=DATASET_SPEC,
             context_len=256,
             max_examples=100,
             num_windows_to_use=10,
-            batch_size=5,
+            batch_size=1,
         )
 
     elif mode == "plot_layer_ablation_results":
@@ -166,8 +192,8 @@ def main() -> None:
 
 
         plot_ablation_json(
-            "ablation_results/layer_ablations_Qwen_Qwen2.5-0.5B_20260418_141840.json",
-            metric="mean_top1_agreement",
+            "ablation_results/layer_ablations_Qwen_Qwen3.5-4B_20260420_203659.json",
+            metric="mean_kl_full_to_masked",
             top_k=None,   # or e.g. 50
         )
 

@@ -239,7 +239,7 @@ def plot_ablation_json(
         inner = outer[0, outer_idx].subgridspec(
             1,
             3,
-            width_ratios=[0.9, 4.4, 4.7],
+            width_ratios=[0.9, 5.5, 4.7],
             wspace=0.03,
         )
         idx_ax = fig.add_subplot(inner[0, 0])

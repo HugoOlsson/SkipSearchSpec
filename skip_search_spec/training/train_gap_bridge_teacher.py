@@ -1,3 +1,6 @@
+
+
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -113,10 +116,26 @@ def _get_reentry_module_for_gap(*, model: Any, gap: GapSpec) -> Any:
     raise ValueError(f"Invalid gap.end={gap.end} for num_layers={num_layers}")
 
 
+def _get_trainable_pre_gap_layer_indices(
+    *,
+    gap: GapSpec,
+    num_layers: int,
+    num_trainable_pre_gap_layers: int,
+) -> list[int]:
+    if num_trainable_pre_gap_layers <= 0:
+        return []
+
+    _validate_gap(gap=gap, num_layers=num_layers)
+
+    start_idx = max(0, gap.start - num_trainable_pre_gap_layers)
+    return list(range(start_idx, gap.start))
+
+
 class GapBridge(nn.Module):
     def __init__(self, hidden_size: int, bias: bool = False) -> None:
         super().__init__()
         self.proj = nn.Linear(hidden_size, hidden_size, bias=bias)
+
         with torch.no_grad():
             nn.init.zeros_(self.proj.weight)
             if self.proj.bias is not None:
@@ -124,88 +143,6 @@ class GapBridge(nn.Module):
 
     def forward(self, hidden_states: torch.Tensor) -> torch.Tensor:
         return hidden_states + self.proj(hidden_states)
-    
-
-# class GapBridge(nn.Module):
-#     def __init__(
-#         self,
-#         hidden_size: int,
-#         num_heads: int = 4,
-#         mlp_ratio: float = 0.5,
-#         bias: bool = False,
-#     ) -> None:
-#         super().__init__()
-
-#         if hidden_size % num_heads != 0:
-#             raise ValueError(
-#                 f"hidden_size ({hidden_size}) must be divisible by num_heads ({num_heads})"
-#             )
-
-#         mlp_hidden = max(32, int(hidden_size * mlp_ratio))
-
-#         self.ln1 = nn.LayerNorm(hidden_size)
-#         self.q_proj = nn.Linear(hidden_size, hidden_size, bias=bias)
-#         self.k_proj = nn.Linear(hidden_size, hidden_size, bias=bias)
-#         self.v_proj = nn.Linear(hidden_size, hidden_size, bias=bias)
-#         self.out_proj = nn.Linear(hidden_size, hidden_size, bias=bias)
-
-#         self.ln2 = nn.LayerNorm(hidden_size)
-#         self.mlp_up = nn.Linear(hidden_size, mlp_hidden, bias=bias)
-#         self.mlp_down = nn.Linear(mlp_hidden, hidden_size, bias=bias)
-
-#         self.num_heads = num_heads
-#         self.head_dim = hidden_size // num_heads
-
-#         with torch.no_grad():
-#             nn.init.normal_(self.q_proj.weight, mean=0.0, std=0.02)
-#             nn.init.normal_(self.k_proj.weight, mean=0.0, std=0.02)
-#             nn.init.normal_(self.v_proj.weight, mean=0.0, std=0.02)
-#             nn.init.zeros_(self.out_proj.weight)
-
-#             nn.init.normal_(self.mlp_up.weight, mean=0.0, std=0.02)
-#             nn.init.zeros_(self.mlp_down.weight)
-
-#             if self.q_proj.bias is not None:
-#                 nn.init.zeros_(self.q_proj.bias)
-#             if self.k_proj.bias is not None:
-#                 nn.init.zeros_(self.k_proj.bias)
-#             if self.v_proj.bias is not None:
-#                 nn.init.zeros_(self.v_proj.bias)
-#             if self.out_proj.bias is not None:
-#                 nn.init.zeros_(self.out_proj.bias)
-#             if self.mlp_up.bias is not None:
-#                 nn.init.zeros_(self.mlp_up.bias)
-#             if self.mlp_down.bias is not None:
-#                 nn.init.zeros_(self.mlp_down.bias)
-
-#     def _causal_attention(self, x: torch.Tensor) -> torch.Tensor:
-#         # x: [B, T, H]
-#         B, T, H = x.shape
-
-#         q = self.q_proj(x).view(B, T, self.num_heads, self.head_dim).transpose(1, 2)
-#         k = self.k_proj(x).view(B, T, self.num_heads, self.head_dim).transpose(1, 2)
-#         v = self.v_proj(x).view(B, T, self.num_heads, self.head_dim).transpose(1, 2)
-
-#         attn = F.scaled_dot_product_attention(
-#             q,
-#             k,
-#             v,
-#             attn_mask=None,
-#             dropout_p=0.0,
-#             is_causal=True,
-#         )
-
-#         attn = attn.transpose(1, 2).contiguous().view(B, T, H)
-#         return self.out_proj(attn)
-
-#     def forward(self, hidden_states: torch.Tensor) -> torch.Tensor:
-#         x = hidden_states
-
-#         x = x + self._causal_attention(self.ln1(x))
-#         x = x + self.mlp_down(F.silu(self.mlp_up(self.ln2(x))))
-
-#         return x
-
 
 
 def _cross_entropy_next_token(
@@ -377,7 +314,7 @@ def _run_student_gap_bridge(
     return cast(torch.Tensor, outputs.logits), capture.bridged_hidden
 
 
-def train_gap_bridge(
+def train_gap_bridge_teacher(
     *,
     model_name: str,
     dataset_spec: DatasetSpec,
@@ -387,9 +324,9 @@ def train_gap_bridge(
     batch_size: int = 2,
     gap_start: int,
     gap_length: int,
+    num_trainable_pre_gap_layers: int = 0,
     num_epochs: int = 1,
     max_steps: int | None = None,
-    lr: float = 1e-4,
     weight_decay: float = 0.0,
     max_grad_norm: float = 1.0,
     kl_loss_weight: float = 1.0,
@@ -403,40 +340,85 @@ def train_gap_bridge(
     device = get_preferred_device()
     compute_dtype = get_preferred_float_dtype(device)
 
-    model_and_tokenizer: ModelAndTokenizer = load_model_and_tokenizer(
+    teacher_model_and_tokenizer: ModelAndTokenizer = load_model_and_tokenizer(
         model_name,
         model_kwargs={
-            # HF normally expects torch_dtype, not dtype
             "torch_dtype": compute_dtype,
             **(model_kwargs or {}),
         },
     )
 
-    model = cast(Any, model_and_tokenizer.model)
-    model.to(device=device)
-    model.eval()  # keep frozen teacher/student deterministic
+    student_model_and_tokenizer: ModelAndTokenizer = load_model_and_tokenizer(
+        model_name,
+        model_kwargs={
+            "torch_dtype": compute_dtype,
+            **(model_kwargs or {}),
+        },
+    )
 
-    for param in model.parameters():
+    teacher_model = cast(Any, teacher_model_and_tokenizer.model)
+    student_model = cast(Any, student_model_and_tokenizer.model)
+
+    teacher_model.to(device=device)
+    student_model.to(device=device)
+
+    teacher_model.eval()
+    student_model.eval()
+
+    for param in teacher_model.parameters():
         param.requires_grad_(False)
 
-    num_layers = len(_get_decoder_layers(model))
+    for param in student_model.parameters():
+        param.requires_grad_(False)
+
+    num_layers = len(_get_decoder_layers(student_model))
     gap = GapSpec(start=gap_start, length=gap_length)
     _validate_gap(gap=gap, num_layers=num_layers)
 
     effective_mode = "EARLY-EXIT" if _is_effective_early_exit(gap=gap, num_layers=num_layers) else "GAP"
-    _stage(f"{effective_mode}")
+    _stage(effective_mode)
 
-    hidden_size = _get_hidden_size(model)
+    trainable_layer_indices = _get_trainable_pre_gap_layer_indices(
+        gap=gap,
+        num_layers=num_layers,
+        num_trainable_pre_gap_layers=num_trainable_pre_gap_layers,
+    )
+
+    student_layers = _get_decoder_layers(student_model)
+
+    for layer_idx in trainable_layer_indices:
+        for param in student_layers[layer_idx].parameters():
+            param.requires_grad_(True)
+
+    hidden_size = _get_hidden_size(student_model)
     bridge = GapBridge(hidden_size=hidden_size, bias=False).to(
         device=device,
         dtype=compute_dtype,
     )
     bridge.train()
 
+    trainable_student_layer_params: list[nn.Parameter] = []
+    for layer_idx in trainable_layer_indices:
+        for param in student_layers[layer_idx].parameters():
+            if param.requires_grad:
+                trainable_student_layer_params.append(param)
+
+    bridge_params = list(bridge.parameters())
+
+
     optimizer = torch.optim.AdamW(
-        bridge.parameters(),
-        lr=lr,
-        weight_decay=weight_decay,
+        [
+            {
+                "params": bridge_params,
+                "lr": 1e-4,
+                "weight_decay": 0.0,
+            },
+            {
+                "params": trainable_student_layer_params,
+                "lr": 1e-5,
+                "weight_decay": weight_decay,
+            },
+        ],
     )
 
     dataset: Dataset = load_dataset(dataset_spec)
@@ -445,7 +427,7 @@ def train_gap_bridge(
     _stage("tokenizing dataset")
     tokenized_examples = tokenize_dataset_to_examples(
         dataset,
-        model_and_tokenizer.tokenizer,
+        student_model_and_tokenizer.tokenizer,
         dataset_spec,
         max_examples=max_examples,
     )
@@ -488,6 +470,8 @@ def train_gap_bridge(
             f"on model with {num_layers} layers and hidden_size={hidden_size}"
         )
 
+    _stage(f"trainable student pre-gap layers: {trainable_layer_indices}")
+
     for epoch_idx in range(num_epochs):
         for batch_idx, (input_ids, attention_mask) in enumerate(dataloader, start=1):
             if max_steps is not None and step >= max_steps:
@@ -503,14 +487,14 @@ def train_gap_bridge(
 
             with torch.no_grad():
                 teacher_logits, teacher_reentry_hidden = _run_teacher_full_and_capture_reentry(
-                    model=model,
+                    model=teacher_model,
                     input_ids=input_ids,
                     attention_mask=attention_mask,
                     gap=gap,
                 )
 
             student_logits, student_reentry_hidden = _run_student_gap_bridge(
-                model=model,
+                model=student_model,
                 bridge=bridge,
                 input_ids=input_ids,
                 attention_mask=attention_mask,
@@ -542,7 +526,9 @@ def train_gap_bridge(
             loss.backward()
 
             if max_grad_norm is not None and max_grad_norm > 0:
-                clip_grad_norm_(bridge.parameters(), max_grad_norm)
+                clip_grad_norm_(bridge_params, max_grad_norm)
+                if len(trainable_student_layer_params) > 0:
+                    clip_grad_norm_(trainable_student_layer_params, max_grad_norm)
 
             optimizer.step()
 
@@ -591,7 +577,8 @@ def train_gap_bridge(
         timestamp = time.strftime("%Y%m%d_%H%M%S")
         checkpoint_path = checkpoint_dir / (
             f"gap_bridge__{model_name.replace('/', '_')}__"
-            f"start_{gap.start}__len_{gap.length}__{timestamp}.pt"
+            f"start_{gap.start}__len_{gap.length}__"
+            f"trainable_pre_{num_trainable_pre_gap_layers}__{timestamp}.pt"
         )
 
         torch.save(
@@ -603,7 +590,13 @@ def train_gap_bridge(
                 "num_layers": num_layers,
                 "hidden_size": hidden_size,
                 "effective_mode": effective_mode,
+                "num_trainable_pre_gap_layers": num_trainable_pre_gap_layers,
+                "trainable_layer_indices": trainable_layer_indices,
                 "bridge_state_dict": bridge.state_dict(),
+                "student_trainable_layer_state_dict": {
+                    str(idx): student_layers[idx].state_dict()
+                    for idx in trainable_layer_indices
+                },
                 "history": history,
             },
             checkpoint_path,
