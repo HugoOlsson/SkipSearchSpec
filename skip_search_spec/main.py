@@ -115,21 +115,23 @@ def main() -> None:
             text_field="text",
         )
 
+        print("Version V1.8")
         out = train_future_hidden_heads(
             model_name="Qwen/Qwen2.5-7B",
             dataset_spec=DATASET_SPEC,
             context_len=256,
-            max_examples=100000,
-            num_windows_to_use=15000,
-            batch_size=8,
+            max_examples=220000,
+            num_windows_to_use=30000,
+            batch_size=12,
             num_future_steps=2,
             num_epochs=1,
             max_steps=2000000,
             lr=1e-4,
-            hidden_loss_weight=0.15,
-            cosine_loss_weight=4.0,
+            hidden_loss_weight=0.0,
+            cosine_loss_weight=0.0,
             kl_loss_weight=1.0,
             ce_loss_weight=0.0,
+            num_input_states=3,
         )
 
     elif mode == "train_gap_bridge_teacher":

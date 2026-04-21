@@ -107,12 +107,13 @@ class FutureHiddenHead(nn.Module):
         *,
         hidden_size: int,
         num_input_states: int,
+        extra_input_states: int = 0,
         hidden_dim: int | None = None,
         bias: bool = False,
     ) -> None:
         super().__init__()
 
-        input_dim = hidden_size * num_input_states
+        input_dim = hidden_size * (num_input_states + 1 + extra_input_states)
         if hidden_dim is None:
             hidden_dim = hidden_size
 
@@ -131,8 +132,17 @@ class FutureHiddenHead(nn.Module):
         self,
         stacked_hidden_states: torch.Tensor,
         current_hidden_state: torch.Tensor,
+        extra_hidden_states: list[torch.Tensor] | None = None,
     ) -> torch.Tensor:
-        x = stacked_hidden_states.float()
+        pieces = [
+            stacked_hidden_states.float(),
+            current_hidden_state.float(),
+        ]
+
+        if extra_hidden_states is not None:
+            pieces.extend(x.float() for x in extra_hidden_states)
+
+        x = torch.cat(pieces, dim=-1)
         delta = self.fc2(F.silu(self.fc1(x)))
         return current_hidden_state.float() + delta
 
@@ -144,6 +154,7 @@ class FutureHiddenHeads(nn.Module):
         hidden_size: int,
         num_future_steps: int,
         num_input_states: int = 5,
+        hidden_dim: int | None = None,
         bias: bool = False,
     ) -> None:
         super().__init__()
@@ -151,26 +162,46 @@ class FutureHiddenHeads(nn.Module):
             raise ValueError(f"num_future_steps must be > 0, got {num_future_steps}")
 
         self.num_future_steps = num_future_steps
-        self.heads = nn.ModuleList(
-            [
+        heads: list[FutureHiddenHead] = []
+
+        for step_idx in range(num_future_steps):
+            extra_input_states = 1 if step_idx == 1 else 0
+            heads.append(
                 FutureHiddenHead(
                     hidden_size=hidden_size,
                     num_input_states=num_input_states,
+                    extra_input_states=extra_input_states,
+                    hidden_dim=hidden_dim,
                     bias=bias,
                 )
-                for _ in range(num_future_steps)
-            ]
-        )
+            )
+
+        self.heads = nn.ModuleList(heads)
 
     def forward(
         self,
         stacked_hidden_states: torch.Tensor,
         current_hidden_states: torch.Tensor,
     ) -> list[torch.Tensor]:
-        return [
-            head(stacked_hidden_states, current_hidden_states)
-            for head in self.heads
-        ]
+        preds: list[torch.Tensor] = []
+
+        for step_idx, head in enumerate(self.heads):
+            if step_idx == 1:
+                pred = head(
+                    stacked_hidden_states,
+                    current_hidden_states,
+                    extra_hidden_states=[preds[0]],
+                )
+            else:
+                pred = head(
+                    stacked_hidden_states,
+                    current_hidden_states,
+                    extra_hidden_states=None,
+                )
+
+            preds.append(pred)
+
+        return preds
 
 
 @torch.no_grad()
@@ -323,6 +354,7 @@ def train_future_hidden_heads(
     batch_size: int = 2,
     num_future_steps: int = 2,
     num_epochs: int = 1,
+    num_input_states:int = 4,
     max_steps: int | None = None,
     lr: float = 1e-4,
     weight_decay: float = 0.0,
@@ -365,7 +397,7 @@ def train_future_hidden_heads(
     lm_head.eval()
 
 
-    num_input_states = 4
+    
     
     future_heads = FutureHiddenHeads(
         hidden_size=hidden_size,
@@ -497,7 +529,7 @@ def train_future_hidden_heads(
                     target_logits=target_logits_k,
                     mask=valid_mask,
                 )
-                
+
                 kl_losses.append(loss_kl_k)
                 per_offset_metrics[f"kl_loss_t_plus_{offset}"] = loss_kl_k.item()
 
