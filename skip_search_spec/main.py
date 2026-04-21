@@ -116,18 +116,19 @@ def main() -> None:
         )
 
         out = train_future_hidden_heads(
-            model_name="Qwen/Qwen2.5-0.5B",
+            model_name="Qwen/Qwen2.5-7B",
             dataset_spec=DATASET_SPEC,
             context_len=256,
-            max_examples=120000,
-            num_windows_to_use=10000,
-            batch_size=4,
+            max_examples=100000,
+            num_windows_to_use=15000,
+            batch_size=8,
             num_future_steps=2,
-            bottleneck_dim=256,
             num_epochs=1,
-            max_steps=2000,
+            max_steps=2000000,
             lr=1e-4,
-            hidden_loss_weight=1.0,
+            hidden_loss_weight=0.15,
+            cosine_loss_weight=4.0,
+            kl_loss_weight=1.0,
             ce_loss_weight=0.0,
         )
 

@@ -71,41 +71,70 @@ def _get_lm_head(model: Any) -> nn.Module:
         return lm_head
     raise TypeError("Unsupported model structure. Expected model.lm_head.")
 
+def _build_stacked_recent_hidden(
+    final_hidden: torch.Tensor,
+    num_input_states: int = 5,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """
+    Returns:
+      stacked: [B, T, num_input_states * H] containing
+               [h_{t-(k-1)}, ..., h_{t-1}, h_t]
+      valid_mask: [B, T] indicating positions where all inputs are real
+    """
+    if num_input_states <= 0:
+        raise ValueError(f"num_input_states must be > 0, got {num_input_states}")
+
+    B, T, H = final_hidden.shape
+    k = num_input_states
+
+    zeros = torch.zeros(B, k - 1, H, device=final_hidden.device, dtype=final_hidden.dtype)
+    padded = torch.cat([zeros, final_hidden], dim=1)  # [B, T + k - 1, H]
+
+    parts = [
+        padded[:, i:i + T, :]
+        for i in range(k)
+    ]
+    stacked = torch.cat(parts, dim=-1)  # [B, T, kH]
+
+    valid_mask = torch.zeros(B, T, device=final_hidden.device, dtype=torch.bool)
+    valid_mask[:, k - 1:] = True
+
+    return stacked, valid_mask
 
 class FutureHiddenHead(nn.Module):
-    """
-    Minimal residual MLP head:
-        h_t -> h_t + down/up(LN(h_t))
-
-    The output stays in hidden-state space so we can:
-    1. compare against true future hidden states
-    2. feed it through the frozen shared lm_head
-    """
-
     def __init__(
         self,
         *,
         hidden_size: int,
-        bottleneck_dim: int,
+        num_input_states: int,
+        hidden_dim: int | None = None,
         bias: bool = False,
     ) -> None:
         super().__init__()
-        self.norm = nn.LayerNorm(hidden_size)
-        self.down = nn.Linear(hidden_size, bottleneck_dim, bias=bias)
-        self.up = nn.Linear(bottleneck_dim, hidden_size, bias=bias)
+
+        input_dim = hidden_size * num_input_states
+        if hidden_dim is None:
+            hidden_dim = hidden_size
+
+        self.fc1 = nn.Linear(input_dim, hidden_dim, bias=bias)
+        self.fc2 = nn.Linear(hidden_dim, hidden_size, bias=bias)
 
         with torch.no_grad():
-            nn.init.normal_(self.down.weight, mean=0.0, std=0.02)
-            nn.init.zeros_(self.up.weight)
-            if self.down.bias is not None:
-                nn.init.zeros_(self.down.bias)
-            if self.up.bias is not None:
-                nn.init.zeros_(self.up.bias)
+            nn.init.normal_(self.fc1.weight, mean=0.0, std=0.02)
+            nn.init.zeros_(self.fc2.weight)
+            if self.fc1.bias is not None:
+                nn.init.zeros_(self.fc1.bias)
+            if self.fc2.bias is not None:
+                nn.init.zeros_(self.fc2.bias)
 
-    def forward(self, hidden_states: torch.Tensor) -> torch.Tensor:
-        x_fp32 = hidden_states.float()
-        delta_fp32 = self.up(F.silu(self.down(self.norm(x_fp32))))
-        return x_fp32 + delta_fp32
+    def forward(
+        self,
+        stacked_hidden_states: torch.Tensor,
+        current_hidden_state: torch.Tensor,
+    ) -> torch.Tensor:
+        x = stacked_hidden_states.float()
+        delta = self.fc2(F.silu(self.fc1(x)))
+        return current_hidden_state.float() + delta
 
 
 class FutureHiddenHeads(nn.Module):
@@ -114,7 +143,7 @@ class FutureHiddenHeads(nn.Module):
         *,
         hidden_size: int,
         num_future_steps: int,
-        bottleneck_dim: int,
+        num_input_states: int = 5,
         bias: bool = False,
     ) -> None:
         super().__init__()
@@ -126,15 +155,22 @@ class FutureHiddenHeads(nn.Module):
             [
                 FutureHiddenHead(
                     hidden_size=hidden_size,
-                    bottleneck_dim=bottleneck_dim,
+                    num_input_states=num_input_states,
                     bias=bias,
                 )
                 for _ in range(num_future_steps)
             ]
         )
 
-    def forward(self, hidden_states: torch.Tensor) -> list[torch.Tensor]:
-        return [head(hidden_states) for head in self.heads]
+    def forward(
+        self,
+        stacked_hidden_states: torch.Tensor,
+        current_hidden_states: torch.Tensor,
+    ) -> list[torch.Tensor]:
+        return [
+            head(stacked_hidden_states, current_hidden_states)
+            for head in self.heads
+        ]
 
 
 @torch.no_grad()
@@ -194,6 +230,54 @@ def _masked_mse(
     denom = (mask_f.sum() * diff_sq.size(-1)).clamp_min(1.0)
     return (diff_sq * mask_f).sum() / denom
 
+def _masked_cosine_loss(
+    *,
+    predicted: torch.Tensor,
+    target: torch.Tensor,
+    mask: torch.Tensor | None,
+    eps: float = 1e-8,
+) -> torch.Tensor:
+    pred_f = predicted.float()
+    tgt_f = target.float()
+
+    pred_norm = pred_f / pred_f.norm(dim=-1, keepdim=True).clamp_min(eps)
+    tgt_norm = tgt_f / tgt_f.norm(dim=-1, keepdim=True).clamp_min(eps)
+
+    cos_sim = (pred_norm * tgt_norm).sum(dim=-1)  # [B, T]
+    loss_per_pos = 1.0 - cos_sim
+
+    if mask is None:
+        return loss_per_pos.mean()
+
+    mask_f = mask.to(loss_per_pos.dtype)
+    denom = mask_f.sum().clamp_min(1.0)
+    return (loss_per_pos * mask_f).sum() / denom
+
+def _masked_kl_from_logits(
+    *,
+    predicted_logits: torch.Tensor,
+    target_logits: torch.Tensor,
+    mask: torch.Tensor | None,
+) -> torch.Tensor:
+    pred_log_probs = F.log_softmax(predicted_logits.float(), dim=-1)
+    target_probs = F.softmax(target_logits.float(), dim=-1)
+
+    kl_per_vocab = F.kl_div(
+        pred_log_probs,
+        target_probs,
+        reduction="none",
+        log_target=False,
+    )  # [B, T, V]
+
+    kl_per_pos = kl_per_vocab.sum(dim=-1)  # [B, T]
+
+    if mask is None:
+        return kl_per_pos.mean()
+
+    mask_f = mask.to(kl_per_pos.dtype)
+    denom = mask_f.sum().clamp_min(1.0)
+    return (kl_per_pos * mask_f).sum() / denom
+
 
 def _future_cross_entropy_from_hidden(
     *,
@@ -238,13 +322,14 @@ def train_future_hidden_heads(
     num_windows_to_use: int = 256,
     batch_size: int = 2,
     num_future_steps: int = 2,
-    bottleneck_dim: int | None = None,
     num_epochs: int = 1,
     max_steps: int | None = None,
     lr: float = 1e-4,
     weight_decay: float = 0.0,
     max_grad_norm: float = 1.0,
     hidden_loss_weight: float = 1.0,
+    cosine_loss_weight: float = 1.0,
+    kl_loss_weight: float = 1.0,
     ce_loss_weight: float = 0.0,
     model_kwargs: dict[str, Any] | None = None,
     checkpoint_dir: str | Path | None = "future_hidden_heads_checkpoints",
@@ -279,13 +364,13 @@ def train_future_hidden_heads(
     lm_head = _get_lm_head(model)
     lm_head.eval()
 
-    if bottleneck_dim is None:
-        bottleneck_dim = max(32, hidden_size // 4)
 
+    num_input_states = 4
+    
     future_heads = FutureHiddenHeads(
         hidden_size=hidden_size,
         num_future_steps=num_future_steps,
-        bottleneck_dim=bottleneck_dim,
+        num_input_states=num_input_states,
         bias=False,
     ).to(device=device, dtype=torch.float32)
     future_heads.train()
@@ -335,7 +420,7 @@ def train_future_hidden_heads(
 
     _stage(
         f"training future hidden heads with hidden_size={hidden_size}, "
-        f"num_future_steps={num_future_steps}, bottleneck_dim={bottleneck_dim}"
+        f"num_future_steps={num_future_steps}"
     )
 
     for epoch_idx in range(num_epochs):
@@ -359,16 +444,26 @@ def train_future_hidden_heads(
                     attention_mask=attention_mask,
                 )
 
-            predicted_future_hidden_list = future_heads(final_hidden)
+            stacked_recent_hidden, recent_valid_mask = _build_stacked_recent_hidden(final_hidden,num_input_states=num_input_states)
+            predicted_future_hidden_list = future_heads(stacked_recent_hidden, final_hidden)
 
             hidden_losses: list[torch.Tensor] = []
+            cosine_losses: list[torch.Tensor] = []
             ce_losses: list[torch.Tensor] = []
+            kl_losses: list[torch.Tensor] = []
             per_offset_metrics: dict[str, float] = {}
 
             for offset, predicted_hidden in enumerate(predicted_future_hidden_list, start=1):
                 predicted_trimmed = predicted_hidden[:, :-offset, :].contiguous()
                 target_trimmed = final_hidden[:, offset:, :].contiguous()
-                valid_mask = _future_valid_mask(attention_mask=attention_mask, offset=offset)
+
+                recent_valid_trimmed = recent_valid_mask[:, :-offset]
+                future_valid = _future_valid_mask(attention_mask=attention_mask, offset=offset)
+
+                if future_valid is None:
+                    valid_mask = recent_valid_trimmed
+                else:
+                    valid_mask = recent_valid_trimmed & future_valid.bool()
 
                 loss_hidden_k = _masked_mse(
                     predicted=predicted_trimmed,
@@ -378,23 +473,46 @@ def train_future_hidden_heads(
                 hidden_losses.append(loss_hidden_k)
                 per_offset_metrics[f"hidden_mse_t_plus_{offset}"] = loss_hidden_k.item()
 
+                loss_cosine_k = _masked_cosine_loss(
+                    predicted=predicted_trimmed,
+                    target=target_trimmed,
+                    mask=valid_mask,
+                )
+                cosine_losses.append(loss_cosine_k)
+                per_offset_metrics[f"cosine_loss_t_plus_{offset}"] = loss_cosine_k.item()
+
+                lm_head_dtype = next(lm_head.parameters()).dtype
+
+                predicted_logits_k = cast(
+                    torch.Tensor,
+                    lm_head(predicted_trimmed.to(dtype=lm_head_dtype)),
+                )
+                target_logits_k = cast(
+                    torch.Tensor,
+                    lm_head(target_trimmed.to(dtype=lm_head_dtype)),
+                )
+
+                loss_kl_k = _masked_kl_from_logits(
+                    predicted_logits=predicted_logits_k,
+                    target_logits=target_logits_k,
+                    mask=valid_mask,
+                )
                 
+                kl_losses.append(loss_kl_k)
+                per_offset_metrics[f"kl_loss_t_plus_{offset}"] = loss_kl_k.item()
 
                 if compute_distribution_metrics:
-                    lm_head_dtype = next(lm_head.parameters()).dtype
+                    valid_positions = valid_mask.reshape(-1)
 
-                    predicted_logits_k = cast(
-                        torch.Tensor,
-                        lm_head(predicted_trimmed.to(dtype=lm_head_dtype)),
-                    )
-                    target_logits_k = cast(
-                        torch.Tensor,
-                        lm_head(target_trimmed.to(dtype=lm_head_dtype)),
-                    )
+                    pred_flat = predicted_logits_k.reshape(-1, predicted_logits_k.size(-1))
+                    tgt_flat = target_logits_k.reshape(-1, target_logits_k.size(-1))
+
+                    pred_flat = pred_flat[valid_positions]
+                    tgt_flat = tgt_flat[valid_positions]
 
                     sim_k = distribution_similarity_metrics(
-                        shift_logits_mid=predicted_logits_k,
-                        shift_logits_full=target_logits_k,
+                        shift_logits_mid=pred_flat,
+                        shift_logits_full=tgt_flat,
                     )
 
                     per_offset_metrics[f"kl_real_to_pred_t_plus_{offset}"] = sim_k["kl_full_to_mid"].item()
@@ -426,8 +544,14 @@ def train_future_hidden_heads(
                 per_offset_metrics[f"ce_t_plus_{offset}"] = loss_ce_k.item()
 
             loss_hidden = torch.stack(hidden_losses).mean()
-            loss_ce = torch.stack(ce_losses).mean() if len(ce_losses) > 0 else final_hidden.new_zeros(())
-            loss = hidden_loss_weight * loss_hidden + ce_loss_weight * loss_ce
+            #loss_ce = torch.stack(ce_losses).mean() if len(ce_losses) > 0 else final_hidden.new_zeros(())
+            loss_cosine = torch.stack(cosine_losses).mean() if len(cosine_losses) > 0 else final_hidden.new_zeros(())
+            loss_kl = torch.stack(kl_losses).mean() if len(kl_losses) > 0 else final_hidden.new_zeros(())
+            loss = (
+                hidden_loss_weight * loss_hidden
+                + cosine_loss_weight * loss_cosine
+                + kl_loss_weight * loss_kl
+            )
 
             loss.backward()
 
@@ -448,7 +572,9 @@ def train_future_hidden_heads(
                 "epoch": float(epoch_idx + 1),
                 "loss": loss.item(),
                 "loss_hidden": loss_hidden.item(),
-                "loss_ce": loss_ce.item(),
+                "loss_cosine": loss_cosine.item(),
+                "loss_kl": loss_kl.item(),
+                #"loss_ce": loss_ce.item(),
                 "base_next_token_ce": next_token_ce_base.item(),
                 **per_offset_metrics,
             }
@@ -473,7 +599,9 @@ def train_future_hidden_heads(
                 f"batch={batch_idx}/{len(dataloader)} "
                 f"loss={row['loss']:.4f} "
                 f"hidden={row['loss_hidden']:.4f} "
-                f"ce={row['loss_ce']:.4f} "
+                f"cos={row['loss_cosine']:.4f} "
+                f"kl_loss={row['loss_kl']:.4f} "
+                #f"ce={row['loss_ce']:.4f} "
                 f"base_ce={row['base_next_token_ce']:.4f} "
                 f"{metrics_str}"
             )
@@ -498,7 +626,6 @@ def train_future_hidden_heads(
                 "context_len": context_len,
                 "num_future_steps": num_future_steps,
                 "hidden_size": hidden_size,
-                "bottleneck_dim": bottleneck_dim,
                 "future_heads_state_dict": future_heads.state_dict(),
                 "history": history,
             },
@@ -537,7 +664,6 @@ def train_future_hidden_heads(
 #         num_windows_to_use=4000,
 #         batch_size=8,
 #         num_future_steps=2,
-#         bottleneck_dim=256,
 #         num_epochs=1,
 #         max_steps=2000,
 #         lr=1e-4,
