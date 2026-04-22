@@ -1,3 +1,4 @@
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -156,21 +157,48 @@ class FutureHiddenHeads(nn.Module):
         num_input_states: int = 5,
         hidden_dim: int | None = None,
         bias: bool = False,
+        extra_input_indices_per_head: list[tuple[int, ...]] | None = None,
     ) -> None:
         super().__init__()
         if num_future_steps <= 0:
             raise ValueError(f"num_future_steps must be > 0, got {num_future_steps}")
 
         self.num_future_steps = num_future_steps
-        heads: list[FutureHiddenHead] = []
 
-        for step_idx in range(num_future_steps):
-            extra_input_states = 1 if step_idx == 1 else 0
+        if extra_input_indices_per_head is None:
+            # Default:
+            # t+1 -> []
+            # t+2 -> [t+1]
+            # t+3 -> [t+2]
+            # t+4 -> [t+3]
+            # ...
+            extra_input_indices_per_head = [
+                (() if step_idx == 0 else (step_idx - 1,))
+                for step_idx in range(num_future_steps)
+            ]
+
+        if len(extra_input_indices_per_head) != num_future_steps:
+            raise ValueError(
+                "extra_input_indices_per_head must have length equal to num_future_steps"
+            )
+
+        for step_idx, dep_indices in enumerate(extra_input_indices_per_head):
+            for dep_idx in dep_indices:
+                if dep_idx < 0 or dep_idx >= step_idx:
+                    raise ValueError(
+                        f"Invalid dependency for head {step_idx}: {dep_idx}. "
+                        "Each head may only depend on earlier predictions."
+                    )
+
+        self.extra_input_indices_per_head = extra_input_indices_per_head
+
+        heads: list[FutureHiddenHead] = []
+        for dep_indices in self.extra_input_indices_per_head:
             heads.append(
                 FutureHiddenHead(
                     hidden_size=hidden_size,
                     num_input_states=num_input_states,
-                    extra_input_states=extra_input_states,
+                    extra_input_states=len(dep_indices),
                     hidden_dim=hidden_dim,
                     bias=bias,
                 )
@@ -185,20 +213,14 @@ class FutureHiddenHeads(nn.Module):
     ) -> list[torch.Tensor]:
         preds: list[torch.Tensor] = []
 
-        for step_idx, head in enumerate(self.heads):
-            if step_idx == 1:
-                pred = head(
-                    stacked_hidden_states,
-                    current_hidden_states,
-                    extra_hidden_states=[preds[0]],
-                )
-            else:
-                pred = head(
-                    stacked_hidden_states,
-                    current_hidden_states,
-                    extra_hidden_states=None,
-                )
+        for head, dep_indices in zip(self.heads, self.extra_input_indices_per_head):
+            extra_hidden_states = [preds[j] for j in dep_indices]
 
+            pred = head(
+                stacked_hidden_states,
+                current_hidden_states,
+                extra_hidden_states=extra_hidden_states if len(extra_hidden_states) > 0 else None,
+            )
             preds.append(pred)
 
         return preds
@@ -308,6 +330,25 @@ def _masked_kl_from_logits(
     mask_f = mask.to(kl_per_pos.dtype)
     denom = mask_f.sum().clamp_min(1.0)
     return (kl_per_pos * mask_f).sum() / denom
+
+def _masked_cross_entropy_from_logits(
+    *,
+    logits: torch.Tensor,
+    targets: torch.Tensor,
+    mask: torch.Tensor | None,
+) -> torch.Tensor:
+    flat_loss = F.cross_entropy(
+        logits.reshape(-1, logits.size(-1)).float(),
+        targets.reshape(-1),
+        reduction="none",
+    ).view_as(targets)
+
+    if mask is None:
+        return flat_loss.mean()
+
+    mask_f = mask.to(flat_loss.dtype)
+    denom = mask_f.sum().clamp_min(1.0)
+    return (flat_loss * mask_f).sum() / denom
 
 
 def _future_cross_entropy_from_hidden(
@@ -562,12 +603,13 @@ def train_future_hidden_heads(
                     per_offset_metrics[f"p_pred_on_real_argmax_t_plus_{offset}"] = float("nan")
 
                 if ce_loss_weight > 0.0:
-                    loss_ce_k = _future_cross_entropy_from_hidden(
-                        predicted_hidden=predicted_hidden,
-                        labels=labels,
-                        lm_head=lm_head,
-                        offset=offset,
-                        attention_mask=attention_mask,
+                    usable_logits = predicted_logits_k
+                    teacher_targets = target_logits_k.argmax(dim=-1)
+
+                    loss_ce_k = _masked_cross_entropy_from_logits(
+                        logits=usable_logits,
+                        targets=teacher_targets,
+                        mask=valid_mask,
                     )
                 else:
                     loss_ce_k = predicted_hidden.new_zeros(())
@@ -576,13 +618,14 @@ def train_future_hidden_heads(
                 per_offset_metrics[f"ce_t_plus_{offset}"] = loss_ce_k.item()
 
             loss_hidden = torch.stack(hidden_losses).mean()
-            #loss_ce = torch.stack(ce_losses).mean() if len(ce_losses) > 0 else final_hidden.new_zeros(())
+            loss_ce = torch.stack(ce_losses).mean() if len(ce_losses) > 0 else final_hidden.new_zeros(())
             loss_cosine = torch.stack(cosine_losses).mean() if len(cosine_losses) > 0 else final_hidden.new_zeros(())
             loss_kl = torch.stack(kl_losses).mean() if len(kl_losses) > 0 else final_hidden.new_zeros(())
             loss = (
                 hidden_loss_weight * loss_hidden
                 + cosine_loss_weight * loss_cosine
                 + kl_loss_weight * loss_kl
+                + ce_loss_weight * loss_ce
             )
 
             loss.backward()
@@ -606,7 +649,7 @@ def train_future_hidden_heads(
                 "loss_hidden": loss_hidden.item(),
                 "loss_cosine": loss_cosine.item(),
                 "loss_kl": loss_kl.item(),
-                #"loss_ce": loss_ce.item(),
+                "loss_ce": loss_ce.item(),
                 "base_next_token_ce": next_token_ce_base.item(),
                 **per_offset_metrics,
             }
@@ -633,7 +676,7 @@ def train_future_hidden_heads(
                 f"hidden={row['loss_hidden']:.4f} "
                 f"cos={row['loss_cosine']:.4f} "
                 f"kl_loss={row['loss_kl']:.4f} "
-                #f"ce={row['loss_ce']:.4f} "
+                f"ce={row['loss_ce']:.4f} "
                 f"base_ce={row['base_next_token_ce']:.4f} "
                 f"{metrics_str}"
             )
