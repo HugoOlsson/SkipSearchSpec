@@ -1,34 +1,39 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, cast, Iterable
+from typing import Any, Iterable, cast
 import json
 import math
 import time
-from contextlib import ExitStack
 from pathlib import Path
 import re
 
 import torch
-import torch.nn.functional as F
-from torch.utils.data import DataLoader
-
-from datasets.arrow_dataset import Dataset
 
 from skip_search_spec.helpers.tooling import (
     distribution_similarity_metrics,
     get_preferred_device,
     get_preferred_float_dtype,
-    load_dataset,
     load_model_and_tokenizer,
 )
-from skip_search_spec.helpers.window_building import (
-    WindowDataset,
-    build_all_training_windows,
-    collate_windows,
-    tokenize_dataset_to_examples,
+
+from skip_search_spec.protocols.windows import (
+    DatasetSpec,
+    ModelAndTokenizer,
 )
-from skip_search_spec.protocols.windows import DatasetSpec, ModelAndTokenizer, WindowSettings
+
+# Rename this import path to wherever you placed the shared helper file.
+from skip_search_spec.helpers.shared_decoding_tools import (
+    build_fixed_window_dataloader,
+    cross_entropy_next_token,
+    forward_model_logits,
+    forward_with_layer_mask,
+    get_decoder_layers,
+    kl_teacher_to_student_next_token,
+    make_layer_pattern,
+    shift_next_token_logits,
+    stage as shared_stage,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -66,6 +71,12 @@ def _stage(
     ablation_idx: int | None = None,
     num_ablations: int | None = None,
 ) -> None:
+    """
+    Small local wrapper around the shared timestamp logger.
+
+    The shared helper owns timestamp formatting.
+    This wrapper just adds ablation/model context for this file.
+    """
     prefix_parts: list[str] = []
 
     if ablation_idx is not None and num_ablations is not None:
@@ -78,68 +89,7 @@ def _stage(
     if prefix_parts:
         prefix = " ".join(prefix_parts) + " "
 
-    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] {prefix}{message}", flush=True)
-
-
-def _get_backbone(model: Any) -> Any:
-    if hasattr(model, "model") and hasattr(model.model, "layers") and hasattr(model.model, "norm"):
-        return model.model
-
-    raise TypeError(
-        "Unsupported model structure. Expected a decoder-only HF model with "
-        "`model.layers` and `model.norm`."
-    )
-
-
-def _get_decoder_layers(model: Any) -> Any:
-    backbone = _get_backbone(model)
-    return backbone.layers
-
-
-def _mask_to_binary_list(
-    *,
-    num_layers: int,
-    keep_layer_indices: tuple[int, ...],
-) -> list[int]:
-    keep_set = set(keep_layer_indices)
-    return [1 if i in keep_set else 0 for i in range(num_layers)]
-
-
-def _mask_to_binary_tuple(
-    *,
-    num_layers: int,
-    keep_layer_indices: tuple[int, ...],
-) -> tuple[int, ...]:
-    return tuple(
-        _mask_to_binary_list(
-            num_layers=num_layers,
-            keep_layer_indices=keep_layer_indices,
-        )
-    )
-
-
-def _mask_to_binary_string(
-    *,
-    num_layers: int,
-    keep_layer_indices: tuple[int, ...],
-) -> str:
-    binary_list = _mask_to_binary_list(
-        num_layers=num_layers,
-        keep_layer_indices=keep_layer_indices,
-    )
-    return "[" + ",".join(str(x) for x in binary_list) + "]"
-
-
-def _mask_to_visual_string(
-    *,
-    num_layers: int,
-    keep_layer_indices: tuple[int, ...],
-) -> str:
-    binary_list = _mask_to_binary_list(
-        num_layers=num_layers,
-        keep_layer_indices=keep_layer_indices,
-    )
-    return "".join("█" if x == 1 else "·" for x in binary_list)
+    shared_stage(f"{prefix}{message}")
 
 
 def _safe_div(numerator: float, denominator: int) -> float | None:
@@ -154,6 +104,10 @@ def _format_optional_float(value: float | None) -> str:
     return f"{value:.6f}"
 
 
+def _format_binary_mask(binary_mask: tuple[int, ...]) -> str:
+    return "[" + ",".join(str(x) for x in binary_mask) + "]"
+
+
 def _sanitize_for_filename(text: str) -> str:
     sanitized = re.sub(r"[^A-Za-z0-9._-]+", "_", text)
     sanitized = sanitized.strip("._")
@@ -163,12 +117,16 @@ def _sanitize_for_filename(text: str) -> str:
 def _json_safe(value: Any) -> Any:
     if isinstance(value, (str, int, float, bool)) or value is None:
         return value
+
     if isinstance(value, Path):
         return str(value)
+
     if isinstance(value, dict):
         return {str(k): _json_safe(v) for k, v in value.items()}
+
     if isinstance(value, (list, tuple)):
         return [_json_safe(v) for v in value]
+
     return str(value)
 
 
@@ -182,6 +140,7 @@ def _result_to_json_dict(
         "mask_name": result.mask_name,
         "visual_mask": result.visual_mask,
         "binary_mask": list(result.binary_mask),
+        "binary_mask_string": _format_binary_mask(result.binary_mask),
         "kept_layers": list(result.kept_layers),
         "num_kept_layers": result.num_kept_layers,
         "num_removed_layers": result.num_removed_layers,
@@ -228,7 +187,7 @@ def _save_ablation_results_json(
     )
 
     payload = {
-        "schema_version": 1,
+        "schema_version": 2,
         "created_at": timestamp_readable,
         "model_name": model_name,
         "num_layers": num_layers,
@@ -239,6 +198,7 @@ def _save_ablation_results_json(
             "batch_size": batch_size,
             "num_batches": num_batches,
             "num_ablations": num_ablations,
+            "num_results": len(results),
             "device": str(device),
             "compute_dtype": str(compute_dtype),
             "dataset_spec_repr": repr(dataset_spec),
@@ -258,436 +218,505 @@ def _save_ablation_results_json(
     return output_path
 
 
-@torch.no_grad()
-def _forward_with_layer_mask(
+@dataclass(frozen=True, slots=True)
+class AblationGenerationConfig:
+    """
+    Centralized ablation-budget settings.
+
+    Default approximate count:
+      keep_all:       1
+      early_exit:    24
+      late_begin:     8
+      internal_gaps:  8 * 5 = 40
+      periodic:      18
+      ------------------
+      total:         ~91 before deduplication
+    """
+
+    include_keep_all: bool = True
+
+    # 1. Early exits: keep prefix [0, k)
+    num_early_exit_masks: int = 24
+    early_exit_min_keep: int = 1
+    early_exit_max_keep: int | None = None
+
+    # 2. Late-begin: keep suffix [num_layers - k, num_layers)
+    num_late_begin_masks: int = 8
+    late_begin_min_keep: int = 1
+    late_begin_max_keep: int | None = None
+
+    # 3. Internal gaps: remove one contiguous internal block
+    num_internal_gap_lengths: int = 8
+    internal_gap_positions_per_length: int = 5
+    internal_gap_min_length: int = 2
+    internal_gap_max_remove_fraction: float = 0.85
+
+    # For each gap length, decide how much of the non-skipped budget goes before the gap.
+    # Low value  => gap is early, more layers remain at the end.
+    # High value => gap is late, more layers remain at the start.
+    internal_gap_left_keep_share_min: float = 0.15
+    internal_gap_left_keep_share_max: float = 0.85
+
+    # 4. Periodic masks
+    periodic_steps: tuple[int, ...] = (2, 3, 4)
+
+    # drop_every_n = skip one layer every n layers.
+    # Example: drop_every_3 keeps roughly 2/3 of layers.
+    include_periodic_drop_every_n: bool = True
+
+    # keep_every_n = keep one layer every n layers.
+    # Example: keep_every_3 keeps roughly 1/3 of layers.
+    include_periodic_keep_every_n: bool = True
+
+    # None means include all phases.
+    # For steps (2, 3, 4), all phases gives 2 + 3 + 4 = 9 masks per periodic family.
+    periodic_max_phases_per_step: int | None = None
+
+    # If True, always force layer 0 and layer num_layers - 1 to be kept for periodic masks.
+    periodic_anchor_edges: bool = False
+
+
+def _downsample_sorted_values(
+    values: list[int],
+    count: int,
+) -> tuple[int, ...]:
+    if count <= 0 or len(values) == 0:
+        return ()
+
+    values = sorted(set(values))
+
+    if len(values) <= count:
+        return tuple(values)
+
+    if count == 1:
+        return (values[len(values) // 2],)
+
+    selected_indices = [
+        round(i * (len(values) - 1) / (count - 1))
+        for i in range(count)
+    ]
+
+    return tuple(values[i] for i in sorted(set(selected_indices)))
+
+
+def _sample_int_range(
     *,
-    model: Any,
-    input_ids: torch.Tensor,
-    attention_mask: torch.Tensor | None,
-    keep_layer_indices: set[int],
-) -> torch.Tensor:
+    low: int,
+    high: int,
+    count: int,
+    anchors: Iterable[int] = (),
+) -> tuple[int, ...]:
     """
-    Runs the model normally, but replaces skipped decoder layers with identity.
+    Sample at most `count` integers from [low, high].
 
-    This is much more robust than manually replaying the model internals because
-    the original HF forward still handles:
-    - RoPE / position embeddings
-    - causal masks
-    - sliding-window masks
-    - any model-family-specific kwargs
+    Uses:
+      - explicit anchors first
+      - evenly spaced values to fill the rest
+
+    This keeps the number of masks bounded and stable across model sizes.
     """
-    backbone = _get_backbone(model)
-    layers = backbone.layers
+    if count <= 0 or high < low:
+        return ()
 
-    def make_skip_hook() -> Any:
-        def skip_hook(module: Any, inputs: tuple[Any, ...], output: Any) -> Any:
-            if len(inputs) == 0 or not isinstance(inputs[0], torch.Tensor):
-                raise TypeError(
-                    f"Expected first layer input to be hidden_states tensor, got "
-                    f"{type(inputs[0]) if len(inputs) > 0 else 'empty inputs'}"
-                )
+    full_range_size = high - low + 1
+    if full_range_size <= count:
+        return tuple(range(low, high + 1))
 
-            hidden_in = inputs[0]
+    anchor_values = sorted({
+        int(x)
+        for x in anchors
+        if low <= int(x) <= high
+    })
 
-            if isinstance(output, torch.Tensor):
-                return hidden_in
+    # Oversample evenly spaced candidates, then downsample.
+    candidate_values: set[int] = set(anchor_values)
 
-            if isinstance(output, tuple) and len(output) > 0:
-                return type(output)((hidden_in, *output[1:]))
+    oversample_count = max(count * 4, count)
+    if oversample_count == 1:
+        candidate_values.add((low + high) // 2)
+    else:
+        for i in range(oversample_count):
+            t = i / float(oversample_count - 1)
+            candidate_values.add(round(low + t * (high - low)))
 
-            raise TypeError(
-                f"Unexpected decoder layer output type when skipping layer: {type(output)}"
-            )
+    candidates = sorted(candidate_values)
 
-        return skip_hook
+    if len(candidates) <= count:
+        return tuple(candidates)
 
-    with ExitStack() as stack:
-        for layer_idx, layer in enumerate(layers):
-            if layer_idx not in keep_layer_indices:
-                handle = layer.register_forward_hook(make_skip_hook())
-                stack.callback(handle.remove)
+    if len(anchor_values) >= count:
+        return _downsample_sorted_values(anchor_values, count)
 
-        outputs = model(
-            input_ids=input_ids,
-            attention_mask=attention_mask,
-            output_hidden_states=False,
-            use_cache=False,
-            return_dict=True,
-        )
+    remaining_count = count - len(anchor_values)
+    non_anchor_values = [x for x in candidates if x not in set(anchor_values)]
+    filler_values = _downsample_sorted_values(non_anchor_values, remaining_count)
 
-    return cast(torch.Tensor, outputs.logits)
+    return tuple(sorted(set(anchor_values).union(filler_values)))
 
 
-def _cross_entropy_next_token(
-    logits: torch.Tensor,
-    labels: torch.Tensor,
-) -> torch.Tensor:
-    shift_logits = logits[:, :-1, :].contiguous()
-    shift_labels = labels[:, 1:].contiguous()
+def _sample_float_range(
+    *,
+    low: float,
+    high: float,
+    count: int,
+) -> tuple[float, ...]:
+    if count <= 0:
+        return ()
 
-    return F.cross_entropy(
-        shift_logits.view(-1, shift_logits.size(-1)),
-        shift_labels.view(-1),
+    if count == 1:
+        return ((low + high) / 2.0,)
+
+    return tuple(
+        low + (i / float(count - 1)) * (high - low)
+        for i in range(count)
     )
 
 
-def _kl_full_to_masked_next_token(
+def _add_unique_mask(
     *,
-    logits_full: torch.Tensor,
-    logits_masked: torch.Tensor,
-) -> torch.Tensor:
-    shift_logits_full = logits_full[:, :-1, :].contiguous()
-    shift_logits_masked = logits_masked[:, :-1, :].contiguous()
+    dedup: dict[tuple[int, ...], AblationMaskSpec],
+    num_layers: int,
+    name: str,
+    indices: Iterable[int],
+) -> None:
+    kept = tuple(sorted({
+        int(i)
+        for i in indices
+        if 0 <= int(i) < num_layers
+    }))
 
-    log_p_masked = F.log_softmax(shift_logits_masked.float(), dim=-1)
-    log_p_full = F.log_softmax(shift_logits_full.float(), dim=-1)
+    if len(kept) == 0:
+        return
 
-    kl_per_token = F.kl_div(
-        log_p_masked,
-        log_p_full,
-        reduction="none",
-        log_target=True,
-    ).sum(dim=-1)
+    if kept not in dedup:
+        dedup[kept] = AblationMaskSpec(
+            name=name,
+            keep_layer_indices=kept,
+        )
 
-    return kl_per_token.mean()
 
-def _make_dense_keep_edges_masks(
+def _make_early_exit_masks(
     *,
     num_layers: int,
-    min_remove_fraction: float = 0.60,
-    max_remove_fraction: float = 0.90,
-    min_edge_keep: int = 1,
-    include_all_splits: bool = True,
-    max_splits_per_total: int | None = None,
-) -> list[AblationMaskSpec]:
-    if num_layers <= 0:
-        return []
+    config: AblationGenerationConfig,
+    dedup: dict[tuple[int, ...], AblationMaskSpec],
+) -> None:
+    max_keep = config.early_exit_max_keep
+    if max_keep is None:
+        max_keep = num_layers - 1
 
-    dedup: dict[tuple[int, ...], AblationMaskSpec] = {}
+    low = max(1, config.early_exit_min_keep)
+    high = min(num_layers - 1, max_keep)
 
-    def add_mask(name: str, indices: Iterable[int]) -> None:
-        kept = tuple(sorted({i for i in indices if 0 <= i < num_layers}))
-        if len(kept) == 0:
-            return
-        if kept not in dedup:
-            dedup[kept] = AblationMaskSpec(
-                name=name,
-                keep_layer_indices=kept,
-            )
-
-    min_keep_total = max(
-        2 * min_edge_keep,
-        math.ceil((1.0 - max_remove_fraction) * num_layers),
-    )
-    max_keep_total = min(
-        num_layers - 1,
-        math.floor((1.0 - min_remove_fraction) * num_layers),
-    )
-
-    if min_keep_total > max_keep_total:
-        return []
-
-    for total_kept in range(min_keep_total, max_keep_total + 1):
-        candidate_pairs: list[tuple[int, int]] = []
-
-        for left in range(min_edge_keep, total_kept - min_edge_keep + 1):
-            right = total_kept - left
-            if right < min_edge_keep:
-                continue
-            if left + right >= num_layers:
-                continue
-            candidate_pairs.append((left, right))
-
-        if not candidate_pairs:
-            continue
-
-        if include_all_splits:
-            selected_pairs = candidate_pairs
-        else:
-            # keep a smaller but still informative subset:
-            # left-heavy, balanced, right-heavy
-            mid = len(candidate_pairs) // 2
-            selected_pairs = [candidate_pairs[0], candidate_pairs[mid], candidate_pairs[-1]]
-
-            # dedup while preserving order
-            seen: set[tuple[int, int]] = set()
-            selected_pairs = [
-                pair for pair in selected_pairs
-                if not (pair in seen or seen.add(pair))
-            ]
-
-        if max_splits_per_total is not None and len(selected_pairs) > max_splits_per_total:
-            if max_splits_per_total <= 1:
-                selected_pairs = [selected_pairs[len(selected_pairs) // 2]]
-            else:
-                # evenly subsample across asymmetry range
-                indices = [
-                    round(i * (len(selected_pairs) - 1) / (max_splits_per_total - 1))
-                    for i in range(max_splits_per_total)
-                ]
-                selected_pairs = [selected_pairs[i] for i in sorted(set(indices))]
-
-        for left, right in selected_pairs:
-            kept = list(range(0, left)) + list(range(num_layers - right, num_layers))
-            add_mask(
-                f"keep_edges__left_{left}__right_{right}__total_{total_kept}__remove_{num_layers - total_kept}",
-                kept,
-            )
-
-    return list(dedup.values())
-
-
-def _make_basic_ablation_masks(num_layers: int) -> list[AblationMaskSpec]:
-    if num_layers <= 0:
-        return []
-
-    dedup: dict[tuple[int, ...], AblationMaskSpec] = {}
-
-    def normalize(indices: Iterable[int]) -> tuple[int, ...]:
-        return tuple(sorted({i for i in indices if 0 <= i < num_layers}))
-
-    def add_mask(name: str, indices: Iterable[int]) -> None:
-        kept = normalize(indices)
-        if len(kept) == 0:
-            return
-        # Keep the FIRST canonical name for a given kept-layer pattern.
-        if kept not in dedup:
-            dedup[kept] = AblationMaskSpec(
-                name=name,
-                keep_layer_indices=kept,
-            )
-
-    def unique_counts(*values: int, upper: int | None = None, lower: int = 1) -> list[int]:
-        max_allowed = num_layers if upper is None else upper
-        return sorted({
-            int(v)
-            for v in values
-            if lower <= int(v) <= max_allowed
-        })
-
-    def centered_block(size: int) -> tuple[int, ...]:
-        size = max(1, min(size, num_layers))
-        start = max(0, (num_layers - size) // 2)
-        end = min(num_layers, start + size)
-        return tuple(range(start, end))
-
-    def remove_block(start: int, length: int) -> tuple[int, ...]:
-        start = max(0, min(start, num_layers))
-        end = max(start, min(num_layers, start + length))
-        removed = set(range(start, end))
-        return tuple(i for i in range(num_layers) if i not in removed)
-
-    def periodic_indices(step: int, keep_count: int, phase: int) -> tuple[int, ...]:
-        return tuple(
-            i for i in range(num_layers)
-            if ((i + phase) % step) < keep_count
-        )
-
-    def periodic_indices_anchored(step: int, keep_count: int, phase: int) -> tuple[int, ...]:
-        kept = {
-            i for i in range(num_layers)
-            if ((i + phase) % step) < keep_count
-        }
-        kept.add(0)
-        kept.add(num_layers - 1)
-        return tuple(sorted(kept))
-
-    # ------------------------------------------------------------------
-    # 1) Baseline
-    # ------------------------------------------------------------------
-    add_mask("keep_all", range(num_layers))
-
-    # ------------------------------------------------------------------
-    # 2) Prefix-only (canonical early-exit family)
-    # ------------------------------------------------------------------
-    prefix_sizes = unique_counts(
+    anchors = [
         1,
         2,
         3,
         4,
-        5,
         6,
-        num_layers // 4 - 1,
+        8,
+        num_layers // 8,
+        num_layers // 6,
         num_layers // 4,
-        num_layers // 4 + 1,
-        num_layers // 3 - 1,
         num_layers // 3,
-        num_layers // 3 + 1,
-        num_layers // 2 - 2,
-        num_layers // 2 - 1,
         num_layers // 2,
-        num_layers // 2 + 1,
-        num_layers // 2 + 2,
-        (2 * num_layers) // 3 - 1,
         (2 * num_layers) // 3,
-        (2 * num_layers) // 3 + 1,
-        (3 * num_layers) // 4 - 1,
         (3 * num_layers) // 4,
-        (3 * num_layers) // 4 + 1,
         num_layers - 2,
         num_layers - 1,
-        upper=max(1, num_layers - 1),
+    ]
+
+    keep_counts = _sample_int_range(
+        low=low,
+        high=high,
+        count=config.num_early_exit_masks,
+        anchors=anchors,
     )
-    for k in prefix_sizes:
-        add_mask(f"keep_prefix__k_{k}", range(0, k))
 
-    # ------------------------------------------------------------------
-    # 3) Suffix-only (canonical late-begin family)
-    # ------------------------------------------------------------------
-    suffix_sizes = prefix_sizes
-    for k in suffix_sizes:
-        add_mask(f"keep_suffix__k_{k}", range(num_layers - k, num_layers))
-
-    # ------------------------------------------------------------------
-    # 4) Internal single-layer drop
-    #    Internal only: idx in [1, num_layers-2]
-    # ------------------------------------------------------------------
-    # if num_layers >= 3:
-    #     for idx in range(1, num_layers - 1):
-    #         add_mask(
-    #             f"drop_internal_single__idx_{idx}",
-    #             remove_block(start=idx, length=1),
-    #         )
-
-    # ------------------------------------------------------------------
-    # 5) Internal contiguous block drop
-    #    Internal only: block must not touch first/last layer
-    # ------------------------------------------------------------------
-    if num_layers >= 5:
-        block_lengths = unique_counts(
-            2,
-            3,
-            4,
-            num_layers // 8,
-            num_layers // 6,
-            num_layers // 4,
-            upper=max(2, num_layers - 2),
-            lower=2,
+    for k in keep_counts:
+        _add_unique_mask(
+            dedup=dedup,
+            num_layers=num_layers,
+            name=f"keep_prefix__k_{k}",
+            indices=range(0, k),
         )
 
-        for length in block_lengths:
-            if length >= num_layers - 1:
-                continue
 
-            candidate_starts = sorted({
-                1,
-                max(1, (num_layers // 4) - (length // 2)),
-                max(1, (num_layers // 2) - (length // 2)),
-                max(1, ((3 * num_layers) // 4) - (length // 2)),
-                max(1, num_layers - length - 1),
-            })
+def _make_late_begin_masks(
+    *,
+    num_layers: int,
+    config: AblationGenerationConfig,
+    dedup: dict[tuple[int, ...], AblationMaskSpec],
+) -> None:
+    max_keep = config.late_begin_max_keep
+    if max_keep is None:
+        max_keep = num_layers - 1
 
-            for start in candidate_starts:
-                if start <= 0:
-                    continue
-                if start + length >= num_layers:
-                    continue
-                add_mask(
-                    f"drop_internal_block__start_{start}__len_{length}",
-                    remove_block(start=start, length=length),
-                )
+    low = max(1, config.late_begin_min_keep)
+    high = min(num_layers - 1, max_keep)
 
-    # ------------------------------------------------------------------
-    # 6) Center contiguous keep-block
-    # ------------------------------------------------------------------
-    center_lengths = unique_counts(
+    anchors = [
         1,
         2,
+        4,
+        num_layers // 8,
+        num_layers // 4,
+        num_layers // 3,
+        num_layers // 2,
+        (3 * num_layers) // 4,
+        num_layers - 1,
+    ]
+
+    keep_counts = _sample_int_range(
+        low=low,
+        high=high,
+        count=config.num_late_begin_masks,
+        anchors=anchors,
+    )
+
+    for k in keep_counts:
+        _add_unique_mask(
+            dedup=dedup,
+            num_layers=num_layers,
+            name=f"keep_suffix__k_{k}",
+            indices=range(num_layers - k, num_layers),
+        )
+
+
+def _make_internal_gap_masks(
+    *,
+    num_layers: int,
+    config: AblationGenerationConfig,
+    dedup: dict[tuple[int, ...], AblationMaskSpec],
+) -> None:
+    """
+    Build internal contiguous gaps.
+
+    A gap is represented as:
+
+        kept prefix | skipped gap | kept suffix
+
+    The gap never touches the first or last layer.
+    """
+    if num_layers < 4:
+        return
+
+    min_gap_len = max(1, config.internal_gap_min_length)
+    max_gap_len = min(
+        num_layers - 2,
+        math.floor(config.internal_gap_max_remove_fraction * num_layers),
+    )
+
+    if min_gap_len > max_gap_len:
+        return
+
+    length_anchors = [
+        2,
+        3,
         4,
         num_layers // 8,
         num_layers // 6,
         num_layers // 4,
         num_layers // 3,
         num_layers // 2,
-        upper=max(1, num_layers - 1),
+        (2 * num_layers) // 3,
+        math.floor(0.80 * num_layers),
+    ]
+
+    gap_lengths = _sample_int_range(
+        low=min_gap_len,
+        high=max_gap_len,
+        count=config.num_internal_gap_lengths,
+        anchors=length_anchors,
     )
-    for length in center_lengths:
-        add_mask(
-            f"keep_center_block__len_{length}",
-            centered_block(length),
+
+    left_keep_shares = _sample_float_range(
+        low=config.internal_gap_left_keep_share_min,
+        high=config.internal_gap_left_keep_share_max,
+        count=config.internal_gap_positions_per_length,
+    )
+
+    for gap_len in gap_lengths:
+        remaining_kept = num_layers - gap_len
+
+        # Need at least one kept layer before and after the gap.
+        if remaining_kept < 2:
+            continue
+
+        left_keep_values: set[int] = set()
+
+        for share in left_keep_shares:
+            left_keep = round(share * remaining_kept)
+            left_keep = max(1, min(remaining_kept - 1, left_keep))
+            left_keep_values.add(left_keep)
+
+        for left_keep in sorted(left_keep_values):
+            right_keep = remaining_kept - left_keep
+            gap_start = left_keep
+            gap_end = gap_start + gap_len
+
+            if gap_start <= 0:
+                continue
+
+            if gap_end >= num_layers:
+                continue
+
+            kept_indices = list(range(0, gap_start)) + list(range(gap_end, num_layers))
+
+            _add_unique_mask(
+                dedup=dedup,
+                num_layers=num_layers,
+                name=(
+                    f"drop_internal_gap__start_{gap_start}"
+                    f"__len_{gap_len}"
+                    f"__left_{left_keep}"
+                    f"__right_{right_keep}"
+                ),
+                indices=kept_indices,
+            )
+
+
+def _sample_periodic_phases(
+    *,
+    step: int,
+    max_phases_per_step: int | None,
+) -> tuple[int, ...]:
+    phases = list(range(step))
+
+    if max_phases_per_step is None:
+        return tuple(phases)
+
+    return _downsample_sorted_values(
+        phases,
+        count=max_phases_per_step,
+    )
+
+
+def _maybe_anchor_edges(
+    *,
+    kept: set[int],
+    num_layers: int,
+    anchor_edges: bool,
+) -> set[int]:
+    if anchor_edges:
+        kept.add(0)
+        kept.add(num_layers - 1)
+
+    return kept
+
+
+def _make_periodic_masks(
+    *,
+    num_layers: int,
+    config: AblationGenerationConfig,
+    dedup: dict[tuple[int, ...], AblationMaskSpec],
+) -> None:
+    for step in config.periodic_steps:
+        if step <= 1 or step > num_layers:
+            continue
+
+        phases = _sample_periodic_phases(
+            step=step,
+            max_phases_per_step=config.periodic_max_phases_per_step,
         )
 
-   # ------------------------------------------------------------------
-    # 7) Edge-only family
-    #    Dense middle-gap sweep:
-    #    keep left prefix + right suffix, remove contiguous middle block,
-    #    focused on removing 60-90% of layers.
-    # ------------------------------------------------------------------
-    dense_keep_edges = _make_dense_keep_edges_masks(
+        for phase in phases:
+            if config.include_periodic_drop_every_n:
+                kept = {
+                    i
+                    for i in range(num_layers)
+                    if (i % step) != phase
+                }
+
+                kept = _maybe_anchor_edges(
+                    kept=kept,
+                    num_layers=num_layers,
+                    anchor_edges=config.periodic_anchor_edges,
+                )
+
+                _add_unique_mask(
+                    dedup=dedup,
+                    num_layers=num_layers,
+                    name=f"drop_every_{step}__phase_{phase}",
+                    indices=kept,
+                )
+
+            if config.include_periodic_keep_every_n:
+                kept = {
+                    i
+                    for i in range(num_layers)
+                    if (i % step) == phase
+                }
+
+                kept = _maybe_anchor_edges(
+                    kept=kept,
+                    num_layers=num_layers,
+                    anchor_edges=config.periodic_anchor_edges,
+                )
+
+                _add_unique_mask(
+                    dedup=dedup,
+                    num_layers=num_layers,
+                    name=f"keep_every_{step}__phase_{phase}",
+                    indices=kept,
+                )
+
+
+def _make_basic_ablation_masks(
+    num_layers: int,
+    config: AblationGenerationConfig | None = None,
+) -> list[AblationMaskSpec]:
+    """
+    Strategic bounded ablation set.
+
+    Main families:
+      1. early exits / prefix keeps
+      2. internal contiguous gaps with different lengths and placements
+      3. late-begin / suffix keeps
+      4. periodic skip/keep patterns
+
+    The number of masks is controlled by AblationGenerationConfig rather than
+    scaling explosively with num_layers.
+    """
+    if num_layers <= 0:
+        return []
+
+    if config is None:
+        config = AblationGenerationConfig()
+
+    dedup: dict[tuple[int, ...], AblationMaskSpec] = {}
+
+    if config.include_keep_all:
+        _add_unique_mask(
+            dedup=dedup,
+            num_layers=num_layers,
+            name="keep_all",
+            indices=range(num_layers),
+        )
+
+    _make_early_exit_masks(
         num_layers=num_layers,
-        min_remove_fraction=0.60,
-        max_remove_fraction=0.90,
-        min_edge_keep=1,
-        include_all_splits=True,      # set False if too many
-        max_splits_per_total=None,    # e.g. 7 if you want to cap it
+        config=config,
+        dedup=dedup,
     )
 
-    for spec in dense_keep_edges:
-        add_mask(spec.name, spec.keep_layer_indices)
+    _make_internal_gap_masks(
+        num_layers=num_layers,
+        config=config,
+        dedup=dedup,
+    )
 
-    # ------------------------------------------------------------------
-    # 8) Periodic / strided family
-    #    Canonical replacement for every_nth, group_k_of_n, two_on_two_off, etc.
-    # ------------------------------------------------------------------
-    periodic_specs = [
-        (2, 1),
-        (3, 1),
-        (3, 2),
-        (4, 1),
-        (4, 2),
-        (4, 3),
-    ]
+    _make_late_begin_masks(
+        num_layers=num_layers,
+        config=config,
+        dedup=dedup,
+    )
 
-    for step, keep_count in periodic_specs:
-        if step > num_layers:
-            continue
-        if keep_count <= 0 or keep_count >= step:
-            continue
-
-        for phase in range(step):
-            add_mask(
-                f"keep_periodic__step_{step}__keep_{keep_count}__phase_{phase}",
-                periodic_indices(step=step, keep_count=keep_count, phase=phase),
-            )
-
-    # ------------------------------------------------------------------
-    # 9) Anchored periodic family
-    #    Same as periodic, but always keeps first and last layer
-    # ------------------------------------------------------------------
-    for step, keep_count in periodic_specs:
-        if step > num_layers:
-            continue
-        if keep_count <= 0 or keep_count >= step:
-            continue
-
-        for phase in range(step):
-            add_mask(
-                f"keep_periodic_anchored__step_{step}__keep_{keep_count}__phase_{phase}",
-                periodic_indices_anchored(step=step, keep_count=keep_count, phase=phase),
-            )
-
-    # ------------------------------------------------------------------
-    # 10) Landmark family
-    # ------------------------------------------------------------------
-    quarter_idx = num_layers // 4
-    mid_idx = num_layers // 2
-    third_1 = num_layers // 3
-    third_2 = (2 * num_layers) // 3
-    three_quarter_idx = (3 * num_layers) // 4
-    last_idx = num_layers - 1
-
-    landmark_schemes: list[tuple[str, list[int]]] = [
-        ("first_mid_last", [0, mid_idx, last_idx]),
-        ("first_quarter_mid_threequarter_last", [0, quarter_idx, mid_idx, three_quarter_idx, last_idx]),
-        ("first_thirds_last", [0, third_1, third_2, last_idx]),
-        ("quarter_mid_threequarter", [quarter_idx, mid_idx, three_quarter_idx]),
-    ]
-
-    for scheme_name, indices in landmark_schemes:
-        add_mask(
-            f"keep_landmarks__scheme_{scheme_name}",
-            indices,
-        )
+    _make_periodic_masks(
+        num_layers=num_layers,
+        config=config,
+        dedup=dedup,
+    )
 
     return list(dedup.values())
 
@@ -706,7 +735,11 @@ def _print_ranking(
 
     for rank, result in enumerate(ranked_results[:top_k], start=1):
         score = score_getter(result)
-        score_str = _format_optional_float(score) if isinstance(score, (float, type(None))) else str(score)
+        score_str = (
+            _format_optional_float(score)
+            if isinstance(score, (float, type(None)))
+            else str(score)
+        )
 
         print(
             f"{rank:>2}. "
@@ -718,7 +751,7 @@ def _print_ranking(
             f"top1={result.mean_top1_agreement:.6f}"
         )
         print(f"    visual={result.visual_mask}")
-        print(f"    binary={list(result.binary_mask)}")
+        print(f"    binary={_format_binary_mask(result.binary_mask)}")
 
 
 def evaluate_layer_ablations(
@@ -730,7 +763,6 @@ def evaluate_layer_ablations(
     num_windows_to_use: int = 10,
     batch_size: int = 2,
     model_kwargs: dict[str, Any] | None = None,
-    custom_masks: list[AblationMaskSpec] | None = None,
     json_output_dir: str | Path = "ablation_results",
 ) -> list[AblationResult]:
     _stage("evaluate_layer_ablations: start", model_name=model_name)
@@ -738,56 +770,49 @@ def evaluate_layer_ablations(
     device = get_preferred_device()
     compute_dtype = get_preferred_float_dtype(device)
 
+    print("DEVICE:", device)
+    print("COMPUTE_DTYPE:", compute_dtype)
+
     model_and_tokenizer: ModelAndTokenizer = load_model_and_tokenizer(
         model_name,
         model_kwargs={
-            "dtype": compute_dtype,
+            # HF expects torch_dtype, not dtype.
+            "torch_dtype": compute_dtype,
             **(model_kwargs or {}),
         },
     )
 
     model = cast(Any, model_and_tokenizer.model)
     model.eval()
-    model.to(device=device, dtype=compute_dtype)
+    model.to(device=device)
 
-    dataset: Dataset = load_dataset(dataset_spec)
-    window_settings = WindowSettings(C1=context_len)
-
-    _stage("tokenizing dataset", model_name=model_name)
-    tokenized_examples = tokenize_dataset_to_examples(
-        dataset,
-        model_and_tokenizer.tokenizer,
-        dataset_spec,
-        max_examples=max_examples,
-    )
-
-    _stage("building windows", model_name=model_name)
-    all_windows = build_all_training_windows(
-        tokenized_examples,
-        window_settings,
-        dataset_spec,
-    )
-
-    if len(all_windows) < num_windows_to_use:
-        raise ValueError(
-            f"Requested {num_windows_to_use} windows, but only built {len(all_windows)} windows."
-        )
-
-    selected_windows = all_windows[:num_windows_to_use]
-    window_dataset = WindowDataset(selected_windows)
-
-    dataloader = DataLoader(
-        window_dataset,
-        batch_size=batch_size,
-        shuffle=False,
-        collate_fn=collate_windows,
-        pin_memory=(device.type == "cuda"),
-    )
-
-    num_layers = len(_get_decoder_layers(model))
+    num_layers = len(get_decoder_layers(model))
     _stage(f"model has {num_layers} decoder layers", model_name=model_name)
 
-    masks = custom_masks if custom_masks is not None else _make_basic_ablation_masks(num_layers)
+    _stage("building dataloader", model_name=model_name)
+    dataloader = build_fixed_window_dataloader(
+        dataset_spec=dataset_spec,
+        model_and_tokenizer=model_and_tokenizer,
+        context_len=context_len,
+        max_examples=max_examples,
+        num_windows_to_use=num_windows_to_use,
+        batch_size=batch_size,
+        device=device,
+        shuffle=False,
+    )
+
+    masks = _make_basic_ablation_masks(
+        num_layers,
+        config=AblationGenerationConfig(
+            num_early_exit_masks=20,
+            num_late_begin_masks=6,
+            num_internal_gap_lengths=8,
+            internal_gap_positions_per_length=5,
+            periodic_steps=(2, 3, 4),
+            include_periodic_drop_every_n=True,
+            include_periodic_keep_every_n=True,
+        ),
+    )
     num_ablations = len(masks)
 
     print(f"Generated {num_ablations} unique ablation masks")
@@ -796,44 +821,33 @@ def evaluate_layer_ablations(
     print("=" * 120)
     print(f"Evaluating {num_ablations} ablations for model: {model_name}")
     print("=" * 120)
+
     for idx, mask_spec in enumerate(masks, start=1):
-        binary_mask = _mask_to_binary_tuple(
+        pattern = make_layer_pattern(
             num_layers=num_layers,
-            keep_layer_indices=mask_spec.keep_layer_indices,
+            active_layer_indices=mask_spec.keep_layer_indices,
         )
-        visual_mask = _mask_to_visual_string(
-            num_layers=num_layers,
-            keep_layer_indices=mask_spec.keep_layer_indices,
-        )
+
         print(
             f"{idx:>2}. {mask_spec.name:<40} "
-            f"kept={len(mask_spec.keep_layer_indices):>2}/{num_layers}"
+            f"kept={len(pattern.active_layer_indices):>2}/{num_layers}"
         )
-        print(f"    visual={visual_mask}")
-        print(f"    binary={list(binary_mask)}")
+        print(f"    visual={pattern.visual_mask}")
+        print(f"    binary={pattern.binary_string}")
 
     results: list[AblationResult] = []
 
     for ablation_idx, mask_spec in enumerate(masks, start=1):
-        if len(mask_spec.keep_layer_indices) == 0:
+        pattern = make_layer_pattern(
+            num_layers=num_layers,
+            active_layer_indices=mask_spec.keep_layer_indices,
+        )
+
+        if len(pattern.active_layer_indices) == 0:
             print(f"Skipping mask {mask_spec.name} because it keeps zero layers.")
             continue
 
-        invalid_indices = [i for i in mask_spec.keep_layer_indices if not (0 <= i < num_layers)]
-        if invalid_indices:
-            raise ValueError(
-                f"Mask {mask_spec.name} contains invalid layer indices: {invalid_indices}"
-            )
-
-        keep_set = set(mask_spec.keep_layer_indices)
-        binary_mask = _mask_to_binary_tuple(
-            num_layers=num_layers,
-            keep_layer_indices=mask_spec.keep_layer_indices,
-        )
-        visual_mask = _mask_to_visual_string(
-            num_layers=num_layers,
-            keep_layer_indices=mask_spec.keep_layer_indices,
-        )
+        keep_set = set(pattern.active_layer_indices)
 
         ce_masked_values: list[float] = []
         ce_full_values: list[float] = []
@@ -844,14 +858,15 @@ def evaluate_layer_ablations(
         p_masked_on_full_argmax_values: list[float] = []
 
         _stage(
-            f"evaluating mask={mask_spec.name} kept={len(mask_spec.keep_layer_indices)}/{num_layers}",
+            f"evaluating mask={mask_spec.name} kept={len(pattern.active_layer_indices)}/{num_layers}",
             model_name=model_name,
             ablation_idx=ablation_idx,
             num_ablations=num_ablations,
         )
-        print(f"  visual={visual_mask}")
-        print(f"  binary={list(binary_mask)}")
-        print(f"  kept_layers={mask_spec.keep_layer_indices}")
+        print(f"  visual={pattern.visual_mask}")
+        print(f"  binary={pattern.binary_string}")
+        print(f"  kept_layers={pattern.active_layer_indices}")
+        print(f"  skipped_layers={pattern.skipped_layer_indices}")
 
         for batch_idx, (input_ids, attention_mask) in enumerate(dataloader):
             input_ids = input_ids.to(device, non_blocking=True)
@@ -859,35 +874,38 @@ def evaluate_layer_ablations(
             labels = input_ids
 
             with torch.no_grad():
-                full_outputs = model(
+                logits_full = forward_model_logits(
+                    model=model,
                     input_ids=input_ids,
                     attention_mask=attention_mask,
-                    output_hidden_states=False,
-                    use_cache=False,
-                    return_dict=True,
                 )
-                logits_full = cast(torch.Tensor, full_outputs.logits)
 
-                logits_masked = _forward_with_layer_mask(
+                logits_masked = forward_with_layer_mask(
                     model=model,
                     input_ids=input_ids,
                     attention_mask=attention_mask,
                     keep_layer_indices=keep_set,
                 )
 
-                ce_full = _cross_entropy_next_token(logits_full, labels)
-                ce_masked = _cross_entropy_next_token(logits_masked, labels)
-                kl_full_to_masked = _kl_full_to_masked_next_token(
-                    logits_full=logits_full,
-                    logits_masked=logits_masked,
+                ce_full = cross_entropy_next_token(
+                    logits=logits_full,
+                    labels=labels,
                 )
 
-                shift_logits_masked = logits_masked[:, :-1, :].contiguous()
-                shift_logits_full = logits_full[:, :-1, :].contiguous()
+                ce_masked = cross_entropy_next_token(
+                    logits=logits_masked,
+                    labels=labels,
+                )
+
+                kl_full_to_masked = kl_teacher_to_student_next_token(
+                    logits_teacher=logits_full,
+                    logits_student=logits_masked,
+                    attention_mask=attention_mask,
+                )
 
                 sim_metrics = distribution_similarity_metrics(
-                    shift_logits_mid=shift_logits_masked,
-                    shift_logits_full=shift_logits_full,
+                    shift_logits_mid=shift_next_token_logits(logits_masked),
+                    shift_logits_full=shift_next_token_logits(logits_full),
                 )
 
             ce_full_values.append(ce_full.item())
@@ -920,15 +938,14 @@ def evaluate_layer_ablations(
             sum(p_masked_on_full_argmax_values) / len(p_masked_on_full_argmax_values)
         )
 
-        num_kept_layers = len(mask_spec.keep_layer_indices)
+        num_kept_layers = len(pattern.active_layer_indices)
         num_removed_layers = num_layers - num_kept_layers
-        kl_per_removed_layer = _safe_div(mean_kl, num_removed_layers)
 
         result = AblationResult(
             mask_name=mask_spec.name,
-            kept_layers=mask_spec.keep_layer_indices,
-            binary_mask=binary_mask,
-            visual_mask=visual_mask,
+            kept_layers=pattern.active_layer_indices,
+            binary_mask=pattern.binary_mask,
+            visual_mask=pattern.visual_mask,
             num_kept_layers=num_kept_layers,
             num_removed_layers=num_removed_layers,
             num_total_layers=num_layers,
@@ -938,7 +955,7 @@ def evaluate_layer_ablations(
             mean_ce_full=mean_ce_full,
             mean_ce_gap=(mean_ce_masked - mean_ce_full),
             mean_kl_full_to_masked=mean_kl,
-            kl_per_removed_layer=kl_per_removed_layer,
+            kl_per_removed_layer=_safe_div(mean_kl, num_removed_layers),
             mean_js=mean_js,
             mean_top1_agreement=mean_top1,
             mean_overlap=mean_overlap,
@@ -947,7 +964,8 @@ def evaluate_layer_ablations(
         results.append(result)
 
         print(
-            f"[done] ablation={ablation_idx}/{num_ablations} [model={model_name}] {result.mask_name} | "
+            f"[done] ablation={ablation_idx}/{num_ablations} [model={model_name}] "
+            f"{result.mask_name} | "
             f"kept={result.num_kept_layers}/{result.num_total_layers} | "
             f"removed={result.num_removed_layers} | "
             f"ce_masked={result.mean_ce_masked:.4f} | "
@@ -960,12 +978,22 @@ def evaluate_layer_ablations(
 
     results_by_ce = sorted(
         results,
-        key=lambda x: (x.mean_ce_gap, x.mean_kl_full_to_masked, -x.num_removed_layers),
+        key=lambda x: (
+            x.mean_ce_gap,
+            x.mean_kl_full_to_masked,
+            -x.num_removed_layers,
+        ),
     )
+
     results_by_kl = sorted(
         results,
-        key=lambda x: (x.mean_kl_full_to_masked, x.mean_ce_gap, -x.num_removed_layers),
+        key=lambda x: (
+            x.mean_kl_full_to_masked,
+            x.mean_ce_gap,
+            -x.num_removed_layers,
+        ),
     )
+
     results_by_kl_per_removed = sorted(
         [x for x in results if x.kl_per_removed_layer is not None],
         key=lambda x: (
@@ -1015,4 +1043,5 @@ def evaluate_layer_ablations(
 
     _stage(f"saved results json to {json_path}", model_name=model_name)
     _stage("finished evaluation", model_name=model_name)
+
     return results_by_ce

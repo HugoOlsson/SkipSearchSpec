@@ -120,99 +120,111 @@ def _get_reentry_module_for_gap(*, model: Any, gap: GapSpec) -> Any:
 
 
 class GapBridge(nn.Module):
-    """
-    Predict re-entry hidden from:
-      - current hidden entering the gap
-      - previous token's final-layer hidden
-
-    For position t, inputs are:
-      x_t       = hidden entering the gap at position t
-      p_{t-1}   = teacher final hidden from position t-1 (shifted right)
-
-    Output:
-      bridged_t = x_t + delta_t
-    """
-
-    def __init__(
-        self,
-        hidden_size: int,
-        bottleneck_dim: int = 384,
-        bias: bool = True,
-    ) -> None:
+    def __init__(self, hidden_size: int, bias: bool = False) -> None:
         super().__init__()
-
-        self.hidden_size = hidden_size
-
-        self.gap_norm = nn.LayerNorm(hidden_size)
-        self.prev_norm = nn.LayerNorm(hidden_size)
-
-        # features: [x_t, p_{t-1}, x_t - p_{t-1}]
-        input_dim = hidden_size * 3
-
-        self.fc1 = nn.Linear(input_dim, bottleneck_dim, bias=bias)
-        self.fc2 = nn.Linear(bottleneck_dim, hidden_size, bias=False)
-
+        self.proj = nn.Linear(hidden_size, hidden_size, bias=bias)
         with torch.no_grad():
-            nn.init.normal_(self.fc1.weight, mean=0.0, std=0.02)
-            if self.fc1.bias is not None:
-                nn.init.zeros_(self.fc1.bias)
+            nn.init.zeros_(self.proj.weight)
+            if self.proj.bias is not None:
+                nn.init.zeros_(self.proj.bias)
 
-            # start as identity: output = x_t + 0
-            nn.init.zeros_(self.fc2.weight)
-
-    def forward(
-        self,
-        gap_hidden: torch.Tensor,        # [B, T, H]
-        prev_final_hidden: torch.Tensor, # [B, T, H]
-    ) -> torch.Tensor:
-        if gap_hidden.shape != prev_final_hidden.shape:
-            raise ValueError(
-                f"gap_hidden.shape {gap_hidden.shape} != prev_final_hidden.shape {prev_final_hidden.shape}"
-            )
-
-        x = gap_hidden.float()
-        p = prev_final_hidden.float()
-
-        x_n = self.gap_norm(x)
-        p_n = self.prev_norm(p)
-
-        feats = torch.cat([x_n, p_n, x_n - p_n], dim=-1)
-        delta = self.fc2(F.silu(self.fc1(feats)))
-
-        return x + delta
+    def forward(self, hidden_states: torch.Tensor) -> torch.Tensor:
+        return hidden_states + self.proj(hidden_states)
     
-def _build_prev_final_hidden(final_hidden: torch.Tensor) -> torch.Tensor:
-    """
-    Build shifted previous-token final hidden.
 
-    For position t:
-      prev_final_hidden[:, t, :] = final_hidden[:, t-1, :]
+# class GapBridge(nn.Module):
+#     def __init__(
+#         self,
+#         hidden_size: int,
+#         num_heads: int = 4,
+#         mlp_ratio: float = 0.5,
+#         bias: bool = False,
+#     ) -> None:
+#         super().__init__()
 
-    Position 0 gets zeros.
-    """
-    prev = torch.zeros_like(final_hidden)
-    prev[:, 1:, :] = final_hidden[:, :-1, :]
-    return prev
+#         if hidden_size % num_heads != 0:
+#             raise ValueError(
+#                 f"hidden_size ({hidden_size}) must be divisible by num_heads ({num_heads})"
+#             )
+
+#         mlp_hidden = max(32, int(hidden_size * mlp_ratio))
+
+#         self.ln1 = nn.LayerNorm(hidden_size)
+#         self.q_proj = nn.Linear(hidden_size, hidden_size, bias=bias)
+#         self.k_proj = nn.Linear(hidden_size, hidden_size, bias=bias)
+#         self.v_proj = nn.Linear(hidden_size, hidden_size, bias=bias)
+#         self.out_proj = nn.Linear(hidden_size, hidden_size, bias=bias)
+
+#         self.ln2 = nn.LayerNorm(hidden_size)
+#         self.mlp_up = nn.Linear(hidden_size, mlp_hidden, bias=bias)
+#         self.mlp_down = nn.Linear(mlp_hidden, hidden_size, bias=bias)
+
+#         self.num_heads = num_heads
+#         self.head_dim = hidden_size // num_heads
+
+#         with torch.no_grad():
+#             nn.init.normal_(self.q_proj.weight, mean=0.0, std=0.02)
+#             nn.init.normal_(self.k_proj.weight, mean=0.0, std=0.02)
+#             nn.init.normal_(self.v_proj.weight, mean=0.0, std=0.02)
+#             nn.init.zeros_(self.out_proj.weight)
+
+#             nn.init.normal_(self.mlp_up.weight, mean=0.0, std=0.02)
+#             nn.init.zeros_(self.mlp_down.weight)
+
+#             if self.q_proj.bias is not None:
+#                 nn.init.zeros_(self.q_proj.bias)
+#             if self.k_proj.bias is not None:
+#                 nn.init.zeros_(self.k_proj.bias)
+#             if self.v_proj.bias is not None:
+#                 nn.init.zeros_(self.v_proj.bias)
+#             if self.out_proj.bias is not None:
+#                 nn.init.zeros_(self.out_proj.bias)
+#             if self.mlp_up.bias is not None:
+#                 nn.init.zeros_(self.mlp_up.bias)
+#             if self.mlp_down.bias is not None:
+#                 nn.init.zeros_(self.mlp_down.bias)
+
+#     def _causal_attention(self, x: torch.Tensor) -> torch.Tensor:
+#         # x: [B, T, H]
+#         B, T, H = x.shape
+
+#         q = self.q_proj(x).view(B, T, self.num_heads, self.head_dim).transpose(1, 2)
+#         k = self.k_proj(x).view(B, T, self.num_heads, self.head_dim).transpose(1, 2)
+#         v = self.v_proj(x).view(B, T, self.num_heads, self.head_dim).transpose(1, 2)
+
+#         attn = F.scaled_dot_product_attention(
+#             q,
+#             k,
+#             v,
+#             attn_mask=None,
+#             dropout_p=0.0,
+#             is_causal=True,
+#         )
+
+#         attn = attn.transpose(1, 2).contiguous().view(B, T, H)
+#         return self.out_proj(attn)
+
+#     def forward(self, hidden_states: torch.Tensor) -> torch.Tensor:
+#         x = hidden_states
+
+#         x = x + self._causal_attention(self.ln1(x))
+#         x = x + self.mlp_down(F.silu(self.mlp_up(self.ln2(x))))
+
+#         return x
 
 
-def _masked_cross_entropy_from_logits(
-    *,
+
+def _cross_entropy_next_token(
     logits: torch.Tensor,
-    targets: torch.Tensor,
-    mask: torch.Tensor | None,
+    labels: torch.Tensor,
 ) -> torch.Tensor:
-    flat_loss = F.cross_entropy(
-        logits.reshape(-1, logits.size(-1)).float(),
-        targets.reshape(-1),
-        reduction="none",
-    ).view_as(targets)
+    shift_logits = logits[:, :-1, :].contiguous()
+    shift_labels = labels[:, 1:].contiguous()
 
-    if mask is None:
-        return flat_loss.mean()
-
-    mask_f = mask.to(flat_loss.dtype)
-    denom = mask_f.sum().clamp_min(1.0)
-    return (flat_loss * mask_f).sum() / denom
+    return F.cross_entropy(
+        shift_logits.view(-1, shift_logits.size(-1)),
+        shift_labels.view(-1),
+    )
 
 
 def _kl_teacher_to_student_next_token(
@@ -236,7 +248,7 @@ def _kl_teacher_to_student_next_token(
     return kl_per_token.mean()
 
 
-def _masked_hidden_mse_with_first_token_dropped(
+def _masked_hidden_mse(
     *,
     predicted: torch.Tensor,
     target: torch.Tensor,
@@ -245,20 +257,11 @@ def _masked_hidden_mse_with_first_token_dropped(
     diff_sq = (predicted.float() - target.float()).pow(2)
 
     if attention_mask is None:
-        mask = torch.ones(
-            predicted.shape[:2],
-            device=predicted.device,
-            dtype=torch.bool,
-        )
-    else:
-        mask = attention_mask.bool()
+        return diff_sq.mean()
 
-    mask = mask.clone()
-    mask[:, 0] = False
-
-    mask_f = mask.unsqueeze(-1).to(diff_sq.dtype)
-    denom = (mask_f.sum() * diff_sq.size(-1)).clamp_min(1.0)
-    return (diff_sq * mask_f).sum() / denom
+    mask = attention_mask.unsqueeze(-1).to(diff_sq.dtype)
+    denom = (mask.sum() * diff_sq.size(-1)).clamp_min(1.0)
+    return (diff_sq * mask).sum() / denom
 
 
 @dataclass(slots=True)
@@ -279,7 +282,7 @@ def _run_teacher_full_and_capture_reentry(
     input_ids: torch.Tensor,
     attention_mask: torch.Tensor | None,
     gap: GapSpec,
-) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+) -> tuple[torch.Tensor, torch.Tensor]:
     reentry_module = _get_reentry_module_for_gap(model=model, gap=gap)
     capture = _TeacherCapture()
 
@@ -295,7 +298,7 @@ def _run_teacher_full_and_capture_reentry(
         outputs = model(
             input_ids=input_ids,
             attention_mask=attention_mask,
-            output_hidden_states=True,
+            output_hidden_states=False,
             use_cache=False,
             return_dict=True,
         )
@@ -303,19 +306,8 @@ def _run_teacher_full_and_capture_reentry(
     if capture.reentry_hidden is None:
         raise RuntimeError("Failed to capture teacher re-entry hidden state.")
 
-    hidden_states = getattr(outputs, "hidden_states", None)
-    if not isinstance(hidden_states, tuple) or len(hidden_states) == 0:
-        raise RuntimeError("Model did not return hidden_states.")
+    return cast(torch.Tensor, outputs.logits).detach(), capture.reentry_hidden
 
-    final_hidden = hidden_states[-1]
-    if not isinstance(final_hidden, torch.Tensor):
-        raise RuntimeError("Final hidden state is not a tensor.")
-
-    return (
-        cast(torch.Tensor, outputs.logits).detach(),
-        capture.reentry_hidden,
-        final_hidden.detach(),
-    )
 
 def _run_student_gap_bridge(
     *,
@@ -324,7 +316,6 @@ def _run_student_gap_bridge(
     input_ids: torch.Tensor,
     attention_mask: torch.Tensor | None,
     gap: GapSpec,
-    prev_final_hidden: torch.Tensor,
 ) -> tuple[torch.Tensor, torch.Tensor]:
     """
     Student:
@@ -359,14 +350,7 @@ def _run_student_gap_bridge(
         if capture.gap_input_hidden is None:
             raise RuntimeError("Gap input hidden state was not captured.")
 
-        if prev_final_hidden.shape != capture.gap_input_hidden.shape:
-            raise ValueError(
-                f"prev_final_hidden.shape {prev_final_hidden.shape} "
-                f"!= gap_input_hidden.shape {capture.gap_input_hidden.shape}"
-            )
-
-        bridged = bridge(capture.gap_input_hidden, prev_final_hidden)
-        bridged = bridged.to(dtype=capture.gap_input_hidden.dtype)
+        bridged = bridge(capture.gap_input_hidden)
         capture.bridged_hidden = bridged
 
         if len(inputs) == 0:
@@ -449,13 +433,9 @@ def train_gap_bridge(
     _stage(f"{effective_mode}")
 
     hidden_size = _get_hidden_size(model)
-    bridge = GapBridge(
-        hidden_size=hidden_size,
-        bottleneck_dim=384,
-        bias=True,
-    ).to(
+    bridge = GapBridge(hidden_size=hidden_size, bias=False).to(
         device=device,
-        dtype=torch.float32,
+        dtype=compute_dtype,
     )
     bridge.train()
 
@@ -529,18 +509,17 @@ def train_gap_bridge(
 
             input_ids = input_ids.to(device, non_blocking=True)
             attention_mask = attention_mask.to(device, non_blocking=True)
+            labels = input_ids
 
             optimizer.zero_grad(set_to_none=True)
 
             with torch.no_grad():
-                teacher_logits, teacher_reentry_hidden, teacher_final_hidden = _run_teacher_full_and_capture_reentry(
+                teacher_logits, teacher_reentry_hidden = _run_teacher_full_and_capture_reentry(
                     model=model,
                     input_ids=input_ids,
                     attention_mask=attention_mask,
                     gap=gap,
                 )
-
-                prev_final_hidden = _build_prev_final_hidden(teacher_final_hidden)
 
             student_logits, student_reentry_hidden = _run_student_gap_bridge(
                 model=model,
@@ -548,7 +527,6 @@ def train_gap_bridge(
                 input_ids=input_ids,
                 attention_mask=attention_mask,
                 gap=gap,
-                prev_final_hidden=prev_final_hidden,
             )
 
             loss_kl = _kl_teacher_to_student_next_token(
@@ -556,30 +534,21 @@ def train_gap_bridge(
                 logits_student=student_logits,
             )
 
-            loss_hidden = _masked_hidden_mse_with_first_token_dropped(
+            loss_hidden = _masked_hidden_mse(
                 predicted=student_reentry_hidden,
                 target=teacher_reentry_hidden,
                 attention_mask=attention_mask,
             )
 
             if ce_loss_weight > 0.0:
-                teacher_targets = teacher_logits[:, :-1, :].argmax(dim=-1)
-                student_shift_logits = student_logits[:, :-1, :].contiguous()
-
-                ce_mask = attention_mask[:, 1:].bool() if attention_mask is not None else None
-
-                loss_ce_teacher = _masked_cross_entropy_from_logits(
-                    logits=student_shift_logits,
-                    targets=teacher_targets,
-                    mask=ce_mask,
-                )
+                loss_ce = _cross_entropy_next_token(student_logits, labels)
             else:
-                loss_ce_teacher = student_logits.new_zeros(())
+                loss_ce = student_logits.new_zeros(())
 
             loss = (
                 kl_loss_weight * loss_kl
                 + hidden_loss_weight * loss_hidden
-                + ce_loss_weight * loss_ce_teacher
+                + ce_loss_weight * loss_ce
             )
 
             loss.backward()
@@ -601,7 +570,7 @@ def train_gap_bridge(
                 "loss": loss.item(),
                 "loss_kl": loss_kl.item(),
                 "loss_hidden": loss_hidden.item(),
-                "loss_ce": loss_ce_teacher.item(),
+                "loss_ce": loss_ce.item(),
                 "js": sim["js"].item(),
                 "top1_agreement": sim["top1_agreement"].item(),
                 "overlap": sim["overlap"].item(),
