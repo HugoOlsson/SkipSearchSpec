@@ -563,6 +563,33 @@ class BridgedGapModel:
             config=config,
             device=device,
         )
+    
+
+    def bridge_target_hidden(
+        self,
+        verifier: VerifierBridgeOutput,
+    ) -> torch.Tensor:
+        """
+        Hidden target the bridge is trained to reproduce.
+        Today this is teacher re-entry hidden.
+
+        If the bridge target changes later, update this method only.
+        """
+        return verifier.reentry_hidden
+
+
+    def bridge_prediction_hidden(
+        self,
+        drafter: DrafterBridgeOutput,
+    ) -> torch.Tensor:
+        """
+        Hidden prediction produced by the bridge.
+        Today this is bridged re-entry hidden.
+
+        If the bridge output changes later, update this method only.
+        """
+        return drafter.bridged_reentry_hidden
+
 
 
 def build_bridged_gap_model(

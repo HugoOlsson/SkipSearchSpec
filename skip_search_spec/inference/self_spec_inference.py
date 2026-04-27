@@ -1,34 +1,12 @@
 from __future__ import annotations
 
-from contextlib import ExitStack
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, cast
+from typing import cast
 
 import torch
-import torch.nn as nn
 
-from skip_search_spec.helpers.tooling import (
-    get_preferred_device,
-    get_preferred_float_dtype,
-    load_model_and_tokenizer,
-)
-from skip_search_spec.protocols.windows import ModelAndTokenizer
-
-from skip_search_spec.helpers.shared_decoding_tools import (
-    GapSpec,
-    forward_model_logits,
-    get_decoder_layers,
-    get_first_hidden_from_inputs,
-    get_hidden_size,
-    get_reentry_module_for_gap,
-    make_identity_skip_hook,
-    validate_gap,
-)
-
-# Change this import path to wherever your training file lives.
-# Important: do NOT redeclare GapBridge here.
-from skip_search_spec.training.train_skipping_layers import GapBridge
+from skip_search_spec.training.bridged_gap_model import BridgedGapModel
 
 
 @dataclass(slots=True)
@@ -42,50 +20,30 @@ class SelfSpecResult:
 
 class BridgeSelfSpeculator:
     """
-    Minimal greedy self-speculation core.
+    Minimal greedy self-speculation using BridgedGapModel.
 
-    Verifier:
-      normal full model.
+    This class only owns the speculative decoding loop.
 
-    Drafter:
-      same base model, but with skipped layers and bridge injection installed
-      only inside the drafter forward.
-
-    The bridge expects:
-      gap_hidden[t]
-      previous-position reference hidden[t]
-
-    During draft-block rollout:
-      - for the already accepted prefix, use teacher re-entry hidden
-      - for newly drafted positions, use the drafter's own bridged hidden
+    BridgedGapModel owns:
+      - model loading
+      - bridge loading
+      - skipped-layer hooks
+      - verifier hidden capture
+      - drafter bridge injection
+      - reference hidden source, for example "reentry" vs "final"
     """
 
     def __init__(
         self,
         *,
-        model: Any,
-        tokenizer: Any,
-        bridge: nn.Module,
-        gap: GapSpec,
-        device: torch.device,
+        bridged_model: BridgedGapModel,
     ) -> None:
-        self.model = model
-        self.tokenizer = tokenizer
-        self.bridge = bridge
-        self.gap = gap
-        self.device = device
+        self.bridged = bridged_model
+        self.model = bridged_model.model
+        self.tokenizer = bridged_model.tokenizer
+        self.device = bridged_model.device
 
-        self.model.eval()
-        self.bridge.eval()
-
-        for p in self.model.parameters():
-            p.requires_grad_(False)
-
-        for p in self.bridge.parameters():
-            p.requires_grad_(False)
-
-        num_layers = len(get_decoder_layers(self.model))
-        validate_gap(gap=self.gap, num_layers=num_layers)
+        self.bridged.eval_all()
 
     @torch.inference_mode()
     def generate(
@@ -105,374 +63,235 @@ class BridgeSelfSpeculator:
         input_ids = cast(torch.Tensor, encoded_prompt["input_ids"]).to(self.device)
 
         if input_ids.size(0) != 1:
-            raise ValueError("This minimal test only supports batch size 1.")
+            raise ValueError("This minimal self-spec test only supports batch size 1.")
 
-        prompt_len = input_ids.size(1)
 
         verifier_calls = 0
         drafted_tokens = 0
         accepted_draft_tokens = 0
+        generated_tokens = 0
 
-        while input_ids.size(1) - prompt_len < max_new_tokens:
-            remaining = max_new_tokens - (input_ids.size(1) - prompt_len)
-            block_size = min(draft_block_size, remaining)
+        # 1. Verify the prompt once to create the base.
+        verifier = self.bridged.run_verifier(
+            input_ids=input_ids,
+            attention_mask=torch.ones_like(input_ids),
+        )
+        verifier_calls += 1
 
-            # Teacher hidden is available for the currently accepted prefix.
-            teacher_reentry_hidden = self._run_verifier_and_capture_reentry(
-                input_ids=input_ids,
-            )
-            verifier_calls += 1
+        bonus_token = verifier.logits[:, -1, :].argmax(
+            dim=-1,
+            keepdim=True,
+        )
 
-            draft_ids = self._draft_block(
-                prefix_ids=input_ids,
-                teacher_reentry_hidden=teacher_reentry_hidden,
+        accepted_ids = torch.cat([input_ids, bonus_token], dim=1)
+        verifier_reference_hidden = verifier.reference_hidden
+        generated_tokens += 1
+
+        while generated_tokens < max_new_tokens:
+
+            # 2. Draft from the current accepted prefix.
+            remaining_tokens = max_new_tokens - generated_tokens
+            block_size = min(draft_block_size, remaining_tokens)
+
+            draft_tokens = self._draft_block(
+                accepted_ids=accepted_ids,
+                verifier_reference_hidden=verifier_reference_hidden,
                 block_size=block_size,
             )
-            drafted_tokens += draft_ids.size(1)
 
-            verify_ids = torch.cat([input_ids, draft_ids], dim=1)
+            drafted_tokens += draft_tokens.size(1)
 
-            verifier_logits = forward_model_logits(
-                model=self.model,
-                input_ids=verify_ids,
-                attention_mask=torch.ones_like(verify_ids),
+            accepted_len_before_draft = accepted_ids.size(1)
+            candidate_ids = torch.cat([accepted_ids, draft_tokens], dim=1)
+
+            # 3. Run verifier on the new entire prefix.
+            verifier = self.bridged.run_verifier(
+                input_ids=candidate_ids,
+                attention_mask=torch.ones_like(candidate_ids),
             )
             verifier_calls += 1
 
-            old_len = input_ids.size(1)
-            all_accepted = True
+            # 4. Compare verifier predictions against the draft.
+            #
+            # The first drafted token is checked by the verifier logits at the
+            # previous accepted token position.
+            verifier_draft_tokens = verifier.logits[
+                :,
+                accepted_len_before_draft - 1 : accepted_len_before_draft - 1 + draft_tokens.size(1),
+                :,
+            ].argmax(dim=-1)
 
-            for i in range(draft_ids.size(1)):
-                if input_ids.size(1) - prompt_len >= max_new_tokens:
-                    all_accepted = False
+            matches = verifier_draft_tokens == draft_tokens
+            mismatch_positions = (~matches[0]).nonzero(as_tuple=False)
+
+            # 5. Stop where draft and verifier no longer match.
+            if mismatch_positions.numel() == 0:
+                num_accepted = draft_tokens.size(1)
+            else:
+                num_accepted = int(mismatch_positions[0, 0].item())
+
+            if num_accepted > 0:
+                accepted_ids = torch.cat(
+                    [accepted_ids, draft_tokens[:, :num_accepted]],
+                    dim=1,
+                )
+                accepted_draft_tokens += num_accepted
+                generated_tokens += num_accepted
+
+                if generated_tokens >= max_new_tokens:
                     break
 
-                # Teacher prediction for draft token i.
-                #
-                # draft_ids[:, i] is at absolute position old_len + i.
-                # It is predicted by logits at position old_len + i - 1.
-                teacher_next = verifier_logits[:, old_len + i - 1, :].argmax(
+            # 6. Add the verifier token.
+            #
+            # If there was a mismatch, this is the verifier correction token.
+            # If all draft tokens matched, this is the verifier bonus token.
+            if num_accepted < draft_tokens.size(1):
+                verifier_token = verifier_draft_tokens[
+                    :,
+                    num_accepted : num_accepted + 1,
+                ]
+
+                # The next loop needs verifier reference hidden for the prefix
+                # before this verifier-produced token.
+                next_reference_len = accepted_len_before_draft + num_accepted
+                verifier_reference_hidden = verifier.reference_hidden[
+                    :,
+                    :next_reference_len,
+                    :,
+                ]
+            else:
+                verifier_token = verifier.logits[:, -1, :].argmax(
                     dim=-1,
                     keepdim=True,
                 )
 
-                draft_next = draft_ids[:, i : i + 1]
+                # The bonus token is predicted from the full candidate prefix.
+                verifier_reference_hidden = verifier.reference_hidden
 
-                if torch.equal(teacher_next, draft_next):
-                    input_ids = torch.cat([input_ids, draft_next], dim=1)
-                    accepted_draft_tokens += 1
-                else:
-                    input_ids = torch.cat([input_ids, teacher_next], dim=1)
-                    all_accepted = False
-                    break
+            accepted_ids = torch.cat([accepted_ids, verifier_token], dim=1)
+            generated_tokens += 1
 
-                if self._should_stop(input_ids=input_ids, stop_on_eos=stop_on_eos):
-                    all_accepted = False
-                    break
-
-            # If every draft token matched, append the verifier's bonus token.
-            if (
-                all_accepted
-                and input_ids.size(1) - prompt_len < max_new_tokens
-            ):
-                bonus = verifier_logits[:, old_len + draft_ids.size(1) - 1, :].argmax(
-                    dim=-1,
-                    keepdim=True,
-                )
-                input_ids = torch.cat([input_ids, bonus], dim=1)
-
-            if self._should_stop(input_ids=input_ids, stop_on_eos=stop_on_eos):
-                break
+            # Check if now contains EOS, if yes, then return prefix up to and including EOS:
+            if stop_on_eos:
+                eos_token_id = self.tokenizer.eos_token_id
+                if isinstance(eos_token_id, int):
+                    eos_hits = (accepted_ids[0] == eos_token_id).nonzero(as_tuple=False)
+                    if eos_hits.numel() > 0:
+                        first_eos = int(eos_hits[0, 0].item())
+                        accepted_ids = accepted_ids[:, : first_eos + 1]
+                        break
 
         text = self.tokenizer.decode(
-            input_ids[0],
+            accepted_ids[0],
             skip_special_tokens=True,
         )
 
         return SelfSpecResult(
             text=text,
-            output_ids=input_ids.detach().cpu(),
+            output_ids=accepted_ids.detach().cpu(),
             verifier_calls=verifier_calls,
             drafted_tokens=drafted_tokens,
             accepted_draft_tokens=accepted_draft_tokens,
         )
-
-    def _should_stop(
-        self,
-        *,
-        input_ids: torch.Tensor,
-        stop_on_eos: bool,
-    ) -> bool:
-        if not stop_on_eos:
-            return False
-
-        eos_token_id = self.tokenizer.eos_token_id
-        if not isinstance(eos_token_id, int):
-            return False
-
-        return int(input_ids[0, -1].item()) == eos_token_id
-
-    @torch.inference_mode()
-    def _run_verifier_and_capture_reentry(
-        self,
-        *,
-        input_ids: torch.Tensor,
-    ) -> torch.Tensor:
-        """
-        Full model forward.
-
-        Captures teacher re-entry hidden at the same location that the bridge
-        was trained to predict.
-        """
-        reentry_module = get_reentry_module_for_gap(
-            model=self.model,
-            gap=self.gap,
-        )
-
-        teacher_reentry_hidden: torch.Tensor | None = None
-
-        def reentry_prehook(module: Any, inputs: tuple[Any, ...]) -> None:
-            nonlocal teacher_reentry_hidden
-            teacher_reentry_hidden = get_first_hidden_from_inputs(inputs).detach()
-
-        with ExitStack() as stack:
-            handle = reentry_module.register_forward_pre_hook(reentry_prehook)
-            stack.callback(handle.remove)
-
-            _ = forward_model_logits(
-                model=self.model,
-                input_ids=input_ids,
-                attention_mask=torch.ones_like(input_ids),
-            )
-
-        if teacher_reentry_hidden is None:
-            raise RuntimeError("Failed to capture teacher re-entry hidden.")
-
-        return teacher_reentry_hidden
+    
 
     @torch.inference_mode()
     def _draft_block(
         self,
         *,
-        prefix_ids: torch.Tensor,
-        teacher_reentry_hidden: torch.Tensor,
+        accepted_ids: torch.Tensor,
+        verifier_reference_hidden: torch.Tensor,
         block_size: int,
     ) -> torch.Tensor:
         """
-        Greedily draft `block_size` tokens.
+        Design B drafter block.
 
-        For the accepted prefix:
-          use teacher_reentry_hidden.
+        accepted_ids already includes the verifier-produced next token.
 
-        For tokens generated inside this draft block:
-          use the drafter's own bridged hidden from the previous drafter pass.
+        If the verifier ran on:
+
+            [tok0, tok1, tok2, tok3, tok4]
+
+        and produced:
+
+            tok5
+
+        then accepted_ids is:
+
+            [tok0, tok1, tok2, tok3, tok4, tok5]
+
+        while verifier_reference_hidden covers only positions:
+
+            [0, 1, 2, 3, 4]
+
+        Therefore:
+
+            len(accepted_ids) == len(verifier_reference_hidden) + 1
+
+        The bridge prev-reference tensor becomes:
+
+            [zero, ver0, ver1, ver2, ver3, ver4]
         """
-        if prefix_ids.size(0) != 1:
-            raise ValueError("This minimal test only supports batch size 1.")
+        if accepted_ids.size(0) != 1:
+            raise ValueError("This minimal self-spec test only supports batch size 1.")
 
-        current_ids = prefix_ids
-        prefix_len = prefix_ids.size(1)
+        accepted_len = accepted_ids.size(1)
+        verifier_len = verifier_reference_hidden.size(1)
 
-        # reference_hidden_by_position[pos] is the hidden vector that should be
-        # used as the "previous-position hidden" for position pos + 1.
-        #
-        # Prefix positions start from teacher hidden.
-        reference_hidden_by_position = teacher_reentry_hidden.detach()
+        if accepted_len != verifier_len + 1:
+            raise ValueError(
+                f"Design B expects accepted_ids to include one verifier-produced token. "
+                f"Got accepted_len={accepted_len}, verifier_len={verifier_len}."
+            )
+
+        current_ids = accepted_ids
+
+        prev_reference_hidden = verifier_reference_hidden.new_zeros(
+            verifier_reference_hidden.size(0),
+            accepted_len,
+            verifier_reference_hidden.size(2),
+        )
+        prev_reference_hidden[:, 1:, :] = verifier_reference_hidden
 
         draft_tokens: list[torch.Tensor] = []
 
         for _ in range(block_size):
-            cur_len = current_ids.size(1)
-            hidden_size = reference_hidden_by_position.size(-1)
-
-            # If current_ids contains a newly drafted last token whose hidden has
-            # not been computed yet, pad a placeholder. It will not be used as
-            # prev hidden for itself; prev_state_hidden[:, t] uses hidden[t - 1].
-            if reference_hidden_by_position.size(1) < cur_len:
-                missing = cur_len - reference_hidden_by_position.size(1)
-                pad = reference_hidden_by_position.new_zeros(
-                    (1, missing, hidden_size)
-                )
-                reference_hidden_by_position = torch.cat(
-                    [reference_hidden_by_position, pad],
-                    dim=1,
-                )
-
-            prev_state_hidden = reference_hidden_by_position.new_zeros(
-                (1, cur_len, hidden_size)
-            )
-            prev_state_hidden[:, 1:, :] = reference_hidden_by_position[
-                :, : cur_len - 1, :
-            ]
-
-            logits, bridged_hidden = self._run_drafter_gap_bridge(
+            drafter = self.bridged.run_drafter(
                 input_ids=current_ids,
-                prev_state_hidden=prev_state_hidden,
+                attention_mask=torch.ones_like(current_ids),
+                prev_reference_hidden=prev_reference_hidden,
             )
 
-            # Keep teacher hidden for the accepted prefix.
-            # Use drafter bridged hidden for generated positions inside this block.
-            updated_reference = reference_hidden_by_position[:, :cur_len, :].clone()
-
-            if cur_len > prefix_len:
-                updated_reference[:, prefix_len:cur_len, :] = bridged_hidden[
-                    :, prefix_len:cur_len, :
-                ].detach()
-
-            reference_hidden_by_position = updated_reference
-
-            next_token = logits[:, -1, :].argmax(dim=-1, keepdim=True)
+            next_token = drafter.logits[:, -1, :].argmax(
+                dim=-1,
+                keepdim=True,
+            )
 
             draft_tokens.append(next_token)
+
             current_ids = torch.cat([current_ids, next_token], dim=1)
 
+            prev_reference_hidden = torch.cat(
+                [
+                    prev_reference_hidden,
+                    drafter.reference_hidden[:, -1:, :].detach(),
+                ],
+                dim=1,
+            )
+
         return torch.cat(draft_tokens, dim=1)
-
-    @torch.inference_mode()
-    def _run_drafter_gap_bridge(
-        self,
-        *,
-        input_ids: torch.Tensor,
-        prev_state_hidden: torch.Tensor,
-    ) -> tuple[torch.Tensor, torch.Tensor]:
-        """
-        Drafters forward:
-          - capture hidden entering skipped gap
-          - make skipped layers identity
-          - inject bridge output at re-entry
-        """
-        layers = get_decoder_layers(self.model)
-        reentry_module = get_reentry_module_for_gap(
-            model=self.model,
-            gap=self.gap,
-        )
-
-        gap_input_hidden: torch.Tensor | None = None
-        bridged_hidden: torch.Tensor | None = None
-
-        def capture_gap_input_prehook(
-            module: Any,
-            inputs: tuple[Any, ...],
-        ) -> None:
-            nonlocal gap_input_hidden
-            gap_input_hidden = get_first_hidden_from_inputs(inputs)
-
-        def inject_bridge_prehook(
-            module: Any,
-            inputs: tuple[Any, ...],
-        ) -> tuple[Any, ...]:
-            nonlocal bridged_hidden
-
-            if gap_input_hidden is None:
-                raise RuntimeError("Gap input hidden was not captured.")
-
-            if prev_state_hidden.shape != gap_input_hidden.shape:
-                raise ValueError(
-                    f"prev_state_hidden.shape {prev_state_hidden.shape} "
-                    f"!= gap_input_hidden.shape {gap_input_hidden.shape}"
-                )
-
-            bridged = self.bridge(
-                gap_input_hidden,
-                prev_state_hidden,
-            )
-
-            bridged = bridged.to(dtype=gap_input_hidden.dtype)
-            bridged_hidden = bridged
-
-            if len(inputs) == 0:
-                raise RuntimeError("Re-entry module received empty inputs.")
-
-            return (bridged, *inputs[1:])
-
-        with ExitStack() as stack:
-            handle = layers[self.gap.start].register_forward_pre_hook(
-                capture_gap_input_prehook
-            )
-            stack.callback(handle.remove)
-
-            for layer_idx in range(self.gap.start, self.gap.end):
-                handle = layers[layer_idx].register_forward_hook(
-                    make_identity_skip_hook()
-                )
-                stack.callback(handle.remove)
-
-            handle = reentry_module.register_forward_pre_hook(
-                inject_bridge_prehook
-            )
-            stack.callback(handle.remove)
-
-            logits = forward_model_logits(
-                model=self.model,
-                input_ids=input_ids,
-                attention_mask=torch.ones_like(input_ids),
-            )
-
-        if bridged_hidden is None:
-            raise RuntimeError("Failed to capture bridged hidden.")
-
-        return logits, bridged_hidden.detach()
-
+    
+    
 def load_bridge_self_speculator(
     *,
     bridge_checkpoint_path: str | Path,
 ) -> BridgeSelfSpeculator:
-    device = get_preferred_device()
-    compute_dtype = get_preferred_float_dtype(device)
-
-    checkpoint = torch.load(
-        bridge_checkpoint_path,
-        map_location="cpu",
+    bridged = BridgedGapModel.load_from_checkpoint(
+        bridge_checkpoint_path=bridge_checkpoint_path,
     )
-
-    checkpoint_model_name = checkpoint.get("model_name")
-    if not isinstance(checkpoint_model_name, str):
-        raise ValueError(
-            "Bridge checkpoint must contain a valid string field: 'model_name'."
-        )
-
-    model_name = checkpoint_model_name
-
-    model_and_tokenizer: ModelAndTokenizer = load_model_and_tokenizer(
-        model_name,
-        model_kwargs={
-            "torch_dtype": compute_dtype,
-        },
-    )
-
-    model = cast(Any, model_and_tokenizer.model)
-    tokenizer = model_and_tokenizer.tokenizer
-
-    model.to(device=device)
-    model.eval()
-
-    for param in model.parameters():
-        param.requires_grad_(False)
-
-    gap = GapSpec(
-        start=int(checkpoint["gap_start"]),
-        length=int(checkpoint["gap_length"]),
-    )
-
-    hidden_size = int(checkpoint.get("hidden_size", get_hidden_size(model)))
-
-    bridge = GapBridge(
-        hidden_size=hidden_size,
-    )
-
-    bridge.load_state_dict(checkpoint["bridge_state_dict"])
-    bridge.to(device=device, dtype=torch.float32)
-    bridge.eval()
-
-    for param in bridge.parameters():
-        param.requires_grad_(False)
 
     return BridgeSelfSpeculator(
-        model=model,
-        tokenizer=tokenizer,
-        bridge=bridge,
-        gap=gap,
-        device=device,
+        bridged_model=bridged,
     )
 
 

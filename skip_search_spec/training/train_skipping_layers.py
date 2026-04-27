@@ -1,239 +1,47 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, cast
-from contextlib import ExitStack
 from pathlib import Path
+from typing import Any, cast
 import time
 
 import torch
 import torch.nn as nn
 from torch.nn.utils import clip_grad_norm_
 
-from skip_search_spec.helpers.tooling import (
-    distribution_similarity_metrics,
-    get_preferred_device,
-    get_preferred_float_dtype,
-    load_model_and_tokenizer,
-)
+from skip_search_spec.helpers.tooling import distribution_similarity_metrics
 
 from skip_search_spec.protocols.windows import (
     DatasetSpec,
     ModelAndTokenizer,
 )
 
-# Rename this import path to wherever you placed the shared helper file.
 from skip_search_spec.helpers.shared_decoding_tools import (
-    GapSpec,
-    build_fixed_window_dataloader,
     build_mixed_fixed_window_dataloader,
-    build_prev_hidden,
-    forward_model_logits,
-    get_backbone,
-    get_decoder_layers,
     get_effective_gap_mode,
-    get_first_hidden_from_inputs,
-    get_hidden_size,
-    get_reentry_module_for_gap,
     kl_teacher_to_student_next_token,
-    make_identity_skip_hook,
     make_layer_pattern,
     masked_cross_entropy_from_logits,
     masked_hidden_mse_with_first_token_dropped,
     shift_next_token_logits,
     shift_next_token_mask,
     stage,
-    validate_gap,
+)
+
+# Change this import path to wherever you placed BridgedGapModel.
+from skip_search_spec.training.bridged_gap_model import (
+    BridgedGapModel,
+    ReferenceHiddenSource,
+    build_bridged_gap_model,
 )
 
 
 @dataclass(slots=True)
 class TrainGapBridgeOutput:
+    bridged_model: BridgedGapModel
     bridge: nn.Module
     history: list[dict[str, float]]
     checkpoint_path: Path | None
-
-
-class GapBridge(nn.Module):
-    """
-    Linear residual bridge that predicts re-entry hidden from:
-      - current hidden entering the gap
-      - previous token's reference hidden
-
-    For position t:
-      x_t     = hidden entering the gap at position t
-      p_{t-1} = previous-position reference hidden
-
-    Output:
-      bridged_t = x_t + delta_t
-    """
-
-    def __init__(
-        self,
-        hidden_size: int,
-        bias: bool = False,
-    ) -> None:
-        super().__init__()
-
-        self.hidden_size = hidden_size
-
-        self.gap_norm = nn.LayerNorm(hidden_size)
-        self.prev_norm = nn.LayerNorm(hidden_size)
-
-        input_dim = hidden_size * 2
-        self.proj = nn.Linear(input_dim, hidden_size, bias=bias)
-
-        with torch.no_grad():
-            nn.init.zeros_(self.proj.weight)
-            if self.proj.bias is not None:
-                nn.init.zeros_(self.proj.bias)
-
-    def forward(
-        self,
-        gap_hidden: torch.Tensor,
-        prev_state_hidden: torch.Tensor,
-    ) -> torch.Tensor:
-        if gap_hidden.shape != prev_state_hidden.shape:
-            raise ValueError(
-                f"gap_hidden.shape {gap_hidden.shape} "
-                f"!= prev_state_hidden.shape {prev_state_hidden.shape}"
-            )
-
-        x = gap_hidden.float()
-        p = prev_state_hidden.float()
-
-        x_n = self.gap_norm(x)
-        p_n = self.prev_norm(p)
-
-        feats = torch.cat([x_n, p_n], dim=-1)
-        delta = self.proj(feats)
-
-        return x + delta
-
-
-@dataclass(slots=True)
-class _StudentCapture:
-    gap_input_hidden: torch.Tensor | None = None
-    bridged_hidden: torch.Tensor | None = None
-
-
-@dataclass(slots=True)
-class _TeacherCapture:
-    reentry_hidden: torch.Tensor | None = None
-    final_hidden: torch.Tensor | None = None
-
-
-@torch.no_grad()
-def _run_teacher_full_and_capture_reentry(
-    *,
-    model: Any,
-    input_ids: torch.Tensor,
-    attention_mask: torch.Tensor | None,
-    gap: GapSpec,
-) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-    backbone = get_backbone(model)
-    reentry_module = get_reentry_module_for_gap(model=model, gap=gap)
-    capture = _TeacherCapture()
-
-    def reentry_prehook(module: Any, inputs: tuple[Any, ...]) -> None:
-        capture.reentry_hidden = get_first_hidden_from_inputs(inputs).detach()
-
-    def final_norm_hook(module: Any, inputs: tuple[Any, ...], output: Any) -> Any:
-        if not isinstance(output, torch.Tensor):
-            raise TypeError("Expected final norm output to be a tensor.")
-
-        capture.final_hidden = output.detach()
-        return output
-
-    with ExitStack() as stack:
-        handle = reentry_module.register_forward_pre_hook(reentry_prehook)
-        stack.callback(handle.remove)
-
-        handle = backbone.norm.register_forward_hook(final_norm_hook)
-        stack.callback(handle.remove)
-
-        logits = forward_model_logits(
-            model=model,
-            input_ids=input_ids,
-            attention_mask=attention_mask,
-        )
-
-    if capture.reentry_hidden is None:
-        raise RuntimeError("Failed to capture teacher re-entry hidden state.")
-
-    if capture.final_hidden is None:
-        raise RuntimeError("Failed to capture teacher final hidden state.")
-
-    return (
-        logits.detach(),
-        capture.reentry_hidden,
-        capture.final_hidden,
-    )
-
-
-def _run_student_gap_bridge(
-    *,
-    model: Any,
-    bridge: nn.Module,
-    input_ids: torch.Tensor,
-    attention_mask: torch.Tensor | None,
-    gap: GapSpec,
-    prev_state_hidden: torch.Tensor,
-) -> tuple[torch.Tensor, torch.Tensor]:
-    """
-    Student path:
-      - capture hidden entering the skipped block
-      - make layers [gap.start, gap.end) act like identity
-      - inject bridge output into layer gap.end, or final norm if gap.end == num_layers
-    """
-    layers = get_decoder_layers(model)
-    reentry_module = get_reentry_module_for_gap(model=model, gap=gap)
-    capture = _StudentCapture()
-
-    def capture_gap_input_prehook(module: Any, inputs: tuple[Any, ...]) -> None:
-        capture.gap_input_hidden = get_first_hidden_from_inputs(inputs)
-
-    def inject_bridge_prehook(module: Any, inputs: tuple[Any, ...]) -> tuple[Any, ...]:
-        if capture.gap_input_hidden is None:
-            raise RuntimeError("Gap input hidden state was not captured.")
-
-        if prev_state_hidden.shape != capture.gap_input_hidden.shape:
-            raise ValueError(
-                f"prev_state_hidden.shape {prev_state_hidden.shape} "
-                f"!= gap_input_hidden.shape {capture.gap_input_hidden.shape}"
-            )
-
-        bridged = bridge(capture.gap_input_hidden, prev_state_hidden)
-        bridged = bridged.to(dtype=capture.gap_input_hidden.dtype)
-
-        capture.bridged_hidden = bridged
-
-        if len(inputs) == 0:
-            raise RuntimeError("Re-entry module received empty inputs.")
-
-        return (bridged, *inputs[1:])
-
-    with ExitStack() as stack:
-        handle = layers[gap.start].register_forward_pre_hook(capture_gap_input_prehook)
-        stack.callback(handle.remove)
-
-        for layer_idx in range(gap.start, gap.end):
-            handle = layers[layer_idx].register_forward_hook(make_identity_skip_hook())
-            stack.callback(handle.remove)
-
-        handle = reentry_module.register_forward_pre_hook(inject_bridge_prehook)
-        stack.callback(handle.remove)
-
-        logits = forward_model_logits(
-            model=model,
-            input_ids=input_ids,
-            attention_mask=attention_mask,
-        )
-
-    if capture.bridged_hidden is None:
-        raise RuntimeError("Failed to capture bridged hidden state.")
-
-    return logits, capture.bridged_hidden
 
 
 def train_skipping_layers(
@@ -255,54 +63,41 @@ def train_skipping_layers(
     hidden_loss_weight: float = 0.0,
     ce_loss_weight: float = 1.0,
     teacher_temperature: float = 1.0,
+    reference_hidden_source: ReferenceHiddenSource = "reentry",
     model_kwargs: dict[str, Any] | None = None,
     checkpoint_dir: str | Path | None = "gap_bridge_checkpoints",
     checkpoint_every_steps: int | None = 500,
 ) -> TrainGapBridgeOutput:
     stage("train_gap_bridge: start")
 
-    device = get_preferred_device()
-    compute_dtype = get_preferred_float_dtype(device)
-
-    print("DEVICE:", device)
-    print("COMPUTE_DTYPE:", compute_dtype)
-
-    model_and_tokenizer: ModelAndTokenizer = load_model_and_tokenizer(
-        model_name,
-        model_kwargs={
-            "torch_dtype": compute_dtype,
-            **(model_kwargs or {}),
-        },
+    bridged = build_bridged_gap_model(
+        model_name=model_name,
+        gap_start=gap_start,
+        gap_length=gap_length,
+        reference_hidden_source=reference_hidden_source,
+        model_kwargs=model_kwargs,
     )
 
-    model = cast(Any, model_and_tokenizer.model)
-    model.to(device=device)
-    model.eval()
+    bridged.train_bridge_only()
 
-    for param in model.parameters():
-        param.requires_grad_(False)
-
-    num_layers = len(get_decoder_layers(model))
-
-    gap = GapSpec(
-        start=gap_start,
-        length=gap_length,
-    )
-    validate_gap(gap=gap, num_layers=num_layers)
+    device = bridged.device
+    bridge = bridged.bridge
+    gap = bridged.gap
+    num_layers = bridged.num_layers
+    hidden_size = bridged.hidden_size
 
     effective_mode = get_effective_gap_mode(
         gap=gap,
         num_layers=num_layers,
     )
 
-    active_layer_indices = tuple(
-        i for i in range(num_layers)
-        if not (gap.start <= i < gap.end)
-    )
     layer_pattern = make_layer_pattern(
         num_layers=num_layers,
-        active_layer_indices=active_layer_indices,
+        active_layer_indices=bridged.active_layer_indices,
     )
+
+    print("DEVICE:", device)
+    print("REFERENCE_HIDDEN_SOURCE:", reference_hidden_source)
 
     stage(f"mode={effective_mode}")
     stage(f"gap=[{gap.start}, {gap.end}) length={gap.length}")
@@ -311,16 +106,6 @@ def train_skipping_layers(
     stage(f"visual_mask={layer_pattern.visual_mask}")
     stage(f"binary_mask={layer_pattern.binary_string}")
 
-    hidden_size = get_hidden_size(model)
-
-    bridge = GapBridge(
-        hidden_size=hidden_size,
-    ).to(
-        device=device,
-        dtype=torch.float32,
-    )
-    bridge.train()
-
     optimizer = torch.optim.AdamW(
         bridge.parameters(),
         lr=lr,
@@ -328,9 +113,10 @@ def train_skipping_layers(
     )
 
     stage("building dataloader")
+
     dataloader = build_mixed_fixed_window_dataloader(
         dataset_mix=dataset_mix,
-        model_and_tokenizer=model_and_tokenizer,
+        model_and_tokenizer=cast(ModelAndTokenizer, bridged),
         context_len=context_len,
         max_examples=max_examples,
         num_windows_to_use=num_windows_to_use,
@@ -351,7 +137,6 @@ def train_skipping_layers(
         checkpoint_dir_path = Path(checkpoint_dir)
         checkpoint_dir_path.mkdir(parents=True, exist_ok=True)
 
-
     def save_checkpoint(*, tag: str) -> Path | None:
         if checkpoint_dir_path is None:
             return None
@@ -362,23 +147,15 @@ def train_skipping_layers(
             f"{run_timestamp}__{tag}.pt"
         )
 
-        torch.save(
-            {
-                "model_name": model_name,
-                "gap_start": gap.start,
-                "gap_length": gap.length,
-                "gap_end": gap.end,
-                "num_layers": num_layers,
-                "hidden_size": hidden_size,
+        return bridged.save_checkpoint(
+            path=path,
+            step=step,
+            optimizer_state_dict=optimizer.state_dict(),
+            history=history,
+            extra={
                 "effective_mode": effective_mode,
-                "active_layer_indices": layer_pattern.active_layer_indices,
-                "skipped_layer_indices": layer_pattern.skipped_layer_indices,
-                "binary_mask": layer_pattern.binary_mask,
                 "visual_mask": layer_pattern.visual_mask,
-                "step": step,
-                "bridge_state_dict": bridge.state_dict(),
-                "optimizer_state_dict": optimizer.state_dict(),
-                "history": history,
+                "binary_mask": layer_pattern.binary_mask,
                 "train_config": {
                     "context_len": context_len,
                     "max_examples": max_examples,
@@ -393,30 +170,16 @@ def train_skipping_layers(
                     "hidden_loss_weight": hidden_loss_weight,
                     "ce_loss_weight": ce_loss_weight,
                     "teacher_temperature": teacher_temperature,
+                    "reference_hidden_source": reference_hidden_source,
                 },
             },
-            path,
         )
 
-        return path
-
-    if effective_mode == "LATE-BEGIN":
-        stage(
-            f"training bridge for LATE-BEGIN skipping prefix [0, {gap.end}) "
-            f"and re-entering at layer {gap.end if gap.end < num_layers else 'final_norm'} "
-            f"on model with {num_layers} layers and hidden_size={hidden_size}"
-        )
-    elif effective_mode == "EARLY-EXIT":
-        stage(
-            f"training bridge for EARLY-EXIT keep_prefix=[0, {gap.start}) "
-            f"and skipping [{gap.start}, {gap.end}) "
-            f"on model with {num_layers} layers and hidden_size={hidden_size}"
-        )
-    else:
-        stage(
-            f"training bridge for GAP [{gap.start}, {gap.end}) "
-            f"on model with {num_layers} layers and hidden_size={hidden_size}"
-        )
+    stage(
+        f"training bridge | mode={effective_mode} | "
+        f"model={model_name} | layers={num_layers} | hidden_size={hidden_size} | "
+        f"reference_hidden_source={reference_hidden_source}"
+    )
 
     for epoch_idx in range(num_epochs):
         for batch_idx, (input_ids, attention_mask) in enumerate(dataloader, start=1):
@@ -430,51 +193,37 @@ def train_skipping_layers(
 
             optimizer.zero_grad(set_to_none=True)
 
-            with torch.no_grad():
-                (
-                    teacher_logits,
-                    teacher_reentry_hidden,
-                    teacher_final_hidden,
-                ) = _run_teacher_full_and_capture_reentry(
-                    model=model,
-                    input_ids=input_ids,
-                    attention_mask=attention_mask,
-                    gap=gap,
-                )
-
-                # Current choice:
-                #   previous token's teacher re-entry hidden.
-                #
-                # Alternative:
-                #   use build_prev_hidden(teacher_final_hidden)
-                #   if you want previous final-layer hidden instead.
-                prev_hidden = build_prev_hidden(teacher_reentry_hidden)
-
-            student_logits, student_reentry_hidden = _run_student_gap_bridge(
-                model=model,
-                bridge=bridge,
+            teacher = bridged.run_verifier(
                 input_ids=input_ids,
                 attention_mask=attention_mask,
-                gap=gap,
-                prev_state_hidden=prev_hidden,
+            )
+
+            prev_reference_hidden = bridged.build_prev_reference(
+                teacher.reference_hidden,
+            )
+
+            student = bridged.run_drafter(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                prev_reference_hidden=prev_reference_hidden,
             )
 
             loss_kl = kl_teacher_to_student_next_token(
-                logits_teacher=teacher_logits,
-                logits_student=student_logits,
+                logits_teacher=teacher.logits,
+                logits_student=student.logits,
                 teacher_temperature=teacher_temperature,
                 attention_mask=attention_mask,
             )
 
             loss_hidden = masked_hidden_mse_with_first_token_dropped(
-                predicted=student_reentry_hidden,
-                target=teacher_reentry_hidden,
+                predicted=bridged.bridge_prediction_hidden(student),
+                target=bridged.bridge_target_hidden(teacher),
                 attention_mask=attention_mask,
             )
 
             if ce_loss_weight > 0.0:
-                teacher_targets = shift_next_token_logits(teacher_logits).argmax(dim=-1)
-                student_next_logits = shift_next_token_logits(student_logits)
+                teacher_targets = shift_next_token_logits(teacher.logits).argmax(dim=-1)
+                student_next_logits = shift_next_token_logits(student.logits)
                 ce_mask = shift_next_token_mask(attention_mask)
 
                 loss_ce_teacher = masked_cross_entropy_from_logits(
@@ -483,7 +232,7 @@ def train_skipping_layers(
                     mask=ce_mask,
                 )
             else:
-                loss_ce_teacher = student_logits.new_zeros(())
+                loss_ce_teacher = student.logits.new_zeros(())
 
             loss = (
                 kl_loss_weight * loss_kl
@@ -513,8 +262,8 @@ def train_skipping_layers(
             if step == 1 or step % log_every == 0:
                 with torch.no_grad():
                     sim = distribution_similarity_metrics(
-                        shift_logits_mid=shift_next_token_logits(student_logits),
-                        shift_logits_full=shift_next_token_logits(teacher_logits),
+                        shift_logits_mid=shift_next_token_logits(student.logits),
+                        shift_logits_full=shift_next_token_logits(teacher.logits),
                     )
 
                 row = {
@@ -527,13 +276,17 @@ def train_skipping_layers(
                     "js": sim["js"].item(),
                     "top1_agreement": sim["top1_agreement"].item(),
                     "overlap": sim["overlap"].item(),
-                    "p_student_on_teacher_argmax": sim["p_mid_on_full_argmax"].item(),
+                    "p_student_on_teacher_argmax": sim[
+                        "p_mid_on_full_argmax"
+                    ].item(),
                 }
+
                 history.append(row)
 
                 print(
                     f"[step {step:>5}] "
                     f"mode={effective_mode} "
+                    f"ref={reference_hidden_source} "
                     f"epoch={epoch_idx + 1}/{num_epochs} "
                     f"batch={batch_idx}/{len(dataloader)} "
                     f"loss={row['loss']:.4f} "
@@ -553,9 +306,12 @@ def train_skipping_layers(
     if checkpoint_path is not None:
         stage(f"saved final bridge checkpoint to {checkpoint_path}")
 
+    bridged.eval_all()
+
     stage("train_gap_bridge: finished")
 
     return TrainGapBridgeOutput(
+        bridged_model=bridged,
         bridge=bridge,
         history=history,
         checkpoint_path=checkpoint_path,

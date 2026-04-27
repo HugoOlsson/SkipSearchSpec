@@ -17,6 +17,7 @@ from skip_search_spec.helpers.tooling import (
     load_model_and_tokenizer,
 )
 
+from skip_search_spec.helpers.versioning import get_git_revision
 from skip_search_spec.protocols.windows import (
     DatasetSpec,
     ModelAndTokenizer,
@@ -186,7 +187,15 @@ def _save_ablation_results_json(
         f"layer_ablations_{_sanitize_for_filename(model_name)}_{timestamp_for_filename}.json"
     )
 
+    repo_state = get_git_revision()
+
     payload = {
+         "code_version": (
+            {
+                "commit": repo_state.commit,
+                "tags": list(repo_state.tags),
+            }
+        ),
         "schema_version": 2,
         "created_at": timestamp_readable,
         "model_name": model_name,
