@@ -215,12 +215,24 @@ def plot_ablation_json(
     right_pad = 0.3 * x_span
     global_xlim = (x_lower - left_pad, x_upper + right_pad)
 
-    fig_width = max(12.0, 3.5 * actual_num_columns)
-    fig_height = max(4.6, 0.25 * max_rows_in_any_column + 1.55)
-
     label_fontsize = min(8.0, max(3.0, 240.0 / max(max_rows_in_any_column, 1)))
     value_fontsize = max(6, label_fontsize - 0.2)
+    visual_fontsize = label_fontsize / 1.4
     title_fontsize = 13.0
+
+    # Inches needed for the visual column, given monospace at visual_fontsize.
+    # ~0.6 em per char; em ≈ fontsize in points; 72 pt/inch.
+    char_width_in = 0.6 * visual_fontsize / 72
+    max_visual_chars = max(len(row["visual"]) for row in rows)
+    visual_width_in = max_visual_chars * char_width_in + 0.15  # small right pad
+
+    # Treat width_ratios as inches so the visual_ax gets exactly visual_width_in.
+    idx_width_in = 0.45
+    bar_width_in = 2.5
+    column_width_in = idx_width_in + visual_width_in + bar_width_in
+
+    fig_width = max(12.0, column_width_in * actual_num_columns)
+    fig_height = max(4.6, 0.25 * max_rows_in_any_column + 1.55)
 
     fig = plt.figure(figsize=(fig_width, fig_height), dpi=dpi)
     outer = fig.add_gridspec(1, actual_num_columns, wspace=0)
@@ -243,7 +255,7 @@ def plot_ablation_json(
         inner = outer[0, outer_idx].subgridspec(
             1,
             3,
-            width_ratios=[0.9, 6.5, 3.0],
+            width_ratios=[idx_width_in, visual_width_in, bar_width_in],
             wspace=0.03,
         )
         idx_ax = fig.add_subplot(inner[0, 0])
@@ -307,7 +319,7 @@ def plot_ablation_json(
                 row["visual"],
                 ha="left",
                 va="center",
-                fontsize=label_fontsize/1.4,
+                fontsize=visual_fontsize,
                 fontfamily="monospace",
                 clip_on=True,
                 color=row_color,
@@ -381,9 +393,7 @@ def plot_ablation_json(
 
     if output_path is None:
         stem = _sanitize_filename(json_path.stem)
-        output_path = json_path.with_name(
-            f"{stem}_{_sanitize_filename(metric)}_multicolumn.png"
-        )
+        output_path = json_path.parent / "plots" / f"{stem}_{_sanitize_filename(metric)}_multicolumn.png"
     else:
         output_path = Path(output_path)
 

@@ -38,7 +38,7 @@ def main() -> None:
 
         print("Version: 3.9")
         train_skipping_layers(
-            model_name="Qwen/Qwen2.5-0.5B",
+            model_name="Qwen/Qwen3.5-4B",
             dataset_mix=[
                 (DATASET_SPEC, 0.8),
                 (DATASET_SPEC2, 0.2),
@@ -46,9 +46,9 @@ def main() -> None:
             context_len=256,
             max_examples=50_000,
             num_windows_to_use=5_000,
-            batch_size=2,
+            batch_size=10,
             gap_start=1,
-            gap_length=22, 
+            gap_length=30, 
             num_epochs=3,
             lr=1e-4,
             max_steps=100000,
