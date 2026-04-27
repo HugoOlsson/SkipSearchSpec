@@ -28,7 +28,7 @@ from skip_search_spec.helpers.shared_decoding_tools import (
 
 # Change this import path to wherever your training file lives.
 # Important: do NOT redeclare GapBridge here.
-from skip_search_spec.training.train_gap_bridge_optimized import GapBridge
+from skip_search_spec.training.train_skipping_layers import GapBridge
 
 
 @dataclass(slots=True)
@@ -96,13 +96,13 @@ class BridgeSelfSpeculator:
         draft_block_size: int = 4,
         stop_on_eos: bool = True,
     ) -> SelfSpecResult:
-        encoded = self.tokenizer(
+        encoded_prompt = self.tokenizer(
             prompt,
             return_tensors="pt",
             add_special_tokens=False,
         )
 
-        input_ids = cast(torch.Tensor, encoded["input_ids"]).to(self.device)
+        input_ids = cast(torch.Tensor, encoded_prompt["input_ids"]).to(self.device)
 
         if input_ids.size(0) != 1:
             raise ValueError("This minimal test only supports batch size 1.")
@@ -476,7 +476,7 @@ def load_bridge_self_speculator(
     )
 
 
-def run_minimal_bridge_self_spec_test(
+def self_spec_inference_test(
     *,
     bridge_checkpoint_path: str | Path,
     prompt: str,

@@ -26,6 +26,7 @@ from skip_search_spec.protocols.windows import (
 from skip_search_spec.helpers.shared_decoding_tools import (
     GapSpec,
     build_fixed_window_dataloader,
+    build_mixed_fixed_window_dataloader,
     build_prev_hidden,
     forward_model_logits,
     get_backbone,
@@ -235,10 +236,10 @@ def _run_student_gap_bridge(
     return logits, capture.bridged_hidden
 
 
-def train_gap_bridge2(
+def train_skipping_layers(
     *,
     model_name: str,
-    dataset_spec: DatasetSpec,
+    dataset_mix: list[tuple[DatasetSpec, float]],
     context_len: int,
     max_examples: int,
     num_windows_to_use: int = 256,
@@ -256,6 +257,7 @@ def train_gap_bridge2(
     teacher_temperature: float = 1.0,
     model_kwargs: dict[str, Any] | None = None,
     checkpoint_dir: str | Path | None = "gap_bridge_checkpoints",
+    checkpoint_every_steps: int | None = 500,
 ) -> TrainGapBridgeOutput:
     stage("train_gap_bridge: start")
 
@@ -326,8 +328,8 @@ def train_gap_bridge2(
     )
 
     stage("building dataloader")
-    dataloader = build_fixed_window_dataloader(
-        dataset_spec=dataset_spec,
+    dataloader = build_mixed_fixed_window_dataloader(
+        dataset_mix=dataset_mix,
         model_and_tokenizer=model_and_tokenizer,
         context_len=context_len,
         max_examples=max_examples,
@@ -339,6 +341,64 @@ def train_gap_bridge2(
 
     history: list[dict[str, float]] = []
     step = 0
+    checkpoint_path: Path | None = None
+
+    checkpoint_dir_path: Path | None = None
+    run_timestamp = time.strftime("%Y%m%d_%H%M%S")
+    safe_model_name = model_name.replace("/", "_")
+
+    if checkpoint_dir is not None:
+        checkpoint_dir_path = Path(checkpoint_dir)
+        checkpoint_dir_path.mkdir(parents=True, exist_ok=True)
+
+
+    def save_checkpoint(*, tag: str) -> Path | None:
+        if checkpoint_dir_path is None:
+            return None
+
+        path = checkpoint_dir_path / (
+            f"gap_bridge__{safe_model_name}__"
+            f"start_{gap.start}__len_{gap.length}__"
+            f"{run_timestamp}__{tag}.pt"
+        )
+
+        torch.save(
+            {
+                "model_name": model_name,
+                "gap_start": gap.start,
+                "gap_length": gap.length,
+                "gap_end": gap.end,
+                "num_layers": num_layers,
+                "hidden_size": hidden_size,
+                "effective_mode": effective_mode,
+                "active_layer_indices": layer_pattern.active_layer_indices,
+                "skipped_layer_indices": layer_pattern.skipped_layer_indices,
+                "binary_mask": layer_pattern.binary_mask,
+                "visual_mask": layer_pattern.visual_mask,
+                "step": step,
+                "bridge_state_dict": bridge.state_dict(),
+                "optimizer_state_dict": optimizer.state_dict(),
+                "history": history,
+                "train_config": {
+                    "context_len": context_len,
+                    "max_examples": max_examples,
+                    "num_windows_to_use": num_windows_to_use,
+                    "batch_size": batch_size,
+                    "num_epochs": num_epochs,
+                    "max_steps": max_steps,
+                    "lr": lr,
+                    "weight_decay": weight_decay,
+                    "max_grad_norm": max_grad_norm,
+                    "kl_loss_weight": kl_loss_weight,
+                    "hidden_loss_weight": hidden_loss_weight,
+                    "ce_loss_weight": ce_loss_weight,
+                    "teacher_temperature": teacher_temperature,
+                },
+            },
+            path,
+        )
+
+        return path
 
     if effective_mode == "LATE-BEGIN":
         stage(
@@ -438,6 +498,16 @@ def train_gap_bridge2(
 
             optimizer.step()
 
+            if (
+                checkpoint_every_steps is not None
+                and checkpoint_every_steps > 0
+                and step % checkpoint_every_steps == 0
+            ):
+                checkpoint_path = save_checkpoint(tag=f"step_{step:06d}")
+
+                if checkpoint_path is not None:
+                    stage(f"saved periodic bridge checkpoint to {checkpoint_path}")
+
             log_every = 50
 
             if step == 1 or step % log_every == 0:
@@ -478,38 +548,10 @@ def train_gap_bridge2(
         if max_steps is not None and step >= max_steps:
             break
 
-    checkpoint_path: Path | None = None
+    checkpoint_path = save_checkpoint(tag=f"final_step_{step:06d}")
 
-    if checkpoint_dir is not None:
-        checkpoint_dir = Path(checkpoint_dir)
-        checkpoint_dir.mkdir(parents=True, exist_ok=True)
-
-        timestamp = time.strftime("%Y%m%d_%H%M%S")
-        checkpoint_path = checkpoint_dir / (
-            f"gap_bridge__{model_name.replace('/', '_')}__"
-            f"start_{gap.start}__len_{gap.length}__{timestamp}.pt"
-        )
-
-        torch.save(
-            {
-                "model_name": model_name,
-                "gap_start": gap.start,
-                "gap_length": gap.length,
-                "gap_end": gap.end,
-                "num_layers": num_layers,
-                "hidden_size": hidden_size,
-                "effective_mode": effective_mode,
-                "active_layer_indices": layer_pattern.active_layer_indices,
-                "skipped_layer_indices": layer_pattern.skipped_layer_indices,
-                "binary_mask": layer_pattern.binary_mask,
-                "visual_mask": layer_pattern.visual_mask,
-                "bridge_state_dict": bridge.state_dict(),
-                "history": history,
-            },
-            checkpoint_path,
-        )
-
-        stage(f"saved bridge checkpoint to {checkpoint_path}")
+    if checkpoint_path is not None:
+        stage(f"saved final bridge checkpoint to {checkpoint_path}")
 
     stage("train_gap_bridge: finished")
 

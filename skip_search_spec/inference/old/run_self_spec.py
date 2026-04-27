@@ -6,7 +6,7 @@ import torch
 
 from skip_search_spec.helpers.storage import load_early_exit_checkpoint
 from skip_search_spec.helpers.tooling import get_preferred_device, get_preferred_float_dtype
-from skip_search_spec.training.train_early_exit import EarlyExitModel
+from skip_search_spec.training.old.train_early_exit import EarlyExitModel
 
 
 @torch.no_grad()

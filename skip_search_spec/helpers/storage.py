@@ -9,7 +9,7 @@ from skip_search_spec.protocols.windows import ModelAndTokenizer
 from typing import Any, cast
 
 if TYPE_CHECKING:
-    from skip_search_spec.training.train_early_exit import EarlyExitModel
+    from skip_search_spec.training.old.train_early_exit import EarlyExitModel
 
 
 def save_early_exit_checkpoint(

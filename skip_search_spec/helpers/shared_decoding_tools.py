@@ -7,7 +7,7 @@ import time
 
 import torch
 import torch.nn.functional as F
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, ConcatDataset
 from datasets import Dataset
 
 from skip_search_spec.helpers.tooling import (
@@ -446,6 +446,114 @@ def build_fixed_window_dataloader(
     )
 
 
+def split_count_by_weights(
+    *,
+    total: int,
+    weights: list[float],
+) -> list[int]:
+    if total <= 0:
+        raise ValueError(f"total must be > 0, got {total}")
+
+    if len(weights) == 0:
+        raise ValueError("weights must not be empty")
+
+    weight_sum = sum(weights)
+    if weight_sum <= 0:
+        raise ValueError("weights must sum to > 0")
+
+    raw_counts = [total * w / weight_sum for w in weights]
+    counts = [int(x) for x in raw_counts]
+
+    # Give remaining items to datasets with largest fractional remainder.
+    remaining = total - sum(counts)
+    remainders = [
+        (raw_counts[i] - counts[i], i)
+        for i in range(len(weights))
+    ]
+    remainders.sort(reverse=True)
+
+    for _, idx in remainders[:remaining]:
+        counts[idx] += 1
+
+    # Avoid accidentally giving a nonzero-weight dataset zero windows/examples.
+    for i, w in enumerate(weights):
+        if w > 0 and counts[i] == 0:
+            counts[i] = 1
+
+    return counts
+
+def build_mixed_fixed_window_dataloader(
+    *,
+    dataset_mix: list[tuple[DatasetSpec, float]],
+    model_and_tokenizer: ModelAndTokenizer,
+    context_len: int,
+    max_examples: int,
+    num_windows_to_use: int,
+    batch_size: int,
+    device: torch.device,
+    shuffle: bool = True,
+) -> DataLoader[Any]:
+    if len(dataset_mix) == 0:
+        raise ValueError("dataset_mix must contain at least one dataset.")
+
+    weights = [weight for _, weight in dataset_mix]
+
+    max_examples_per_dataset = split_count_by_weights(
+        total=max_examples,
+        weights=weights,
+    )
+    windows_per_dataset = split_count_by_weights(
+        total=num_windows_to_use,
+        weights=weights,
+    )
+
+    datasets: list[Any] = []
+    collate_fn: Any | None = None
+
+    for (dataset_spec, weight), source_max_examples, source_num_windows in zip(
+        dataset_mix,
+        max_examples_per_dataset,
+        windows_per_dataset,
+    ):
+        stage(
+            f"building source dataloader: {dataset_spec.name} "
+            f"weight={weight:.3f} "
+            f"max_examples={source_max_examples} "
+            f"num_windows={source_num_windows}"
+        )
+
+        source_loader = build_fixed_window_dataloader(
+            dataset_spec=dataset_spec,
+            model_and_tokenizer=model_and_tokenizer,
+            context_len=context_len,
+            max_examples=source_max_examples,
+            num_windows_to_use=source_num_windows,
+            batch_size=batch_size,
+            device=device,
+            shuffle=shuffle,
+        )
+
+        datasets.append(source_loader.dataset)
+
+        if collate_fn is None:
+            collate_fn = source_loader.collate_fn
+
+    if collate_fn is None:
+        raise RuntimeError("Failed to get collate_fn from source dataloaders.")
+
+    mixed_dataset = ConcatDataset(datasets)
+
+    stage(
+        f"built mixed dataset with {len(mixed_dataset)} windows "
+        f"from {len(datasets)} sources"
+    )
+
+    return DataLoader(
+        mixed_dataset,
+        batch_size=batch_size,
+        shuffle=shuffle,
+        collate_fn=collate_fn,
+    )
 
 
 @dataclass(frozen=True, slots=True)

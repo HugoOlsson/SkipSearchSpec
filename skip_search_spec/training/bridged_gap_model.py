@@ -1,0 +1,619 @@
+from __future__ import annotations
+
+from contextlib import ExitStack
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Callable, Literal, cast
+
+import torch
+import torch.nn as nn
+
+from skip_search_spec.helpers.tooling import (
+    get_preferred_device,
+    get_preferred_float_dtype,
+    load_model_and_tokenizer,
+)
+from skip_search_spec.protocols.windows import ModelAndTokenizer
+from skip_search_spec.helpers.shared_decoding_tools import (
+    GapSpec,
+    forward_model_logits,
+    get_backbone,
+    get_decoder_layers,
+    get_first_hidden_from_inputs,
+    get_hidden_size,
+    get_reentry_module_for_gap,
+    make_identity_skip_hook,
+    validate_gap,
+)
+
+
+ReferenceHiddenSource = Literal["reentry", "final"]
+
+
+@dataclass(frozen=True, slots=True)
+class BridgedGapConfig:
+    model_name: str
+    gap_start: int
+    gap_length: int
+    reference_hidden_source: ReferenceHiddenSource = "reentry"
+
+    @property
+    def gap(self) -> GapSpec:
+        return GapSpec(
+            start=self.gap_start,
+            length=self.gap_length,
+        )
+
+
+@dataclass(slots=True)
+class VerifierBridgeOutput:
+    logits: torch.Tensor
+
+    # Hidden entering the re-entry module.
+    # For internal gaps, this is input to layer gap.end.
+    # For early-exit, this is input to final norm.
+    reentry_hidden: torch.Tensor
+
+    # Hidden after the model final norm.
+    final_hidden: torch.Tensor
+
+    # The hidden source used as the bridge's previous-position conditioning.
+    # This can be reentry_hidden today, final_hidden tomorrow, etc.
+    reference_hidden: torch.Tensor
+
+
+@dataclass(slots=True)
+class DrafterBridgeOutput:
+    logits: torch.Tensor
+
+    # Hidden entering the skipped gap.
+    gap_input_hidden: torch.Tensor
+
+    # Bridge output injected at the re-entry point.
+    bridged_reentry_hidden: torch.Tensor
+
+    # Hidden after final norm in the drafter path.
+    final_hidden: torch.Tensor
+
+    # The hidden source to use for future drafted positions.
+    reference_hidden: torch.Tensor
+
+
+class LinearPrevHiddenGapBridge(nn.Module):
+    """
+    Default bridge module.
+
+    It predicts re-entry hidden from:
+      - hidden entering the skipped gap
+      - previous-position reference hidden
+
+    The reference hidden can be teacher re-entry hidden, final hidden, or any
+    future choice controlled by BridgedGapModel.
+    """
+
+    def __init__(
+        self,
+        hidden_size: int,
+        bias: bool = False,
+    ) -> None:
+        super().__init__()
+        self.hidden_size = hidden_size
+
+        self.gap_norm = nn.LayerNorm(hidden_size)
+        self.prev_norm = nn.LayerNorm(hidden_size)
+        self.proj = nn.Linear(hidden_size * 2, hidden_size, bias=bias)
+
+        with torch.no_grad():
+            nn.init.zeros_(self.proj.weight)
+            if self.proj.bias is not None:
+                nn.init.zeros_(self.proj.bias)
+
+    def forward(
+        self,
+        gap_hidden: torch.Tensor,
+        prev_reference_hidden: torch.Tensor,
+    ) -> torch.Tensor:
+        if gap_hidden.shape != prev_reference_hidden.shape:
+            raise ValueError(
+                f"gap_hidden.shape {gap_hidden.shape} "
+                f"!= prev_reference_hidden.shape {prev_reference_hidden.shape}"
+            )
+
+        x = gap_hidden.float()
+        p = prev_reference_hidden.float()
+
+        x_n = self.gap_norm(x)
+        p_n = self.prev_norm(p)
+
+        delta = self.proj(torch.cat([x_n, p_n], dim=-1))
+        return x + delta
+
+
+class BridgedGapModel:
+    """
+    Central runtime object for a model with a trained bridge over a skipped gap.
+
+    Stable public API:
+      - run_verifier(...)
+      - run_drafter(...)
+      - build_prev_reference(...)
+      - save_checkpoint(...)
+      - load_from_checkpoint(...)
+
+    The code using this class should not need to know whether the bridge is
+    conditioned on previous re-entry hidden, previous final hidden, or another
+    future reference source.
+    """
+
+    def __init__(
+        self,
+        *,
+        model: Any,
+        tokenizer: Any,
+        bridge: nn.Module,
+        config: BridgedGapConfig,
+        device: torch.device,
+    ) -> None:
+        self.model = model
+        self.tokenizer = tokenizer
+        self.bridge = bridge
+        self.config = config
+        self.gap = config.gap
+        self.device = device
+
+        self.model.eval()
+        self.bridge.eval()
+
+        for p in self.model.parameters():
+            p.requires_grad_(False)
+
+        num_layers = len(get_decoder_layers(self.model))
+        validate_gap(gap=self.gap, num_layers=num_layers)
+
+    @property
+    def num_layers(self) -> int:
+        return len(get_decoder_layers(self.model))
+
+    @property
+    def hidden_size(self) -> int:
+        return get_hidden_size(self.model)
+
+    @property
+    def active_layer_indices(self) -> tuple[int, ...]:
+        return tuple(
+            i
+            for i in range(self.num_layers)
+            if not (self.gap.start <= i < self.gap.end)
+        )
+
+    @property
+    def skipped_layer_indices(self) -> tuple[int, ...]:
+        return tuple(range(self.gap.start, self.gap.end))
+
+    def train_bridge_only(self) -> None:
+        self.model.eval()
+        self.bridge.train()
+
+        for p in self.model.parameters():
+            p.requires_grad_(False)
+
+        for p in self.bridge.parameters():
+            p.requires_grad_(True)
+
+    def eval_all(self) -> None:
+        self.model.eval()
+        self.bridge.eval()
+
+        for p in self.model.parameters():
+            p.requires_grad_(False)
+
+        for p in self.bridge.parameters():
+            p.requires_grad_(False)
+
+    def build_prev_reference(
+        self,
+        reference_hidden: torch.Tensor,
+    ) -> torch.Tensor:
+        """
+        Shift reference hidden right by one position.
+
+        If reference_hidden is:
+            [h0, h1, h2, h3]
+
+        then output is:
+            [0, h0, h1, h2]
+
+        This is the tensor passed to the bridge as previous-position reference.
+        """
+        prev = torch.zeros_like(reference_hidden)
+        prev[:, 1:, :] = reference_hidden[:, :-1, :]
+        return prev
+
+    def select_reference_hidden(
+        self,
+        *,
+        reentry_hidden: torch.Tensor,
+        final_hidden: torch.Tensor,
+    ) -> torch.Tensor:
+        """
+        Central switch for bridge conditioning source.
+
+        Change this method/config if you want the bridge to condition on a
+        different hidden stream. Training and inference callers can stay the same.
+        """
+        if self.config.reference_hidden_source == "reentry":
+            return reentry_hidden
+
+        if self.config.reference_hidden_source == "final":
+            return final_hidden
+
+        raise ValueError(
+            f"Unknown reference_hidden_source: "
+            f"{self.config.reference_hidden_source}"
+        )
+
+    @torch.inference_mode()
+    def run_verifier(
+        self,
+        *,
+        input_ids: torch.Tensor,
+        attention_mask: torch.Tensor | None,
+    ) -> VerifierBridgeOutput:
+        """
+        Run the full model normally and capture:
+          - logits
+          - teacher re-entry hidden
+          - teacher final hidden
+          - selected reference hidden
+        """
+        reentry_module = get_reentry_module_for_gap(
+            model=self.model,
+            gap=self.gap,
+        )
+        backbone = get_backbone(self.model)
+
+        reentry_hidden: torch.Tensor | None = None
+        final_hidden: torch.Tensor | None = None
+
+        def reentry_prehook(module: Any, inputs: tuple[Any, ...]) -> None:
+            nonlocal reentry_hidden
+            reentry_hidden = get_first_hidden_from_inputs(inputs).detach()
+
+        def final_norm_hook(
+            module: Any,
+            inputs: tuple[Any, ...],
+            output: Any,
+        ) -> Any:
+            nonlocal final_hidden
+
+            if not isinstance(output, torch.Tensor):
+                raise TypeError(
+                    f"Expected final norm output to be Tensor, got {type(output)}"
+                )
+
+            final_hidden = output.detach()
+            return output
+
+        with ExitStack() as stack:
+            handle = reentry_module.register_forward_pre_hook(reentry_prehook)
+            stack.callback(handle.remove)
+
+            handle = backbone.norm.register_forward_hook(final_norm_hook)
+            stack.callback(handle.remove)
+
+            logits = forward_model_logits(
+                model=self.model,
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+            )
+
+        if reentry_hidden is None:
+            raise RuntimeError("Failed to capture verifier re-entry hidden.")
+
+        if final_hidden is None:
+            raise RuntimeError("Failed to capture verifier final hidden.")
+
+        reference_hidden = self.select_reference_hidden(
+            reentry_hidden=reentry_hidden,
+            final_hidden=final_hidden,
+        )
+
+        return VerifierBridgeOutput(
+            logits=logits.detach(),
+            reentry_hidden=reentry_hidden,
+            final_hidden=final_hidden,
+            reference_hidden=reference_hidden.detach(),
+        )
+
+    def run_drafter(
+        self,
+        *,
+        input_ids: torch.Tensor,
+        attention_mask: torch.Tensor | None,
+        prev_reference_hidden: torch.Tensor,
+    ) -> DrafterBridgeOutput:
+        """
+        Run the model with:
+          - gap input captured
+          - skipped layers replaced by identity outputs
+          - bridge output injected at re-entry
+
+        Returns both re-entry and final hidden, but callers should usually use
+        output.reference_hidden instead of caring which one is currently active.
+        """
+        layers = get_decoder_layers(self.model)
+        reentry_module = get_reentry_module_for_gap(
+            model=self.model,
+            gap=self.gap,
+        )
+        backbone = get_backbone(self.model)
+
+        gap_input_hidden: torch.Tensor | None = None
+        bridged_reentry_hidden: torch.Tensor | None = None
+        final_hidden: torch.Tensor | None = None
+
+        def capture_gap_input_prehook(
+            module: Any,
+            inputs: tuple[Any, ...],
+        ) -> None:
+            nonlocal gap_input_hidden
+            gap_input_hidden = get_first_hidden_from_inputs(inputs)
+
+        def inject_bridge_prehook(
+            module: Any,
+            inputs: tuple[Any, ...],
+        ) -> tuple[Any, ...]:
+            nonlocal bridged_reentry_hidden
+
+            if gap_input_hidden is None:
+                raise RuntimeError("Gap input hidden was not captured.")
+
+            if prev_reference_hidden.shape != gap_input_hidden.shape:
+                raise ValueError(
+                    f"prev_reference_hidden.shape {prev_reference_hidden.shape} "
+                    f"!= gap_input_hidden.shape {gap_input_hidden.shape}"
+                )
+
+            bridged = self.bridge(
+                gap_input_hidden,
+                prev_reference_hidden,
+            )
+
+            bridged = bridged.to(dtype=gap_input_hidden.dtype)
+            bridged_reentry_hidden = bridged
+
+            if len(inputs) == 0:
+                raise RuntimeError("Re-entry module received empty inputs.")
+
+            return (bridged, *inputs[1:])
+
+        def final_norm_hook(
+            module: Any,
+            inputs: tuple[Any, ...],
+            output: Any,
+        ) -> Any:
+            nonlocal final_hidden
+
+            if not isinstance(output, torch.Tensor):
+                raise TypeError(
+                    f"Expected final norm output to be Tensor, got {type(output)}"
+                )
+
+            final_hidden = output
+            return output
+
+        with ExitStack() as stack:
+            handle = layers[self.gap.start].register_forward_pre_hook(
+                capture_gap_input_prehook
+            )
+            stack.callback(handle.remove)
+
+            for layer_idx in range(self.gap.start, self.gap.end):
+                handle = layers[layer_idx].register_forward_hook(
+                    make_identity_skip_hook()
+                )
+                stack.callback(handle.remove)
+
+            handle = reentry_module.register_forward_pre_hook(
+                inject_bridge_prehook
+            )
+            stack.callback(handle.remove)
+
+            handle = backbone.norm.register_forward_hook(final_norm_hook)
+            stack.callback(handle.remove)
+
+            logits = forward_model_logits(
+                model=self.model,
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+            )
+
+        if gap_input_hidden is None:
+            raise RuntimeError("Failed to capture gap input hidden.")
+
+        if bridged_reentry_hidden is None:
+            raise RuntimeError("Failed to capture bridged re-entry hidden.")
+
+        if final_hidden is None:
+            raise RuntimeError("Failed to capture drafter final hidden.")
+
+        reference_hidden = self.select_reference_hidden(
+            reentry_hidden=bridged_reentry_hidden,
+            final_hidden=final_hidden,
+        )
+
+        return DrafterBridgeOutput(
+            logits=logits,
+            gap_input_hidden=gap_input_hidden,
+            bridged_reentry_hidden=bridged_reentry_hidden,
+            final_hidden=final_hidden,
+            reference_hidden=reference_hidden,
+        )
+
+    def save_checkpoint(
+        self,
+        *,
+        path: str | Path,
+        step: int,
+        optimizer_state_dict: dict[str, Any] | None = None,
+        history: list[dict[str, float]] | None = None,
+        extra: dict[str, Any] | None = None,
+    ) -> Path:
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+
+        payload: dict[str, Any] = {
+            "schema_version": 1,
+            "model_name": self.config.model_name,
+            "gap_start": self.gap.start,
+            "gap_length": self.gap.length,
+            "gap_end": self.gap.end,
+            "num_layers": self.num_layers,
+            "hidden_size": self.hidden_size,
+            "reference_hidden_source": self.config.reference_hidden_source,
+            "active_layer_indices": self.active_layer_indices,
+            "skipped_layer_indices": self.skipped_layer_indices,
+            "step": step,
+            "bridge_class": type(self.bridge).__name__,
+            "bridge_state_dict": self.bridge.state_dict(),
+            "history": history or [],
+        }
+
+        if optimizer_state_dict is not None:
+            payload["optimizer_state_dict"] = optimizer_state_dict
+
+        if extra is not None:
+            payload["extra"] = extra
+
+        torch.save(payload, path)
+        return path
+
+    @classmethod
+    def load_from_checkpoint(
+        cls,
+        *,
+        bridge_checkpoint_path: str | Path,
+        bridge_factory: Callable[[int, dict[str, Any]], nn.Module] | None = None,
+        model_kwargs: dict[str, Any] | None = None,
+    ) -> "BridgedGapModel":
+        """
+        Load model + tokenizer + bridge from checkpoint.
+
+        bridge_factory lets you change bridge architectures without changing
+        training/inference code.
+
+        Signature:
+            bridge_factory(hidden_size, checkpoint) -> nn.Module
+        """
+        device = get_preferred_device()
+        compute_dtype = get_preferred_float_dtype(device)
+
+        checkpoint = torch.load(
+            bridge_checkpoint_path,
+            map_location="cpu",
+        )
+
+        model_name = checkpoint.get("model_name")
+        if not isinstance(model_name, str):
+            raise ValueError("Checkpoint must contain string field 'model_name'.")
+
+        model_and_tokenizer: ModelAndTokenizer = load_model_and_tokenizer(
+            model_name,
+            model_kwargs={
+                "torch_dtype": compute_dtype,
+                **(model_kwargs or {}),
+            },
+        )
+
+        model = cast(Any, model_and_tokenizer.model)
+        tokenizer = model_and_tokenizer.tokenizer
+
+        model.to(device=device)
+        model.eval()
+
+        gap_start = int(checkpoint["gap_start"])
+        gap_length = int(checkpoint["gap_length"])
+        hidden_size = int(checkpoint.get("hidden_size", get_hidden_size(model)))
+
+        reference_hidden_source = cast(
+            ReferenceHiddenSource,
+            checkpoint.get("reference_hidden_source", "reentry"),
+        )
+
+        config = BridgedGapConfig(
+            model_name=model_name,
+            gap_start=gap_start,
+            gap_length=gap_length,
+            reference_hidden_source=reference_hidden_source,
+        )
+
+        if bridge_factory is None:
+            bridge = LinearPrevHiddenGapBridge(hidden_size=hidden_size)
+        else:
+            bridge = bridge_factory(hidden_size, checkpoint)
+
+        bridge.load_state_dict(checkpoint["bridge_state_dict"])
+        bridge.to(device=device, dtype=torch.float32)
+        bridge.eval()
+
+        return cls(
+            model=model,
+            tokenizer=tokenizer,
+            bridge=bridge,
+            config=config,
+            device=device,
+        )
+
+
+def build_bridged_gap_model(
+    *,
+    model_name: str,
+    gap_start: int,
+    gap_length: int,
+    reference_hidden_source: ReferenceHiddenSource = "reentry",
+    bridge_factory: Callable[[int], nn.Module] | None = None,
+    model_kwargs: dict[str, Any] | None = None,
+) -> BridgedGapModel:
+    """
+    Convenience constructor for training from scratch.
+    """
+    device = get_preferred_device()
+    compute_dtype = get_preferred_float_dtype(device)
+
+    model_and_tokenizer: ModelAndTokenizer = load_model_and_tokenizer(
+        model_name,
+        model_kwargs={
+            "torch_dtype": compute_dtype,
+            **(model_kwargs or {}),
+        },
+    )
+
+    model = cast(Any, model_and_tokenizer.model)
+    tokenizer = model_and_tokenizer.tokenizer
+
+    model.to(device=device)
+    model.eval()
+
+    hidden_size = get_hidden_size(model)
+
+    if bridge_factory is None:
+        bridge = LinearPrevHiddenGapBridge(hidden_size=hidden_size)
+    else:
+        bridge = bridge_factory(hidden_size)
+
+    bridge.to(device=device, dtype=torch.float32)
+
+    config = BridgedGapConfig(
+        model_name=model_name,
+        gap_start=gap_start,
+        gap_length=gap_length,
+        reference_hidden_source=reference_hidden_source,
+    )
+
+    return BridgedGapModel(
+        model=model,
+        tokenizer=tokenizer,
+        bridge=bridge,
+        config=config,
+        device=device,
+    )

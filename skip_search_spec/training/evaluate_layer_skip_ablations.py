@@ -754,7 +754,7 @@ def _print_ranking(
         print(f"    binary={_format_binary_mask(result.binary_mask)}")
 
 
-def evaluate_layer_ablations(
+def evaluate_layer_skip_ablations(
     *,
     model_name: str,
     dataset_spec: DatasetSpec,
