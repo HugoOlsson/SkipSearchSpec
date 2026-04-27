@@ -84,15 +84,91 @@ def main() -> None:
             context_len=256,
             max_examples=100,
             num_windows_to_use=20,
-            batch_size=4,
+            batch_size=10,
+        )
+
+        results = evaluate_layer_skip_ablations(
+            model_name="Qwen/Qwen2.5-7B",
+            dataset_spec=DATASET_SPEC,
+            context_len=256,
+            max_examples=100,
+            num_windows_to_use=20,
+            batch_size=10,
+        )
+
+        results = evaluate_layer_skip_ablations(
+            model_name="Qwen/Qwen2.5-3B",
+            dataset_spec=DATASET_SPEC,
+            context_len=256,
+            max_examples=100,
+            num_windows_to_use=20,
+            batch_size=10,
+        )
+
+
+        results = evaluate_layer_skip_ablations(
+            model_name="Qwen/Qwen2.5-1.5B",
+            dataset_spec=DATASET_SPEC,
+            context_len=256,
+            max_examples=100,
+            num_windows_to_use=20,
+            batch_size=10,
+        )
+
+
+        results = evaluate_layer_skip_ablations(
+            model_name="Qwen/Qwen2.5-0.5B",
+            dataset_spec=DATASET_SPEC,
+            context_len=256,
+            max_examples=100,
+            num_windows_to_use=20,
+            batch_size=10,
+        )
+
+
+        results = evaluate_layer_skip_ablations(
+            model_name="Qwen/Qwen3.5-9B",
+            dataset_spec=DATASET_SPEC,
+            context_len=256,
+            max_examples=100,
+            num_windows_to_use=20,
+            batch_size=10,
+        )
+
+        results = evaluate_layer_skip_ablations(
+            model_name="Qwen/Qwen3.5-4B",
+            dataset_spec=DATASET_SPEC,
+            context_len=256,
+            max_examples=100,
+            num_windows_to_use=20,
+            batch_size=10,
+        )
+
+        results = evaluate_layer_skip_ablations(
+            model_name="Qwen/Qwen3.5-2B",
+            dataset_spec=DATASET_SPEC,
+            context_len=256,
+            max_examples=100,
+            num_windows_to_use=20,
+            batch_size=10,
+        )
+
+        results = evaluate_layer_skip_ablations(
+            model_name="Qwen/Qwen3.5-0.8B",
+            dataset_spec=DATASET_SPEC,
+            context_len=256,
+            max_examples=100,
+            num_windows_to_use=20,
+            batch_size=10,
         )
 
     elif mode == "plot_layer_ablation_results":
         from skip_search_spec.analysis.plot_ablations_results import plot_ablation_json
 
+        file_path = sys.argv[2]
 
         plot_ablation_json(
-            "ablation_results/layer_ablations_Qwen_Qwen2.5-14B_20260421_132035.json",
+            file_path,
             metric="kl_per_removed_layer",
             top_k=None,   # or e.g. 50
         )

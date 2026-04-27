@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 
 
 DEFAULT_METRIC = "kl_per_removed_layer"
-DEFAULT_NUM_COLUMNS = 4
+DEFAULT_NUM_COLUMNS = 3
 
 CATEGORY_COLORS = {
     "early_exit": "#D97706",    
@@ -232,6 +232,10 @@ def plot_ablation_json(
         else:
             title = metric
 
+    code_version = metadata.get("code_version") or {}
+    commit = code_version.get("commit")
+    short_commit = commit[:8] if isinstance(commit, str) else None
+
     running_rank = 1
     bar_axes: list[Any] = []
 
@@ -239,7 +243,7 @@ def plot_ablation_json(
         inner = outer[0, outer_idx].subgridspec(
             1,
             3,
-            width_ratios=[0.9, 5.5, 4.0],
+            width_ratios=[0.9, 6.5, 3.0],
             wspace=0.03,
         )
         idx_ax = fig.add_subplot(inner[0, 0])
@@ -303,7 +307,7 @@ def plot_ablation_json(
                 row["visual"],
                 ha="left",
                 va="center",
-                fontsize=label_fontsize/1.2,
+                fontsize=label_fontsize/1.4,
                 fontfamily="monospace",
                 clip_on=True,
                 color=row_color,
@@ -336,6 +340,18 @@ def plot_ablation_json(
         va="top",
         fontsize=title_fontsize/1.3,
     )
+
+    if short_commit:
+        fig.text(
+            0.995,
+            0.005,
+            f"commit {short_commit}",
+            ha="right",
+            va="bottom",
+            fontsize=9,
+            color="#666",
+            family="monospace",
+        )
 
     used_categories = {
         classify_ablation(row["mask_name"])

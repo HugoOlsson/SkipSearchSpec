@@ -177,7 +177,7 @@ def _save_ablation_results_json(
     results: list[AblationResult],
     output_dir: str | Path = "ablation_results",
 ) -> Path:
-    output_dir = Path(output_dir)
+    output_dir = Path(output_dir) / time.strftime("%Y-%m-%d")
     output_dir.mkdir(parents=True, exist_ok=True)
 
     timestamp_for_filename = time.strftime("%Y%m%d_%H%M%S")
@@ -814,7 +814,7 @@ def evaluate_layer_skip_ablations(
         num_layers,
         config=AblationGenerationConfig(
             num_early_exit_masks=20,
-            num_late_begin_masks=6,
+            num_late_begin_masks=12,
             num_internal_gap_lengths=8,
             internal_gap_positions_per_length=5,
             periodic_steps=(2, 3, 4),
