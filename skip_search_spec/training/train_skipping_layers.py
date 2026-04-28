@@ -63,7 +63,6 @@ def train_skipping_layers(
     teacher_temperature: float = 1.0,
     reference_hidden_source: ReferenceHiddenSource = "reentry",
     model_kwargs: dict[str, Any] | None = None,
-    checkpoint_dir: str | Path | None = "gap_bridge_checkpoints",
     checkpoint_every_steps: int | None = 500,
     log_every: int = 50,
     measurement_save_interval_seconds: float = 60.0,
@@ -123,8 +122,8 @@ def train_skipping_layers(
     safe_model_name = model_name.replace("/", "_").replace(".", "_")
 
     run_name = (
-        f"gap_bridge__{safe_model_name}__"
-        f"start_{gap.start}__len_{gap.length}"
+        f"{safe_model_name}_"
+        f"{layer_pattern.visual_mask}"
     )
 
 
@@ -162,7 +161,6 @@ def train_skipping_layers(
             "teacher_temperature": teacher_temperature,
             "reference_hidden_source": reference_hidden_source,
             "model_kwargs": json_safe(model_kwargs or {}),
-            "checkpoint_dir": str(checkpoint_dir) if checkpoint_dir is not None else None,
             "checkpoint_every_steps": checkpoint_every_steps,
             "log_every": log_every,
         },
@@ -172,19 +170,18 @@ def train_skipping_layers(
 
     metric_events: list[MetricEvent] = []
 
-    if checkpoint_dir is not None:
-        checkpoint_dir_path = (
-            MeasurementRun(context=run_context)
-            .default_output_dir(root=checkpoint_dir)
-            / "checkpoints"
-        )
-        checkpoint_dir_path.mkdir(parents=True, exist_ok=True)
+    run_placeholder = MeasurementRun(
+        context=run_context,
+        metric_events=metric_events,
+    )
+
+    checkpoint_dir_path = run_placeholder.default_output_dir()
 
     def save_checkpoint(*, checkpoint_label: str) -> Path | None:
         if checkpoint_dir_path is None:
             return None
 
-        path = checkpoint_dir_path / f"{checkpoint_label}.pt"
+        path = checkpoint_dir_path / f"checkpoint_{checkpoint_label}.pt"
 
         return bridged.save_checkpoint(
             path=path,
