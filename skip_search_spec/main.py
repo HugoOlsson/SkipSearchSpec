@@ -52,7 +52,7 @@ def main() -> None:
             num_windows_to_use=number_of_windows,
             batch_size=20,
             gap_start=1,
-            gap_length=22, 
+            gap_length=26, 
             num_epochs=2,
             lr=1e-4,
             max_steps=1000000, #just something big
