@@ -21,7 +21,7 @@ def main() -> None:
     if mode == "train_skipping_layers":
         from skip_search_spec.training.train_skipping_layers import train_skipping_layers
 
-        DATASET_SPEC= DatasetSpec(
+        DATASET_SPEC_STORIES= DatasetSpec(
             name="TinyStories",
             huggingface_path="roneneldan/TinyStories",
             config_name="default",
@@ -29,7 +29,7 @@ def main() -> None:
             text_field="text",
         )
 
-        DATASET_SPEC2 = DatasetSpec(
+        DATASET_SPEC_EDU = DatasetSpec(
             name="FineWeb-Edu-1B",
             huggingface_path="codelion/fineweb-edu-1B",
             config_name="default",
@@ -37,22 +37,25 @@ def main() -> None:
             text_field="text",
         )
 
-        print("Version: 3.9")
+        number_examples = 200_000
+        number_of_windows = 100_000
+
+        print("Version: 4.0")
         train_skipping_layers(
             model_name="Qwen/Qwen2.5-0.5B",
             dataset_mix=[
-                (DATASET_SPEC, 0.8),
-                (DATASET_SPEC2, 0.2),
+                (DATASET_SPEC_STORIES, 0.3),
+                (DATASET_SPEC_EDU, 0.7),
             ],
             context_len=256,
-            max_examples=50_000,
-            num_windows_to_use=5_000,
-            batch_size=2,
+            max_examples=number_examples,
+            num_windows_to_use=number_of_windows,
+            batch_size=20,
             gap_start=1,
             gap_length=22, 
-            num_epochs=3,
+            num_epochs=2,
             lr=1e-4,
-            max_steps=100000,
+            max_steps=1000000, #just something big
             kl_loss_weight=1.0,
             hidden_loss_weight=0,
             ce_loss_weight=1.0,

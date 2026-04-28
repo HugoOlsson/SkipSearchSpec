@@ -30,26 +30,26 @@ def save_at_interval(
     filename: str = "run.json",
     force: bool = False,
 ) -> Path | None:
-    run_id = run.context.run_id
     now = time.monotonic()
-    last = _LAST_SAVE_MONOTONIC_BY_RUN_ID.get(run_id)
+    last = _LAST_SAVE_MONOTONIC_BY_RUN_ID.get(run.context.run_id)
 
     should_save = force or last is None or (now - last) >= min_interval_seconds
     if not should_save:
         return None
 
     out_path = run.save(filename=filename)
-    _LAST_SAVE_MONOTONIC_BY_RUN_ID[run_id] = now
+    _LAST_SAVE_MONOTONIC_BY_RUN_ID[run.context.run_id] = now
     return out_path
 
 
 def utc_now_iso() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    return datetime.now(timezone.utc).isoformat(timespec="milliseconds")
 
 
 @dataclass(frozen=True, slots=True)
 class RunContext:
     run_id: str
+    run_name: str
     experiment_type: ExperimentType
     git_commit: str
     created_at_utc: str = field(default_factory=utc_now_iso)
@@ -62,7 +62,7 @@ class RunContext:
     def create(
         cls,
         *,
-        run_id: str,
+        run_name: str,
         experiment_type: ExperimentType,
         git_commit: str | None = None,
         git_tag: str | None = None,
@@ -84,11 +84,15 @@ class RunContext:
         if resolved_commit is None:
             raise RuntimeError("Could not resolve git commit for RunContext.")
 
+        created_at = created_at_utc or utc_now_iso()
+        dt = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+
         return cls(
-            run_id=run_id,
+            run_id=make_run_id(dt),
+            run_name=run_name,
             experiment_type=experiment_type,
             git_commit=resolved_commit,
-            created_at_utc=created_at_utc or utc_now_iso(),
+            created_at_utc=created_at,
             git_tag=resolved_tag,
             model_names=model_names,
             dataset_name=dataset_name,
@@ -99,9 +103,10 @@ class RunContext:
     def from_dict(cls, data: Mapping[str, Any]) -> "RunContext":
         return cls(
             run_id=str(data["run_id"]),
+            run_name=str(data["run_name"]),
             experiment_type=str(data["experiment_type"]),  # type: ignore[arg-type]
             git_commit=str(data["git_commit"]),
-            created_at_utc=str(data.get("created_at_utc", utc_now_iso())),
+            created_at_utc=str(data["created_at_utc"]),
             git_tag=_opt_str(data.get("git_tag")),
             model_names=tuple(str(x) for x in list(data.get("model_names", []))),
             dataset_name=_opt_str(data.get("dataset_name")),
@@ -188,8 +193,19 @@ class MeasurementRun:
         return json.dumps(self.to_dict(), indent=indent, sort_keys=True)
 
     def default_output_dir(self, *, root: str | Path = "measurements") -> Path:
-        revision_key = self.context.git_tag or self.context.git_commit[:8]
-        return Path(root) / revision_key / self.context.experiment_type / self.context.run_id
+        date_key = self.context.created_at_utc[:10]
+
+        run_dir_name = (
+            f"{self.context.run_id}"
+            f"__{safe_path_part(self.context.run_name)}"
+        )
+
+        return (
+            Path(root)
+            / date_key
+            / self.context.experiment_type
+            / run_dir_name
+        )
 
     def save(
         self,
@@ -206,12 +222,39 @@ class MeasurementRun:
         return out_path
 
 
+def safe_path_part(value: str) -> str:
+    return (
+        value.replace("/", "_")
+        .replace("\\", "_")
+        .replace(":", "_")
+        .replace(" ", "_")
+    )
 
 def print_metric_events_line(events: Iterable[MetricEvent], *, decimals: int = 4) -> None:
     for event in events:
         event.print(end="  ", decimals=decimals)
     print()
 
+_MONTH_CODES = {
+    1: "JA",
+    2: "F",
+    3: "MR",
+    4: "AP",
+    5: "MY",
+    6: "JN",
+    7: "JL",
+    8: "AU",
+    9: "S",
+    10: "O",
+    11: "N",
+    12: "D",
+}
+
+
+def make_run_id(dt: datetime) -> str:
+    month_code = _MONTH_CODES[dt.month]
+    millisecond_prefix = f"{dt.microsecond // 1000:03d}"[:2]
+    return f"{dt:%H%M%S}{millisecond_prefix}_{month_code}{dt:%d}"
 
 def _opt_str(value: Any) -> str | None:
     if value is None:

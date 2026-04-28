@@ -11,7 +11,7 @@ from torch.nn.utils import clip_grad_norm_
 
 from skip_search_spec.helpers.tooling import distribution_similarity_metrics
 
-from skip_search_spec.protocols.measurements import MeasurementRun, MetricEvent, RunContext, dataset_mix_config, dataset_mix_name, json_safe, print_metric_events_line, save_at_interval
+from skip_search_spec.protocols.measurements import MeasurementRun, MetricEvent, RunContext, dataset_mix_config, dataset_mix_name, json_safe, print_metric_events_line, safe_path_part, save_at_interval
 from skip_search_spec.protocols.windows import (
     DatasetSpec,
     ModelAndTokenizer,
@@ -121,15 +121,17 @@ def train_skipping_layers(
     checkpoint_path: Path | None = None
 
     checkpoint_dir_path: Path | None = None
-    run_timestamp = time.strftime("%Y%m%d_%H%M%S")
-    safe_model_name = model_name.replace("/", "_")
+
+    safe_model_name = model_name.replace("/", "_").replace(".", "_")
+
+    run_name = (
+        f"gap_bridge__{safe_model_name}__"
+        f"start_{gap.start}__len_{gap.length}"
+    )
+
 
     run_context = RunContext.create(
-        run_id=(
-            f"middle-gap-skip-{safe_model_name}__"
-            f"start_{gap.start}__len_{gap.length}__"
-            f"{run_timestamp}"
-        ),
+        run_name=run_name,
         experiment_type="middle_gap_skip",
         model_names=(model_name,),
         dataset_name=dataset_mix_name(dataset_mix),
@@ -174,18 +176,18 @@ def train_skipping_layers(
     metric_events: list[MetricEvent] = []
 
     if checkpoint_dir is not None:
-        checkpoint_dir_path = Path(checkpoint_dir)
+        checkpoint_dir_path = (
+            MeasurementRun(context=run_context)
+            .default_output_dir(root=checkpoint_dir)
+            / "checkpoints"
+        )
         checkpoint_dir_path.mkdir(parents=True, exist_ok=True)
 
-    def save_checkpoint(*, tag: str) -> Path | None:
+    def save_checkpoint(*, checkpoint_label: str) -> Path | None:
         if checkpoint_dir_path is None:
             return None
 
-        path = checkpoint_dir_path / (
-            f"gap_bridge__{safe_model_name}__"
-            f"start_{gap.start}__len_{gap.length}__"
-            f"{run_timestamp}__{tag}.pt"
-        )
+        path = checkpoint_dir_path / f"{checkpoint_label}.pt"
 
         return bridged.save_checkpoint(
             path=path,
@@ -291,7 +293,7 @@ def train_skipping_layers(
                 and checkpoint_every_steps > 0
                 and step % checkpoint_every_steps == 0
             ):
-                checkpoint_path = save_checkpoint(tag=f"step_{step:06d}")
+                checkpoint_path = save_checkpoint(checkpoint_label=f"step_{step:06d}")
 
                 if checkpoint_path is not None:
                     stage(f"saved periodic bridge checkpoint to {checkpoint_path}")
@@ -348,7 +350,7 @@ def train_skipping_layers(
         if max_steps is not None and step >= max_steps:
             break
 
-    checkpoint_path = save_checkpoint(tag=f"final_step_{step:06d}")
+    checkpoint_path = save_checkpoint(checkpoint_label=f"final_step_{step:06d}")
 
     if checkpoint_path is not None:
         stage(f"saved final bridge checkpoint to {checkpoint_path}")
