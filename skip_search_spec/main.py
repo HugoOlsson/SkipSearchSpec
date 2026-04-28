@@ -37,13 +37,13 @@ def main() -> None:
             text_field="text",
         )
 
-        number_of_windows = 200_000
+        number_of_windows = 100_000
         fraction_tiny = 0.3
         fraction_edu = 0.7
 
         print("Version: 4.0")
         train_skipping_layers(
-            model_name="Qwen/Qwen2.5-0.5B",
+            model_name="Qwen/Qwen2.5-1.5B",
             dataset_mix=[
                 (DATASET_SPEC_STORIES, fraction_tiny, int(number_of_windows*fraction_tiny*6)),
                 (DATASET_SPEC_EDU, fraction_edu, int(number_of_windows*fraction_edu*1.5)),
@@ -59,6 +59,7 @@ def main() -> None:
             kl_loss_weight=1.0,
             hidden_loss_weight=0,
             ce_loss_weight=1.0,
+            checkpoint_every_steps=1000
         )
 
     elif mode == "build_flashhead":
