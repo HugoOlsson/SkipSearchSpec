@@ -33,28 +33,6 @@ if ! grep -qs 'HOME/.local/bin' "$HOME/.bashrc" 2>/dev/null; then
     echo "    Added ~/.local/bin to PATH in ~/.bashrc"
 fi
 
-echo "==> [3/5] Cloning SkipSearchSpec repository..."
-if [[ -d "SkipSearchSpec/.git" ]]; then
-    echo "    Repository already cloned, pulling latest..."
-    git -C SkipSearchSpec pull --ff-only
-else
-    git clone https://github.com/HugoOlsson/SkipSearchSpec.git
-fi
-
-cd SkipSearchSpec
-
-echo "==> [4/5] Making install_server.sh executable..."
-chmod +x scripts/install_server.sh
-
-echo "==> [5/5] Running install_server.sh..."
-./scripts/install_server.sh
-
-echo ""
-echo "==> Setup complete."
-echo "    PATH was updated in ~/.bashrc — open a new shell or run:"
-echo "        source ~/.bashrc"
-
-
 echo "==> [6/6] Configuring Hugging Face token..."
 if [[ -z "${HF_TOKEN:-}" ]]; then
     read -rsp "    Enter Hugging Face token (input hidden, leave blank to skip): " HF_TOKEN

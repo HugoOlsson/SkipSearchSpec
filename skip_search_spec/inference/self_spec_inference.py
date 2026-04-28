@@ -1,7 +1,9 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
+import json
 from pathlib import Path
+import time
 from typing import cast
 
 import torch
@@ -16,6 +18,15 @@ class SelfSpecResult:
     verifier_calls: int
     drafted_tokens: int
     accepted_draft_tokens: int
+    trace_json_path: Path | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class TokenData:
+    token_id: int
+    type: str  # "prompt", "draft", "bonus"
+    status: str | None = None  # "accepted" / "rejected" only for draft tokens
+    draft_block_index: int | None = None
 
 
 class BridgeSelfSpeculator:
@@ -53,6 +64,7 @@ class BridgeSelfSpeculator:
         max_new_tokens: int,
         draft_block_size: int = 4,
         stop_on_eos: bool = True,
+        trace_json_path: str | Path | None = None,
     ) -> SelfSpecResult:
         encoded_prompt = self.tokenizer(
             prompt,
@@ -61,6 +73,20 @@ class BridgeSelfSpeculator:
         )
 
         input_ids = cast(torch.Tensor, encoded_prompt["input_ids"]).to(self.device)
+
+        # START: FOR VISUALIZATION
+        token_trace: list[TokenData] = [
+            TokenData(
+                token_id=token_id,
+                type="prompt",
+                status=None,
+                draft_block_index=None,
+            )
+            for token_id in _token_ids_1d(input_ids)
+        ]
+
+        draft_block_index = 0
+        # END: FOR VISUALIZATION
 
         if input_ids.size(0) != 1:
             raise ValueError("This minimal self-spec test only supports batch size 1.")
@@ -86,6 +112,15 @@ class BridgeSelfSpeculator:
         accepted_ids = torch.cat([input_ids, bonus_token], dim=1)
         verifier_reference_hidden = verifier.reference_hidden
         generated_tokens += 1
+
+        token_trace.append(
+            TokenData(
+                token_id=_one_token_id(bonus_token),
+                type="bonus",
+                status=None,
+                draft_block_index=None,
+            )
+        )
 
         while generated_tokens < max_new_tokens:
 
@@ -130,6 +165,18 @@ class BridgeSelfSpeculator:
             else:
                 num_accepted = int(mismatch_positions[0, 0].item())
 
+            draft_block_index += 1
+
+            for token_offset, token_id in enumerate(_token_ids_1d(draft_tokens)):
+                token_trace.append(
+                    TokenData(
+                        token_id=token_id,
+                        type="draft",
+                        status="accepted" if token_offset < num_accepted else "rejected",
+                        draft_block_index=draft_block_index,
+                    )
+                )
+
             if num_accepted > 0:
                 accepted_ids = torch.cat(
                     [accepted_ids, draft_tokens[:, :num_accepted]],
@@ -168,6 +215,15 @@ class BridgeSelfSpeculator:
                 # The bonus token is predicted from the full candidate prefix.
                 verifier_reference_hidden = verifier.reference_hidden
 
+            token_trace.append(
+                TokenData(
+                    token_id=_one_token_id(verifier_token),
+                    type="bonus",
+                    status=None,
+                    draft_block_index=None,
+                )
+            )
+
             accepted_ids = torch.cat([accepted_ids, verifier_token], dim=1)
             generated_tokens += 1
 
@@ -186,12 +242,22 @@ class BridgeSelfSpeculator:
             skip_special_tokens=True,
         )
 
+        saved_trace_json_path: Path | None = None
+
+        if trace_json_path is not None:
+            saved_trace_json_path = save_token_trace_json(
+                tokens=token_trace,
+                path=trace_json_path,
+                tokenizer_name=self.bridged.config.model_name,
+            )
+
         return SelfSpecResult(
             text=text,
             output_ids=accepted_ids.detach().cpu(),
             verifier_calls=verifier_calls,
             drafted_tokens=drafted_tokens,
             accepted_draft_tokens=accepted_draft_tokens,
+            trace_json_path=saved_trace_json_path
         )
     
 
@@ -306,8 +372,66 @@ def self_spec_inference_test(
         bridge_checkpoint_path=bridge_checkpoint_path,
     )
 
+    trace_json_path = make_trace_json_path(
+        bridge_checkpoint_path=bridge_checkpoint_path,
+        draft_block_size=draft_block_size,
+        max_new_tokens=max_new_tokens,
+    )
+
     return speculator.generate(
         prompt=prompt,
         max_new_tokens=max_new_tokens,
         draft_block_size=draft_block_size,
+        trace_json_path=trace_json_path
+    )
+
+
+def _token_ids_1d(tokens: torch.Tensor) -> list[int]:
+    return [int(x) for x in tokens.detach().cpu().reshape(-1).tolist()]
+
+
+def _one_token_id(token: torch.Tensor) -> int:
+    ids = _token_ids_1d(token)
+    if len(ids) != 1:
+        raise ValueError(f"Expected one token, got {len(ids)}.")
+    return ids[0]
+
+
+def save_token_trace_json(
+    *,
+    tokens: list[TokenData],
+    path: str | Path,
+    tokenizer_name: str,
+) -> Path:
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    payload = {
+        "schema_version": 1,
+        "tokenizer_name": tokenizer_name,
+        "tokens": [asdict(token) for token in tokens],
+    }
+
+    with path.open("w", encoding="utf-8") as f:
+        json.dump(payload, f, indent=2, ensure_ascii=False)
+
+    print("Saved speculation result at:", path)
+
+    return path
+
+
+def make_trace_json_path(
+    *,
+    bridge_checkpoint_path: str | Path,
+    draft_block_size: int,
+    max_new_tokens: int,
+) -> Path:
+    checkpoint_stem = Path(bridge_checkpoint_path).stem
+    timestamp = time.strftime("%Y%m%d_%H%M%S")
+
+    return Path("speculation_traces") / (
+        f"self_spec_trace__{checkpoint_stem}__"
+        f"draft_{draft_block_size}__"
+        f"max_new_{max_new_tokens}__"
+        f"{timestamp}.json"
     )

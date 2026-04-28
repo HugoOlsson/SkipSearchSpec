@@ -217,13 +217,17 @@ def plot_ablation_json(
 
     label_fontsize = min(8.0, max(3.0, 240.0 / max(max_rows_in_any_column, 1)))
     value_fontsize = max(6, label_fontsize - 0.2)
-    visual_fontsize = label_fontsize / 1.4
+    max_visual_chars = max(len(row["visual"]) for row in rows)
+    layer_count = max_visual_chars
+    t = (layer_count - 20) / (48 - 20)
+    t = max(0.0, min(1.0, t))
+    visual_divisor = 1.0 + t * (1.4 - 1.0)
+    visual_fontsize = label_fontsize / visual_divisor
     title_fontsize = 13.0
 
     # Inches needed for the visual column, given monospace at visual_fontsize.
     # ~0.6 em per char; em ≈ fontsize in points; 72 pt/inch.
     char_width_in = 0.6 * visual_fontsize / 72
-    max_visual_chars = max(len(row["visual"]) for row in rows)
     visual_width_in = max_visual_chars * char_width_in + 0.15  # small right pad
 
     # Treat width_ratios as inches so the visual_ax gets exactly visual_width_in.

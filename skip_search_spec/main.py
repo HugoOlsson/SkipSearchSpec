@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 import sys
+from skip_search_spec.analysis.render_speculation_trace_html import render_speculation_trace_html
 from skip_search_spec.protocols.windows import DatasetSpec
 
 
@@ -38,7 +39,7 @@ def main() -> None:
 
         print("Version: 3.9")
         train_skipping_layers(
-            model_name="Qwen/Qwen3.5-4B",
+            model_name="Qwen/Qwen2.5-0.5B",
             dataset_mix=[
                 (DATASET_SPEC, 0.8),
                 (DATASET_SPEC2, 0.2),
@@ -46,9 +47,9 @@ def main() -> None:
             context_len=256,
             max_examples=50_000,
             num_windows_to_use=5_000,
-            batch_size=10,
+            batch_size=2,
             gap_start=1,
-            gap_length=30, 
+            gap_length=22, 
             num_epochs=3,
             lr=1e-4,
             max_steps=100000,
@@ -202,6 +203,14 @@ def main() -> None:
         )
 
         # plot_ablation_heatmap_from_json( "ablation_results/layer_ablations_Qwen_Qwen2.5-0.5B_20260418_122333.json")
+
+
+    elif mode == "plot_spec_results":
+
+        file_path = sys.argv[2]
+
+        render_speculation_trace_html(trace_json_path=file_path, output_html_path="out.html")
+
 
     elif mode == "test_self_spec":
         if len(sys.argv) <= 3:

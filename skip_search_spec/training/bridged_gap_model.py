@@ -29,6 +29,35 @@ from skip_search_spec.helpers.shared_decoding_tools import (
 
 ReferenceHiddenSource = Literal["reentry", "final"]
 
+class NoOpDecoderLayer(nn.Module):
+    """
+    Cheap replacement for a HF decoder layer.
+
+    Important: return a tuple, not a Tensor, because Qwen/LLaMA-style
+    decoder loops expect layer_outputs[0].
+    """
+
+    def forward(
+        self,
+        hidden_states: torch.Tensor,
+        *args: Any,
+        **kwargs: Any,
+    ) -> tuple[torch.Tensor, ...]:
+        if kwargs.get("use_cache", False):
+            raise RuntimeError(
+                "NoOpDecoderLayer currently assumes use_cache=False. "
+                "For cached decoding, skipped-layer cache handling needs special care."
+            )
+
+        if kwargs.get("output_attentions", False):
+            raise RuntimeError(
+                "NoOpDecoderLayer does not support output_attentions=True. "
+                "A skipped layer has no attention weights to return."
+            )
+
+
+        return (hidden_states,)
+
 
 @dataclass(frozen=True, slots=True)
 class BridgedGapConfig:
@@ -54,8 +83,8 @@ class VerifierBridgeOutput:
     # For early-exit, this is input to final norm.
     reentry_hidden: torch.Tensor
 
-    # Hidden after the model final norm.
-    final_hidden: torch.Tensor
+    # Hidden after the last decoder layer, before final norm / lm_head.
+    final_lm_layer_hidden: torch.Tensor
 
     # The hidden source used as the bridge's previous-position conditioning.
     # This can be reentry_hidden today, final_hidden tomorrow, etc.
@@ -72,8 +101,8 @@ class DrafterBridgeOutput:
     # Bridge output injected at the re-entry point.
     bridged_reentry_hidden: torch.Tensor
 
-    # Hidden after final norm in the drafter path.
-    final_hidden: torch.Tensor
+    # Hidden after the last decoder layer, before final norm / lm_head.
+    final_lm_layer_hidden: torch.Tensor
 
     # The hidden source to use for future drafted positions.
     reference_hidden: torch.Tensor
@@ -233,19 +262,22 @@ class BridgedGapModel:
         self,
         *,
         reentry_hidden: torch.Tensor,
-        final_hidden: torch.Tensor,
+        final_lm_layer_hidden: torch.Tensor,
     ) -> torch.Tensor:
         """
-        Central switch for bridge conditioning source.
+        Select the hidden stream used as previous-position bridge conditioning.
 
-        Change this method/config if you want the bridge to condition on a
-        different hidden stream. Training and inference callers can stay the same.
+        "reentry":
+            hidden entering the re-entry module.
+
+        "final_lm_layer":
+            hidden after the last decoder layer, before final norm / lm_head.
         """
         if self.config.reference_hidden_source == "reentry":
             return reentry_hidden
 
         if self.config.reference_hidden_source == "final":
-            return final_hidden
+            return final_lm_layer_hidden
 
         raise ValueError(
             f"Unknown reference_hidden_source: "
@@ -273,32 +305,24 @@ class BridgedGapModel:
         backbone = get_backbone(self.model)
 
         reentry_hidden: torch.Tensor | None = None
-        final_hidden: torch.Tensor | None = None
+        final_lm_layer_hidden: torch.Tensor | None = None
 
         def reentry_prehook(module: Any, inputs: tuple[Any, ...]) -> None:
             nonlocal reentry_hidden
             reentry_hidden = get_first_hidden_from_inputs(inputs).detach()
 
-        def final_norm_hook(
+        def final_norm_prehook(
             module: Any,
             inputs: tuple[Any, ...],
-            output: Any,
-        ) -> Any:
-            nonlocal final_hidden
-
-            if not isinstance(output, torch.Tensor):
-                raise TypeError(
-                    f"Expected final norm output to be Tensor, got {type(output)}"
-                )
-
-            final_hidden = output.detach()
-            return output
+        ) -> None:
+            nonlocal final_lm_layer_hidden
+            final_lm_layer_hidden = get_first_hidden_from_inputs(inputs).detach()
 
         with ExitStack() as stack:
             handle = reentry_module.register_forward_pre_hook(reentry_prehook)
             stack.callback(handle.remove)
 
-            handle = backbone.norm.register_forward_hook(final_norm_hook)
+            handle = backbone.norm.register_forward_pre_hook(final_norm_prehook)
             stack.callback(handle.remove)
 
             logits = forward_model_logits(
@@ -310,18 +334,18 @@ class BridgedGapModel:
         if reentry_hidden is None:
             raise RuntimeError("Failed to capture verifier re-entry hidden.")
 
-        if final_hidden is None:
+        if final_lm_layer_hidden is None:
             raise RuntimeError("Failed to capture verifier final hidden.")
 
         reference_hidden = self.select_reference_hidden(
             reentry_hidden=reentry_hidden,
-            final_hidden=final_hidden,
+            final_lm_layer_hidden=final_lm_layer_hidden,
         )
 
         return VerifierBridgeOutput(
             logits=logits.detach(),
             reentry_hidden=reentry_hidden,
-            final_hidden=final_hidden,
+            final_lm_layer_hidden=final_lm_layer_hidden,
             reference_hidden=reference_hidden.detach(),
         )
 
@@ -350,14 +374,14 @@ class BridgedGapModel:
 
         gap_input_hidden: torch.Tensor | None = None
         bridged_reentry_hidden: torch.Tensor | None = None
-        final_hidden: torch.Tensor | None = None
+        final_lm_layer_hidden: torch.Tensor | None = None
 
         def capture_gap_input_prehook(
             module: Any,
             inputs: tuple[Any, ...],
         ) -> None:
             nonlocal gap_input_hidden
-            gap_input_hidden = get_first_hidden_from_inputs(inputs)
+            gap_input_hidden = get_first_hidden_from_inputs(inputs).detach()
 
         def inject_bridge_prehook(
             module: Any,
@@ -387,39 +411,39 @@ class BridgedGapModel:
 
             return (bridged, *inputs[1:])
 
-        def final_norm_hook(
+        def final_norm_prehook(
             module: Any,
             inputs: tuple[Any, ...],
-            output: Any,
-        ) -> Any:
-            nonlocal final_hidden
-
-            if not isinstance(output, torch.Tensor):
-                raise TypeError(
-                    f"Expected final norm output to be Tensor, got {type(output)}"
-                )
-
-            final_hidden = output
-            return output
+        ) -> None:
+            nonlocal final_lm_layer_hidden
+            final_lm_layer_hidden = get_first_hidden_from_inputs(inputs)
 
         with ExitStack() as stack:
+            original_layers: list[tuple[int, nn.Module]] = []
+
+            for layer_idx in range(self.gap.start, self.gap.end):
+                original_layer = layers[layer_idx]
+                original_layers.append((layer_idx, original_layer))
+
+                layers[layer_idx] = NoOpDecoderLayer()
+
+            def restore_original_layers() -> None:
+                for layer_idx, original_layer in reversed(original_layers):
+                    layers[layer_idx] = original_layer
+
+            stack.callback(restore_original_layers)
+
             handle = layers[self.gap.start].register_forward_pre_hook(
                 capture_gap_input_prehook
             )
             stack.callback(handle.remove)
-
-            for layer_idx in range(self.gap.start, self.gap.end):
-                handle = layers[layer_idx].register_forward_hook(
-                    make_identity_skip_hook()
-                )
-                stack.callback(handle.remove)
 
             handle = reentry_module.register_forward_pre_hook(
                 inject_bridge_prehook
             )
             stack.callback(handle.remove)
 
-            handle = backbone.norm.register_forward_hook(final_norm_hook)
+            handle = backbone.norm.register_forward_pre_hook(final_norm_prehook)
             stack.callback(handle.remove)
 
             logits = forward_model_logits(
@@ -434,19 +458,19 @@ class BridgedGapModel:
         if bridged_reentry_hidden is None:
             raise RuntimeError("Failed to capture bridged re-entry hidden.")
 
-        if final_hidden is None:
+        if final_lm_layer_hidden is None:
             raise RuntimeError("Failed to capture drafter final hidden.")
 
         reference_hidden = self.select_reference_hidden(
             reentry_hidden=bridged_reentry_hidden,
-            final_hidden=final_hidden,
+            final_lm_layer_hidden=final_lm_layer_hidden,
         )
 
         return DrafterBridgeOutput(
             logits=logits,
             gap_input_hidden=gap_input_hidden,
             bridged_reentry_hidden=bridged_reentry_hidden,
-            final_hidden=final_hidden,
+            final_lm_layer_hidden=final_lm_layer_hidden,
             reference_hidden=reference_hidden,
         )
 

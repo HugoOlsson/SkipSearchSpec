@@ -8,6 +8,7 @@ import time
 from typing import Any, Iterable, Literal, Mapping, TypeAlias
 
 from skip_search_spec.helpers.versioning import get_git_revision
+from skip_search_spec.protocols.windows import DatasetSpec
 
 ExperimentType = Literal[
     "flashhead",
@@ -228,3 +229,43 @@ def _opt_float(value: Any) -> float | None:
     if value is None:
         return None
     return float(value)
+
+
+
+def json_safe(value: Any) -> Any:
+    if value is None or isinstance(value, str | int | float | bool):
+        return value
+
+    if isinstance(value, Path):
+        return str(value)
+
+    if isinstance(value, Mapping):
+        return {str(k): json_safe(v) for k, v in value.items()}
+
+    if isinstance(value, tuple | list):
+        return [json_safe(v) for v in value]
+
+    return str(value)
+
+
+def dataset_mix_name(dataset_mix: list[tuple[DatasetSpec, float]]) -> str:
+    return " + ".join(
+        f"{dataset_spec.name}:{weight:g}"
+        for dataset_spec, weight in dataset_mix
+    )
+
+
+def dataset_mix_config(
+    dataset_mix: list[tuple[DatasetSpec, float]],
+) -> list[dict[str, Any]]:
+    return [
+        {
+            "name": dataset_spec.name,
+            "huggingface_path": dataset_spec.huggingface_path,
+            "config_name": dataset_spec.config_name,
+            "split": dataset_spec.split,
+            "text_field": dataset_spec.text_field,
+            "weight": float(weight),
+        }
+        for dataset_spec, weight in dataset_mix
+    ]

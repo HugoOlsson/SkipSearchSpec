@@ -11,6 +11,7 @@ from torch.nn.utils import clip_grad_norm_
 
 from skip_search_spec.helpers.tooling import distribution_similarity_metrics
 
+from skip_search_spec.protocols.measurements import MeasurementRun, MetricEvent, RunContext, dataset_mix_config, dataset_mix_name, json_safe, print_metric_events_line, save_at_interval
 from skip_search_spec.protocols.windows import (
     DatasetSpec,
     ModelAndTokenizer,
@@ -28,7 +29,6 @@ from skip_search_spec.helpers.shared_decoding_tools import (
     stage,
 )
 
-# Change this import path to wherever you placed BridgedGapModel.
 from skip_search_spec.training.bridged_gap_model import (
     BridgedGapModel,
     ReferenceHiddenSource,
@@ -40,7 +40,6 @@ from skip_search_spec.training.bridged_gap_model import (
 class TrainGapBridgeOutput:
     bridged_model: BridgedGapModel
     bridge: nn.Module
-    history: list[dict[str, float]]
     checkpoint_path: Path | None
 
 
@@ -67,6 +66,8 @@ def train_skipping_layers(
     model_kwargs: dict[str, Any] | None = None,
     checkpoint_dir: str | Path | None = "gap_bridge_checkpoints",
     checkpoint_every_steps: int | None = 500,
+    log_every: int = 50,
+    measurement_save_interval_seconds: float = 60.0,
 ) -> TrainGapBridgeOutput:
     stage("train_gap_bridge: start")
 
@@ -96,16 +97,6 @@ def train_skipping_layers(
         active_layer_indices=bridged.active_layer_indices,
     )
 
-    print("DEVICE:", device)
-    print("REFERENCE_HIDDEN_SOURCE:", reference_hidden_source)
-
-    stage(f"mode={effective_mode}")
-    stage(f"gap=[{gap.start}, {gap.end}) length={gap.length}")
-    stage(f"active_layers={layer_pattern.active_layer_indices}")
-    stage(f"skipped_layers={layer_pattern.skipped_layer_indices}")
-    stage(f"visual_mask={layer_pattern.visual_mask}")
-    stage(f"binary_mask={layer_pattern.binary_string}")
-
     optimizer = torch.optim.AdamW(
         bridge.parameters(),
         lr=lr,
@@ -125,13 +116,62 @@ def train_skipping_layers(
         shuffle=True,
     )
 
-    history: list[dict[str, float]] = []
+
     step = 0
     checkpoint_path: Path | None = None
 
     checkpoint_dir_path: Path | None = None
     run_timestamp = time.strftime("%Y%m%d_%H%M%S")
     safe_model_name = model_name.replace("/", "_")
+
+    run_context = RunContext.create(
+        run_id=(
+            f"middle-gap-skip-{safe_model_name}__"
+            f"start_{gap.start}__len_{gap.length}__"
+            f"{run_timestamp}"
+        ),
+        experiment_type="middle_gap_skip",
+        model_names=(model_name,),
+        dataset_name=dataset_mix_name(dataset_mix),
+        run_config={
+            "model_name": model_name,
+            "dataset_mix": dataset_mix_config(dataset_mix),
+            "device": str(device),
+            "num_layers": num_layers,
+            "hidden_size": hidden_size,
+            "effective_mode": effective_mode,
+            "gap_start": gap.start,
+            "gap_end": gap.end,
+            "gap_length": gap.length,
+            "active_layers": list(layer_pattern.active_layer_indices),
+            "skipped_layers": list(layer_pattern.skipped_layer_indices),
+            "visual_mask": layer_pattern.visual_mask,
+            "binary_mask": layer_pattern.binary_string,
+            "context_len": context_len,
+            "max_examples": max_examples,
+            "num_windows_to_use": num_windows_to_use,
+            "batch_size": batch_size,
+            "steps_per_epoch": len(dataloader),
+            "num_epochs": num_epochs,
+            "max_steps": max_steps,
+            "lr": lr,
+            "weight_decay": weight_decay,
+            "max_grad_norm": max_grad_norm,
+            "kl_loss_weight": kl_loss_weight,
+            "hidden_loss_weight": hidden_loss_weight,
+            "ce_loss_weight": ce_loss_weight,
+            "teacher_temperature": teacher_temperature,
+            "reference_hidden_source": reference_hidden_source,
+            "model_kwargs": json_safe(model_kwargs or {}),
+            "checkpoint_dir": str(checkpoint_dir) if checkpoint_dir is not None else None,
+            "checkpoint_every_steps": checkpoint_every_steps,
+            "log_every": log_every,
+        },
+    )
+
+    run_context.print()
+
+    metric_events: list[MetricEvent] = []
 
     if checkpoint_dir is not None:
         checkpoint_dir_path = Path(checkpoint_dir)
@@ -151,7 +191,6 @@ def train_skipping_layers(
             path=path,
             step=step,
             optimizer_state_dict=optimizer.state_dict(),
-            history=history,
             extra={
                 "effective_mode": effective_mode,
                 "visual_mask": layer_pattern.visual_mask,
@@ -257,8 +296,6 @@ def train_skipping_layers(
                 if checkpoint_path is not None:
                     stage(f"saved periodic bridge checkpoint to {checkpoint_path}")
 
-            log_every = 50
-
             if step == 1 or step % log_every == 0:
                 with torch.no_grad():
                     sim = distribution_similarity_metrics(
@@ -266,36 +303,46 @@ def train_skipping_layers(
                         shift_logits_full=shift_next_token_logits(teacher.logits),
                     )
 
+                batch_metrics = [
+                    MetricEvent.create(phase="train", name="loss", value=loss.item(), step=step),
+                    MetricEvent.create(phase="train", name="loss_kl", value=loss_kl.item(), step=step),
+                    MetricEvent.create(phase="train", name="loss_hidden", value=loss_hidden.item(), step=step),
+                    MetricEvent.create(phase="train", name="loss_ce", value=loss_ce_teacher.item(), step=step),
+                    MetricEvent.create(phase="train", name="kl_full_to_mid", value=sim["kl_full_to_mid"].item(), step=step),
+                    MetricEvent.create(phase="train", name="kl_mid_to_full", value=sim["kl_mid_to_full"].item(), step=step),
+                    MetricEvent.create(phase="train", name="js", value=sim["js"].item(), step=step),
+                    MetricEvent.create(phase="train", name="top1_agreement", value=sim["top1_agreement"].item(), step=step),
+                    MetricEvent.create(phase="train", name="overlap", value=sim["overlap"].item(), step=step),
+                    MetricEvent.create(phase="train", name="p_mid_on_full_argmax", value=sim["p_mid_on_full_argmax"].item(), step=step),
+                ]
+
+                metric_events.extend(batch_metrics)
+
                 row = {
                     "step": float(step),
                     "epoch": float(epoch_idx + 1),
-                    "loss": loss.item(),
-                    "loss_kl": loss_kl.item(),
-                    "loss_hidden": loss_hidden.item(),
-                    "loss_ce": loss_ce_teacher.item(),
-                    "js": sim["js"].item(),
-                    "top1_agreement": sim["top1_agreement"].item(),
-                    "overlap": sim["overlap"].item(),
-                    "p_student_on_teacher_argmax": sim[
-                        "p_mid_on_full_argmax"
-                    ].item(),
+                    "batch": float(batch_idx),
                 }
-
-                history.append(row)
+                row.update({event.name: event.value for event in batch_metrics})
 
                 print(
                     f"[step {step:>5}] "
                     f"mode={effective_mode} "
                     f"ref={reference_hidden_source} "
                     f"epoch={epoch_idx + 1}/{num_epochs} "
-                    f"batch={batch_idx}/{len(dataloader)} "
-                    f"loss={row['loss']:.4f} "
-                    f"kl={row['loss_kl']:.4f} "
-                    f"hidden={row['loss_hidden']:.4f} "
-                    f"ce={row['loss_ce']:.4f} "
-                    f"js={row['js']:.4f} "
-                    f"top1={row['top1_agreement']:.4f} "
-                    f"overlap={row['overlap']:.4f}"
+                    f"batch={batch_idx}/{len(dataloader)} ",
+                    end="",
+                )
+                print_metric_events_line(batch_metrics, decimals=4)
+
+                run = MeasurementRun(
+                    context=run_context,
+                    metric_events=metric_events,
+                )
+
+                save_at_interval(
+                    run,
+                    min_interval_seconds=measurement_save_interval_seconds,
                 )
 
         if max_steps is not None and step >= max_steps:
@@ -306,6 +353,13 @@ def train_skipping_layers(
     if checkpoint_path is not None:
         stage(f"saved final bridge checkpoint to {checkpoint_path}")
 
+    measurement_path = MeasurementRun(
+        context=run_context,
+        metric_events=metric_events,
+    ).save()
+
+    stage(f"saved final measurement log to {measurement_path}")
+        
     bridged.eval_all()
 
     stage("train_gap_bridge: finished")
@@ -313,6 +367,5 @@ def train_skipping_layers(
     return TrainGapBridgeOutput(
         bridged_model=bridged,
         bridge=bridge,
-        history=history,
         checkpoint_path=checkpoint_path,
     )
