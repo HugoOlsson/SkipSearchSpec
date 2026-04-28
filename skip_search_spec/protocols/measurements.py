@@ -291,24 +291,25 @@ def json_safe(value: Any) -> Any:
     return str(value)
 
 
-def dataset_mix_name(dataset_mix: list[tuple[DatasetSpec, float]]) -> str:
+def dataset_mix_name(dataset_mix: list[tuple[DatasetSpec, float, int]]) -> str:
     return " + ".join(
         f"{dataset_spec.name}:{weight:g}"
-        for dataset_spec, weight in dataset_mix
+        for dataset_spec, weight, max_number in dataset_mix
     )
 
 
 def dataset_mix_config(
-    dataset_mix: list[tuple[DatasetSpec, float]],
+    dataset_mix: list[tuple[DatasetSpec, float, int]],
 ) -> list[dict[str, Any]]:
     return [
         {
-            "name": dataset_spec.name,
-            "huggingface_path": dataset_spec.huggingface_path,
-            "config_name": dataset_spec.config_name,
-            "split": dataset_spec.split,
-            "text_field": dataset_spec.text_field,
-            "weight": float(weight),
+            "name": spec.name,
+            "huggingface_path": spec.huggingface_path,
+            "config_name": spec.config_name,
+            "split": spec.split,
+            "text_field": spec.text_field,
+            "weight": weight,
+            "max_examples": max_examples,
         }
-        for dataset_spec, weight in dataset_mix
+        for spec, weight, max_examples in dataset_mix
     ]

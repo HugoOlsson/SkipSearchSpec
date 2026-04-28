@@ -484,10 +484,9 @@ def split_count_by_weights(
 
 def build_mixed_fixed_window_dataloader(
     *,
-    dataset_mix: list[tuple[DatasetSpec, float]],
+    dataset_mix: list[tuple[DatasetSpec, float, int]],
     model_and_tokenizer: ModelAndTokenizer,
     context_len: int,
-    max_examples: int,
     num_windows_to_use: int,
     batch_size: int,
     device: torch.device,
@@ -496,12 +495,21 @@ def build_mixed_fixed_window_dataloader(
     if len(dataset_mix) == 0:
         raise ValueError("dataset_mix must contain at least one dataset.")
 
-    weights = [weight for _, weight in dataset_mix]
+    for dataset_spec, weight, max_examples in dataset_mix:
+        if weight <= 0:
+            raise ValueError(
+                f"Dataset {dataset_spec.name} has invalid weight={weight}. "
+                "Weights must be > 0."
+            )
 
-    max_examples_per_dataset = split_count_by_weights(
-        total=max_examples,
-        weights=weights,
-    )
+        if max_examples <= 0:
+            raise ValueError(
+                f"Dataset {dataset_spec.name} has invalid max_examples={max_examples}. "
+                "Per-dataset max_examples must be > 0."
+            )
+
+    weights = [weight for _, weight, _ in dataset_mix]
+
     windows_per_dataset = split_count_by_weights(
         total=num_windows_to_use,
         weights=weights,
@@ -510,9 +518,8 @@ def build_mixed_fixed_window_dataloader(
     datasets: list[Any] = []
     collate_fn: Any | None = None
 
-    for (dataset_spec, weight), source_max_examples, source_num_windows in zip(
+    for (dataset_spec, weight, source_max_examples), source_num_windows in zip(
         dataset_mix,
-        max_examples_per_dataset,
         windows_per_dataset,
     ):
         stage(
@@ -553,6 +560,7 @@ def build_mixed_fixed_window_dataloader(
         batch_size=batch_size,
         shuffle=shuffle,
         collate_fn=collate_fn,
+        pin_memory=(device.type == "cuda"),
     )
 
 
