@@ -37,29 +37,68 @@ def main() -> None:
             text_field="text",
         )
 
-        number_of_windows = 100_000
+        number_of_windows = 50_000
         fraction_tiny = 0.3
         fraction_edu = 0.7
 
-        print("Version: 4.0")
         train_skipping_layers(
-            model_name="Qwen/Qwen2.5-1.5B",
+            model_name="Qwen/Qwen2.5-0.5B",
             dataset_mix=[
                 (DATASET_SPEC_STORIES, fraction_tiny, int(number_of_windows*fraction_tiny*6)),
                 (DATASET_SPEC_EDU, fraction_edu, int(number_of_windows*fraction_edu*1.5)),
             ],
             context_len=256,
             num_windows_to_use=number_of_windows,
-            batch_size=20,
-            gap_start=1,
-            gap_length=26, 
+            batch_size=5,
+            active_start_layers=1, 
+            active_end_layers=1,
             num_epochs=2,
             lr=1e-4,
             max_steps=1000000, #just something big
             kl_loss_weight=1.0,
             hidden_loss_weight=0,
             ce_loss_weight=1.0,
-            checkpoint_every_steps=1000
+            checkpoint_every_steps=2000
+        )
+
+        train_skipping_layers(
+            model_name="Qwen/Qwen2.5-3B",
+            dataset_mix=[
+                (DATASET_SPEC_STORIES, fraction_tiny, int(number_of_windows*fraction_tiny*6)),
+                (DATASET_SPEC_EDU, fraction_edu, int(number_of_windows*fraction_edu*1.5)),
+            ],
+            context_len=256,
+            num_windows_to_use=number_of_windows,
+            batch_size=5,
+            active_start_layers=1, 
+            active_end_layers=1,
+            num_epochs=2,
+            lr=1e-4,
+            max_steps=1000000, #just something big
+            kl_loss_weight=1.0,
+            hidden_loss_weight=0,
+            ce_loss_weight=1.0,
+            checkpoint_every_steps=2000
+        )
+
+        train_skipping_layers(
+            model_name="Qwen/Qwen2.5-7B",
+            dataset_mix=[
+                (DATASET_SPEC_STORIES, fraction_tiny, int(number_of_windows*fraction_tiny*6)),
+                (DATASET_SPEC_EDU, fraction_edu, int(number_of_windows*fraction_edu*1.5)),
+            ],
+            context_len=256,
+            num_windows_to_use=number_of_windows,
+            batch_size=5,
+            active_start_layers=1, 
+            active_end_layers=1,
+            num_epochs=2,
+            lr=1e-4,
+            max_steps=1000000, #just something big
+            kl_loss_weight=1.0,
+            hidden_loss_weight=0,
+            ce_loss_weight=1.0,
+            checkpoint_every_steps=2000
         )
 
     elif mode == "build_flashhead":

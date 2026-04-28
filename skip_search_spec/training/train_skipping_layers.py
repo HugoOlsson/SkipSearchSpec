@@ -50,8 +50,8 @@ def train_skipping_layers(
     context_len: int,
     num_windows_to_use: int = 256,
     batch_size: int = 2,
-    gap_start: int,
-    gap_length: int,
+    active_start_layers=1,
+    active_end_layers=1,
     num_epochs: int = 1,
     max_steps: int | None = None,
     lr: float = 1e-4,
@@ -72,8 +72,8 @@ def train_skipping_layers(
 
     bridged = build_bridged_gap_model(
         model_name=model_name,
-        gap_start=gap_start,
-        gap_length=gap_length,
+        active_start_layers=active_start_layers,
+        active_end_layers=active_end_layers,
         reference_hidden_source=reference_hidden_source,
         model_kwargs=model_kwargs,
     )

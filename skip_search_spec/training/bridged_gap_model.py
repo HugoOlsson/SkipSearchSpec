@@ -619,8 +619,8 @@ class BridgedGapModel:
 def build_bridged_gap_model(
     *,
     model_name: str,
-    gap_start: int,
-    gap_length: int,
+    active_start_layers: int,
+    active_end_layers: int,
     reference_hidden_source: ReferenceHiddenSource = "reentry",
     bridge_factory: Callable[[int], nn.Module] | None = None,
     model_kwargs: dict[str, Any] | None = None,
@@ -653,6 +653,11 @@ def build_bridged_gap_model(
         bridge = bridge_factory(hidden_size)
 
     bridge.to(device=device, dtype=torch.float32)
+
+
+    num_layers = len(get_decoder_layers(model))
+    gap_start = active_start_layers
+    gap_length = num_layers - active_start_layers - active_end_layers
 
     config = BridgedGapConfig(
         model_name=model_name,
