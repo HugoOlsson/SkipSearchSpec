@@ -37,7 +37,7 @@ def main() -> None:
             text_field="text",
         )
 
-        number_of_windows = 100_000
+        number_of_windows = 200_000
         fraction_tiny = 0.3
         fraction_edu = 0.7
 
