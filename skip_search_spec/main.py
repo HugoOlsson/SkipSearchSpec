@@ -59,7 +59,7 @@ def main() -> None:
                     ],
                     context_len=256,
                     num_windows_to_use=number_of_windows,
-                    batch_size=8,
+                    batch_size=5,
                     active_start_layers=active_start_end, 
                     active_end_layers=active_start_end,
                     num_epochs=2,
