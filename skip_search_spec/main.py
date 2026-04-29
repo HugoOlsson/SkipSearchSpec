@@ -41,65 +41,38 @@ def main() -> None:
         fraction_tiny = 0.3
         fraction_edu = 0.7
 
-        train_skipping_layers(
-            model_name="Qwen/Qwen2.5-0.5B",
-            dataset_mix=[
-                (DATASET_SPEC_STORIES, fraction_tiny, int(number_of_windows*fraction_tiny*6)),
-                (DATASET_SPEC_EDU, fraction_edu, int(number_of_windows*fraction_edu*1.5)),
-            ],
-            context_len=256,
-            num_windows_to_use=number_of_windows,
-            batch_size=5,
-            active_start_layers=1, 
-            active_end_layers=1,
-            num_epochs=2,
-            lr=1e-4,
-            max_steps=1000000, #just something big
-            kl_loss_weight=1.0,
-            hidden_loss_weight=0,
-            ce_loss_weight=1.0,
-            checkpoint_every_steps=2000
-        )
+        # SINGLE LAYER AT START
+        print("Version: 1.0")
 
-        train_skipping_layers(
-            model_name="Qwen/Qwen2.5-3B",
-            dataset_mix=[
-                (DATASET_SPEC_STORIES, fraction_tiny, int(number_of_windows*fraction_tiny*6)),
-                (DATASET_SPEC_EDU, fraction_edu, int(number_of_windows*fraction_edu*1.5)),
-            ],
-            context_len=256,
-            num_windows_to_use=number_of_windows,
-            batch_size=5,
-            active_start_layers=1, #from start
-            active_end_layers=1, #from end
-            num_epochs=2,
-            lr=1e-4,
-            max_steps=1000000, #just something big
-            kl_loss_weight=1.0,
-            hidden_loss_weight=0,
-            ce_loss_weight=1.0,
-            checkpoint_every_steps=2000
-        )
+        models = ["Qwen/Qwen2.5-0.5B", "Qwen/Qwen2.5-3B", "Qwen/Qwen2.5-7B", "Qwen/Qwen3.5-0.8B", "Qwen/Qwen3.5-4B", "Qwen/Qwen3.5-9B"]
+        active_start_end_lengths = [1,2,4]
 
-        train_skipping_layers(
-            model_name="Qwen/Qwen2.5-7B",
-            dataset_mix=[
-                (DATASET_SPEC_STORIES, fraction_tiny, int(number_of_windows*fraction_tiny*6)),
-                (DATASET_SPEC_EDU, fraction_edu, int(number_of_windows*fraction_edu*1.5)),
-            ],
-            context_len=256,
-            num_windows_to_use=number_of_windows,
-            batch_size=5,
-            active_start_layers=1, 
-            active_end_layers=1,
-            num_epochs=2,
-            lr=1e-4,
-            max_steps=1000000, #just something big
-            kl_loss_weight=1.0,
-            hidden_loss_weight=0,
-            ce_loss_weight=1.0,
-            checkpoint_every_steps=2000
-        )
+        for active_start_end in active_start_end_lengths: 
+
+            for model in models:
+
+                train_skipping_layers(
+                    model_name=model,
+                    dataset_mix=[
+                        (DATASET_SPEC_STORIES, fraction_tiny, int(number_of_windows*fraction_tiny*6)),
+                        (DATASET_SPEC_EDU, fraction_edu, int(number_of_windows*fraction_edu*1.5)),
+                    ],
+                    context_len=256,
+                    num_windows_to_use=number_of_windows,
+                    batch_size=8,
+                    active_start_layers=active_start_end, 
+                    active_end_layers=active_start_end,
+                    num_epochs=2,
+                    lr=1e-4,
+                    max_steps=1000000, #just something big
+                    kl_loss_weight=1.0,
+                    hidden_loss_weight=0,
+                    ce_loss_weight=1.0,
+                    checkpoint_every_steps=2000
+                )
+
+       
+        # SINGLE LAYER AT START
 
     elif mode == "build_flashhead":
         from skip_search_spec.training.flashhead.flashhead_research import build_flashhead_head
