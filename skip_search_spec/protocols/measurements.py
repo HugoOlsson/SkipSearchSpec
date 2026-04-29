@@ -194,6 +194,8 @@ class MeasurementRun:
 
     def default_output_dir(self, *, root: str | Path = "measurements") -> Path:
         date_key = self.context.created_at_utc[:10]
+        commit_key = safe_path_part(self.context.git_commit[:6])
+        date_commit_key = f"{date_key}-{commit_key}"
 
         run_dir_name = (
             f"{self.context.run_id}"
@@ -202,7 +204,7 @@ class MeasurementRun:
 
         return (
             Path(root)
-            / date_key
+            / date_commit_key
             / self.context.experiment_type
             / run_dir_name
         )

@@ -47,10 +47,10 @@ def main() -> None:
 
         # models = ["Qwen/Qwen2.5-0.5B", "Qwen/Qwen2.5-3B", "Qwen/Qwen2.5-7B", "Qwen/Qwen3.5-0.8B", "Qwen/Qwen3.5-4B", "Qwen/Qwen3.5-9B"]
 
-        models = ["Qwen/Qwen3.5-4B"]
-        active_start_end_lengths = [(2, 0), (4, 4), (8, 0)]
+        models = ["Qwen/Qwen2.5-3B", "Qwen/Qwen3.5-4B"]
+        active_start_end_lengths = [(1,1), (2, 0), (4, 4), (8, 0)]
 
-        for active_start_end in active_start_end_lengths: 
+        for active_start_layers, active_end_layers in active_start_end_lengths: 
 
             for model in models:
 
@@ -63,8 +63,8 @@ def main() -> None:
                     context_len=256,
                     num_windows_to_use=number_of_windows,
                     batch_size=10,
-                    active_start_layers=active_start_end[0], 
-                    active_end_layers=active_start_end[1],
+                    active_start_layers=active_start_layers, 
+                    active_end_layers=active_end_layers,
                     num_epochs=num_epochs,
                     lr=1e-4,
                     max_steps=1000000, #just something big
