@@ -63,7 +63,7 @@ def main() -> None:
                 train_skipping_layers(
                     model_name=model,
                     dataset_mix=[
-                        (DATASET_SPEC_STORIES, fraction_tiny, int(number_of_windows*fraction_tiny*6)),
+                        (DATASET_SPEC_STORIES, fraction_tiny, int(number_of_windows*fraction_tiny*7)),
                         (DATASET_SPEC_EDU, fraction_edu, int(number_of_windows*fraction_edu*1.5)),
                     ],
                     context_len=256,
