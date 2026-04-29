@@ -89,10 +89,11 @@ install_system_packages() {
 install_poetry() {
   stage "Installing Poetry on the persistent volume"
 
-  if ! command -v poetry >/dev/null 2>&1; then
-    curl -sSL https://install.python-poetry.org | python3 -
+  if [[ ! -x "$POETRY_HOME/bin/poetry" ]]; then
+    curl -fsSL https://install.python-poetry.org | python3 -
+    hash -r
   else
-    poetry --version
+    "$POETRY_HOME/bin/poetry" --version
   fi
 }
 
