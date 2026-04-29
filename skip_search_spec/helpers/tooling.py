@@ -82,42 +82,42 @@ def assert_same_tokenizer(
 
 
 def distribution_similarity_metrics(
-    shift_logits_mid: torch.Tensor,
-    shift_logits_full: torch.Tensor,
+    shift_logits_drafter: torch.Tensor,
+    shift_logits_verifier: torch.Tensor,
 ) -> dict[str, torch.Tensor]:
-    shift_logits_mid = shift_logits_mid.detach().float()
-    shift_logits_full = shift_logits_full.detach().float()
+    shift_logits_drafter = shift_logits_drafter.detach().float()
+    shift_logits_verifier = shift_logits_verifier.detach().float()
 
-    log_p_mid = F.log_softmax(shift_logits_mid, dim=-1)
-    log_p_full = F.log_softmax(shift_logits_full, dim=-1)
+    log_p_drafter = F.log_softmax(shift_logits_drafter, dim=-1)
+    log_p_verifier = F.log_softmax(shift_logits_verifier, dim=-1)
 
-    p_mid = log_p_mid.exp()
-    p_full = log_p_full.exp()
+    p_drafter = log_p_drafter.exp()
+    p_verifier = log_p_verifier.exp()
 
-    kl_full_to_mid = (p_full * (log_p_full - log_p_mid)).sum(dim=-1).mean()
-    kl_mid_to_full = (p_mid * (log_p_mid - log_p_full)).sum(dim=-1).mean()
+    kl_verifier_to_drafter = (p_verifier * (log_p_verifier - log_p_drafter)).sum(dim=-1).mean()
+    kl_drafter_to_verifier = (p_drafter * (log_p_drafter - log_p_verifier)).sum(dim=-1).mean()
 
-    m = 0.5 * (p_full + p_mid)
+    m = 0.5 * (p_verifier + p_drafter)
     log_m = torch.log(m.clamp_min(1e-12))
-    js = 0.5 * (
-        (p_full * (log_p_full - log_m)).sum(dim=-1) +
-        (p_mid * (log_p_mid - log_m)).sum(dim=-1)
+    js_verifier_drafter = 0.5 * (
+        (p_verifier * (log_p_verifier - log_m)).sum(dim=-1)
+        + (p_drafter * (log_p_drafter - log_m)).sum(dim=-1)
     ).mean()
 
-    top1_mid = shift_logits_mid.argmax(dim=-1)
-    top1_full = shift_logits_full.argmax(dim=-1)
-    top1_agreement = (top1_mid == top1_full).float().mean()
+    top1_drafter = shift_logits_drafter.argmax(dim=-1)
+    top1_verifier = shift_logits_verifier.argmax(dim=-1)
+    top1_drafter_matches_verifier = (top1_drafter == top1_verifier).float().mean()
 
-    full_argmax = top1_full.unsqueeze(-1)
-    p_mid_on_full_argmax = p_mid.gather(dim=-1, index=full_argmax).squeeze(-1).mean()
+    verifier_argmax = top1_verifier.unsqueeze(-1)
+    p_drafter_on_verifier_top1 = p_drafter.gather(dim=-1, index=verifier_argmax).squeeze(-1).mean()
 
-    overlap = torch.minimum(p_mid, p_full).sum(dim=-1).mean()
+    prob_mass_overlap_verifier_drafter = torch.minimum(p_drafter, p_verifier).sum(dim=-1).mean()
 
     return {
-        "kl_full_to_mid": kl_full_to_mid,
-        "kl_mid_to_full": kl_mid_to_full,
-        "js": js,
-        "top1_agreement": top1_agreement,
-        "p_mid_on_full_argmax": p_mid_on_full_argmax,
-        "overlap": overlap,
+        "kl_verifier_to_drafter": kl_verifier_to_drafter,
+        "kl_drafter_to_verifier": kl_drafter_to_verifier,
+        "js_verifier_drafter": js_verifier_drafter,
+        "top1_drafter_matches_verifier": top1_drafter_matches_verifier,
+        "p_drafter_on_verifier_top1": p_drafter_on_verifier_top1,
+        "prob_mass_overlap_verifier_drafter": prob_mass_overlap_verifier_drafter,
     }

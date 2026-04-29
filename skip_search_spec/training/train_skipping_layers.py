@@ -295,21 +295,21 @@ def train_skipping_layers(
             if step == 1 or step % log_every == 0:
                 with torch.no_grad():
                     sim = distribution_similarity_metrics(
-                        shift_logits_mid=shift_next_token_logits(student.logits),
-                        shift_logits_full=shift_next_token_logits(teacher.logits),
+                        shift_logits_drafter=shift_next_token_logits(student.logits),
+                        shift_logits_verifier=shift_next_token_logits(teacher.logits),
                     )
 
                 batch_metrics = [
-                    MetricEvent.create(phase="train", name="loss", value=loss.item(), step=step),
-                    MetricEvent.create(phase="train", name="loss_kl", value=loss_kl.item(), step=step),
-                    MetricEvent.create(phase="train", name="loss_hidden", value=loss_hidden.item(), step=step),
-                    MetricEvent.create(phase="train", name="loss_ce", value=loss_ce_teacher.item(), step=step),
-                    MetricEvent.create(phase="train", name="kl_full_to_mid", value=sim["kl_full_to_mid"].item(), step=step),
-                    MetricEvent.create(phase="train", name="kl_mid_to_full", value=sim["kl_mid_to_full"].item(), step=step),
-                    MetricEvent.create(phase="train", name="js", value=sim["js"].item(), step=step),
-                    MetricEvent.create(phase="train", name="top1_agreement", value=sim["top1_agreement"].item(), step=step),
-                    MetricEvent.create(phase="train", name="overlap", value=sim["overlap"].item(), step=step),
-                    MetricEvent.create(phase="train", name="p_mid_on_full_argmax", value=sim["p_mid_on_full_argmax"].item(), step=step),
+                    MetricEvent.create(phase="train", name="loss_total", value=loss.item(), step=step),
+                    MetricEvent.create(phase="train", name="loss_kl_verifier_to_drafter", value=loss_kl.item(), step=step),
+                    MetricEvent.create(phase="train", name="loss_bridge_reentry_mse", value=loss_hidden.item(), step=step),
+                    MetricEvent.create(phase="train", name="loss_ce_drafter_on_verifier_top1", value=loss_ce_teacher.item(), step=step),
+                    MetricEvent.create(phase="train", name="kl_verifier_to_drafter", value=sim["kl_verifier_to_drafter"].item(), step=step),
+                    MetricEvent.create(phase="train", name="kl_drafter_to_verifier", value=sim["kl_drafter_to_verifier"].item(), step=step),
+                    MetricEvent.create(phase="train", name="js_verifier_drafter", value=sim["js_verifier_drafter"].item(), step=step),
+                    MetricEvent.create(phase="train", name="top1_drafter_matches_verifier", value=sim["top1_drafter_matches_verifier"].item(), step=step),
+                    MetricEvent.create(phase="train", name="prob_mass_overlap_verifier_drafter", value=sim["prob_mass_overlap_verifier_drafter"].item(), step=step),
+                    MetricEvent.create(phase="train", name="p_drafter_on_verifier_top1", value=sim["p_drafter_on_verifier_top1"].item(), step=step),
                 ]
 
                 metric_events.extend(batch_metrics)
