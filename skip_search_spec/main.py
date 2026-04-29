@@ -37,16 +37,18 @@ def main() -> None:
             text_field="text",
         )
 
-        number_of_windows = 80_000
+        number_of_windows = 50_000
         num_epochs = 1 # Ensure never get scores on data it has seen
         fraction_tiny = 0.3
         fraction_edu = 0.7
 
         # SINGLE LAYER AT START
-        print("Version: 1.3, single epoch double the examples")
+        print("Version: 1.4")
 
-        models = ["Qwen/Qwen2.5-0.5B", "Qwen/Qwen2.5-3B", "Qwen/Qwen2.5-7B", "Qwen/Qwen3.5-0.8B", "Qwen/Qwen3.5-4B", "Qwen/Qwen3.5-9B"]
-        active_start_end_lengths = [1,2,4]
+        # models = ["Qwen/Qwen2.5-0.5B", "Qwen/Qwen2.5-3B", "Qwen/Qwen2.5-7B", "Qwen/Qwen3.5-0.8B", "Qwen/Qwen3.5-4B", "Qwen/Qwen3.5-9B"]
+
+        models = ["Qwen/Qwen2.5-3B", "Qwen/Qwen3.5-4B"]
+        active_start_end_lengths = [(1,1), (2, 0), (4, 4), (8, 0)]
 
         for active_start_end in active_start_end_lengths: 
 
@@ -61,8 +63,8 @@ def main() -> None:
                     context_len=256,
                     num_windows_to_use=number_of_windows,
                     batch_size=10,
-                    active_start_layers=active_start_end, 
-                    active_end_layers=active_start_end,
+                    active_start_layers=active_start_end[0], 
+                    active_end_layers=active_start_end[1],
                     num_epochs=num_epochs,
                     lr=1e-4,
                     max_steps=1000000, #just something big
@@ -232,16 +234,20 @@ def main() -> None:
     elif mode == "plot_training_metric":
         from skip_search_spec.analysis.plot_training_metrics import plot_training_metric_jsons
 
-        file_paths = ["measurements/2026-04-28/middle_gap_skip/19370288_AP28__Qwen_Qwen2_5-7B_█··························█/run.json", 
-                      "measurements/2026-04-28/middle_gap_skip/19121272_AP28__Qwen_Qwen2_5-3B_█··································█/run.json", 
-                      "measurements/2026-04-28/middle_gap_skip/18560441_AP28__Qwen_Qwen2_5-0_5B_█······················█/run.json"
-                      ]
+        file_paths = [
+            "measurements/2026-04-29/middle_gap_skip/10323731_AP29__Qwen_Qwen2_5-0_5B_1_22_1/run.json",
+            "measurements/2026-04-29/middle_gap_skip/10392982_AP29__Qwen_Qwen2_5-3B_1_34_1/run.json",
+            "measurements/2026-04-29/middle_gap_skip/10515615_AP29__Qwen_Qwen2_5-7B_1_26_1/run.json",
+            "measurements/2026-04-29/middle_gap_skip/11105059_AP29__Qwen_Qwen3_5-0_8B_1_22_1/run.json",
+            "measurements/2026-04-29/middle_gap_skip/11222637_AP29__Qwen_Qwen3_5-4B_1_30_1/run.json",
+            "measurements/2026-04-29/middle_gap_skip/11415137_AP29__Qwen_Qwen3_5-9B_1_30_1/run.json",
+        ]
 
         plot_training_metric_jsons(
             file_paths,
-            metric_name="kl_full_to_mid",
+            metric_name="kl_verifier_to_drafter",
             phase="train",
-            output_dir="measurements/training_metric_plots",
+            output_dir="measurements/training_metric_plots2",
         )
 
 
