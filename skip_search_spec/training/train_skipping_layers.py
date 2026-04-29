@@ -121,11 +121,12 @@ def train_skipping_layers(
 
     safe_model_name = model_name.replace("/", "_").replace(".", "_")
 
+    gap_text = f"{gap.start}:{gap.length}:{num_layers - gap.end}"
+
     run_name = (
         f"{safe_model_name}_"
-        f"{layer_pattern.visual_mask}"
+        f"{gap_text}"
     )
-
 
     run_context = RunContext.create(
         run_name=run_name,

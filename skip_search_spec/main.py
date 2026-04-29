@@ -70,8 +70,8 @@ def main() -> None:
             context_len=256,
             num_windows_to_use=number_of_windows,
             batch_size=5,
-            active_start_layers=1, 
-            active_end_layers=1,
+            active_start_layers=1, #from start
+            active_end_layers=1, #from end
             num_epochs=2,
             lr=1e-4,
             max_steps=1000000, #just something big
@@ -253,6 +253,22 @@ def main() -> None:
         file_path = sys.argv[2]
 
         render_speculation_trace_html(trace_json_path=file_path, output_html_path="out.html")
+
+
+    elif mode == "plot_training_metric":
+        from skip_search_spec.analysis.plot_training_metrics import plot_training_metric_jsons
+
+        file_paths = ["measurements/2026-04-28/middle_gap_skip/19370288_AP28__Qwen_Qwen2_5-7B_█··························█/run.json", 
+                      "measurements/2026-04-28/middle_gap_skip/19121272_AP28__Qwen_Qwen2_5-3B_█··································█/run.json", 
+                      "measurements/2026-04-28/middle_gap_skip/18560441_AP28__Qwen_Qwen2_5-0_5B_█······················█/run.json"
+                      ]
+
+        plot_training_metric_jsons(
+            file_paths,
+            metric_name="kl_full_to_mid",
+            phase="train",
+            output_dir="measurements/training_metric_plots",
+        )
 
 
     elif mode == "test_self_spec":
