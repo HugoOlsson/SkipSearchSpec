@@ -2,15 +2,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-import torch
 from torch import Tensor
 from transformers import PreTrainedModel, PreTrainedTokenizerBase
 import matplotlib.pyplot as plt
-from skip_search_spec.helpers.tooling import load_dataset, load_model_and_tokenizer
+from skip_search_spec.helpers.tooling import load_model_and_tokenizer
 from sklearn.decomposition import PCA
 
-from skip_search_spec.helpers.window_building import build_all_training_windows, tokenize_dataset_to_examples
-from skip_search_spec.protocols.windows import DatasetSpec, WindowSettings
+from skip_search_spec.helpers.shared_decoding_tools import build_fixed_window_dataloader
+from skip_search_spec.protocols.windows import DatasetSpec, ModelAndTokenizer
 from skip_search_spec.training.flashhead.building_clusters import build_clusters
 from skip_search_spec.training.flashhead.inference_testing import compare_dense_vs_routed_until_mismatch
 from skip_search_spec.training.flashhead.inference_testing2 import evaluate_topk_containment_on_token_windows
@@ -71,7 +70,7 @@ def build_flashhead_head(store_path: str, model_name: str) -> None:
     built_clusters = build_clusters(
         lm_head_vector_table=loaded.lm_head_vector_table,
         num_clusters=8000,
-        num_iters=200,
+        num_iters=30,
         normalize_vectors=True,
         seed=0,
     )
@@ -134,38 +133,40 @@ def evaluate_flashhead(stored_path: str, model_name: str) -> None:
     )
 
     max_examples = 100
-    window_settings = WindowSettings(C1=200)
+    context_len = 200
+    num_windows_to_use = 20
+    batch_size = 8
+    model_device = next(loaded.model.parameters()).device
 
-    dataset = load_dataset(dataset_spec)
-
-    tokenized_examples = tokenize_dataset_to_examples(
-        dataset,
-        loaded.tokenizer,
-        dataset_spec,
+    dataloader = build_fixed_window_dataloader(
+        dataset_spec=dataset_spec,
+        model_and_tokenizer=ModelAndTokenizer(
+            model=loaded.model,
+            tokenizer=loaded.tokenizer,
+        ),
+        context_len=context_len,
         max_examples=max_examples,
+        num_windows_to_use=num_windows_to_use,
+        batch_size=batch_size,
+        device=model_device,
+        shuffle=False,
     )
 
-    training_windows = build_all_training_windows(
-        tokenized_examples,
-        window_settings,
-        dataset_spec,
-    )
-
-    window_tensors = [
-        torch.tensor(window.token_ids, dtype=torch.long)
-        for window in training_windows
-    ]
+    def iter_token_windows():
+        for input_ids, _attention_mask in dataloader:
+            for window_input_ids in input_ids:
+                yield window_input_ids
 
     metrics = evaluate_topk_containment_on_token_windows(
         model=loaded.model,
         centroids=stored.centroids,
         cluster_to_token_ids=stored.cluster_to_token_ids,
-        token_windows=window_tensors,
-        top_k_clusters=200,
-        max_windows=100,
+        token_windows=iter_token_windows(),
+        top_k_clusters=500,
+        max_windows=num_windows_to_use,
         max_positions_per_window=256,
         normalize_hidden_for_routing=True,
-        tokenizer=loaded.tokenizer
+        tokenizer=loaded.tokenizer,
     )
 
     print(metrics)

@@ -7,7 +7,7 @@ import torch
 from torch import Tensor
 from transformers import PreTrainedModel, PreTrainedTokenizerBase
 
-from skip_search_spec.training.flashhead.building_hierarchical_clusters import (
+from skip_search_spec.training.flashhead.old.building_hierarchical_clusters import (
     BuiltHierarchicalFlashHead,
     l2_normalize,
 )
