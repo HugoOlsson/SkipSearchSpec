@@ -47,8 +47,8 @@ def main() -> None:
 
         # models = ["Qwen/Qwen2.5-0.5B", "Qwen/Qwen2.5-3B", "Qwen/Qwen2.5-7B", "Qwen/Qwen3.5-0.8B", "Qwen/Qwen3.5-4B", "Qwen/Qwen3.5-9B"]
 
-        models = ["Qwen/Qwen2.5-3B", "Qwen/Qwen3.5-4B"]
-        active_start_end_lengths = [(1,1), (2, 0), (4, 4), (8, 0)]
+        models = ["Qwen/Qwen3.5-4B"]
+        active_start_end_lengths = [(2, 0), (4, 4), (8, 0)]
 
         for active_start_end in active_start_end_lengths: 
 
