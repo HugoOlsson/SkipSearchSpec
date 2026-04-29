@@ -37,12 +37,13 @@ def main() -> None:
             text_field="text",
         )
 
-        number_of_windows = 40_000
+        number_of_windows = 80_000
+        num_epochs = 1 # Ensure never get scores on data it has seen
         fraction_tiny = 0.3
         fraction_edu = 0.7
 
         # SINGLE LAYER AT START
-        print("Version: 1.2")
+        print("Version: 1.3, single epoch double the examples")
 
         models = ["Qwen/Qwen2.5-0.5B", "Qwen/Qwen2.5-3B", "Qwen/Qwen2.5-7B", "Qwen/Qwen3.5-0.8B", "Qwen/Qwen3.5-4B", "Qwen/Qwen3.5-9B"]
         active_start_end_lengths = [1,2,4]
@@ -62,7 +63,7 @@ def main() -> None:
                     batch_size=10,
                     active_start_layers=active_start_end, 
                     active_end_layers=active_start_end,
-                    num_epochs=2,
+                    num_epochs=num_epochs,
                     lr=1e-4,
                     max_steps=1000000, #just something big
                     kl_loss_weight=1.0,
