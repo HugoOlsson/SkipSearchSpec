@@ -33,7 +33,7 @@ class NoOpDecoderLayer(nn.Module):
     """
     Cheap replacement for a HF decoder layer.
 
-    Important: return a tuple, not a Tensor, because Qwen/LLaMA-style
+    Returns a tuple, not a Tensor, because Qwen/LLaMA-style
     decoder loops expect layer_outputs[0].
     """
 

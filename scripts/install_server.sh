@@ -40,11 +40,6 @@ if not torch.cuda.is_available():
     raise SystemExit("Expected CUDA to be available, but torch.cuda.is_available() is False.")
 PY
 
-echo "==> Installing TileLang for FLA Hopper backward kernels"
-poetry run python -m pip install \
-  --no-cache-dir \
-  "tilelang"
-
 echo "==> Installing causal-conv1d against this PyTorch/CUDA"
 MAX_JOBS="${MAX_JOBS:-4}" poetry run python -m pip install \
   --no-build-isolation \
@@ -60,12 +55,9 @@ print("torch:", torch.__version__)
 print("torch cuda:", torch.version.cuda)
 print("cuda available:", torch.cuda.is_available())
 
-if torch.cuda.is_available():
-    print("gpu:", torch.cuda.get_device_name(0))
-
 missing = []
 
-for name in ["fla", "fla.ops", "fla.layers", "causal_conv1d", "tilelang"]:
+for name in ["fla", "fla.ops", "fla.layers", "causal_conv1d"]:
     spec = importlib.util.find_spec(name)
     print(f"{name}: {spec.origin if spec else None}")
     if spec is None:
@@ -82,12 +74,10 @@ echo "==> Version check"
 poetry run python - <<'PY'
 import torch
 import triton
-import tilelang
 
 print("torch:", torch.__version__)
 print("torch cuda:", torch.version.cuda)
 print("triton:", triton.__version__)
-print("tilelang:", getattr(tilelang, "__version__", "unknown"))
 
 if torch.cuda.is_available():
     print("gpu:", torch.cuda.get_device_name(0))
