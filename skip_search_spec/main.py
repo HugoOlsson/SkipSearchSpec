@@ -37,7 +37,7 @@ def main() -> None:
             text_field="text",
         )
 
-        number_of_windows = 50_000
+        number_of_windows = 40_000
         fraction_tiny = 0.3
         fraction_edu = 0.7
 
@@ -59,7 +59,7 @@ def main() -> None:
                     ],
                     context_len=256,
                     num_windows_to_use=number_of_windows,
-                    batch_size=5,
+                    batch_size=10,
                     active_start_layers=active_start_end, 
                     active_end_layers=active_start_end,
                     num_epochs=2,
