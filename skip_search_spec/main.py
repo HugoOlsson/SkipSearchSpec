@@ -45,13 +45,13 @@ def main() -> None:
             text_field="text",
         )
 
-        number_of_windows = 10_000
+        number_of_windows = 30_000
         num_epochs = 1 # Ensure never get scores on data it has seen
         fraction_tiny = 0.3
         fraction_edu = 0.7
 
-        models = ["Qwen/Qwen2.5-3B", "Qwen/Qwen3.5-4B"]
-        active_start_end_lengths = [(1,1), (2, 0), (4, 4), (8, 0)]
+        models = ["Qwen/Qwen3.5-4B"]
+        active_start_end_lengths = [(4, 4)]
 
         # SINGLE LAYER AT START
         print("Version: 1.4")
