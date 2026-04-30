@@ -243,23 +243,6 @@ files = [
 ]
 
 [[package]]
-name = "causal-conv1d"
-version = "1.6.1"
-description = "Causal depthwise conv1d in CUDA, with a PyTorch interface"
-optional = true
-python-versions = ">=3.9"
-groups = ["main"]
-markers = "platform_system == \"Linux\" and platform_machine == \"x86_64\" and (extra == \"server\" or extra == \"all\")"
-files = [
-    {file = "causal_conv1d-1.6.1.tar.gz", hash = "sha256:e4a697ec2db3906f012e675125569f8b510b4559bc53e3095143d91369e1221b"},
-]
-
-[package.dependencies]
-ninja = "*"
-packaging = "*"
-torch = "*"
-
-[[package]]
 name = "certifi"
 version = "2026.2.25"
 description = "Python package for providing Mozilla's CA Bundle."
@@ -2161,7 +2144,7 @@ version = "1.13.0"
 description = "Ninja is a small build system with a focus on speed"
 optional = false
 python-versions = ">=3.8"
-groups = ["main", "build"]
+groups = ["build"]
 files = [
     {file = "ninja-1.13.0-py3-none-macosx_10_9_universal2.whl", hash = "sha256:fa2a8bfc62e31b08f83127d1613d10821775a0eb334197154c4d6067b7068ff1"},
     {file = "ninja-1.13.0-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:3d00c692fb717fd511abeb44b8c5d00340c36938c12d6538ba989fe764e79630"},
@@ -2183,7 +2166,6 @@ files = [
     {file = "ninja-1.13.0-py3-none-win_arm64.whl", hash = "sha256:3c0b40b1f0bba764644385319028650087b4c1b18cdfa6f45cb39a3669b81aa9"},
     {file = "ninja-1.13.0.tar.gz", hash = "sha256:4a40ce995ded54d9dc24f8ea37ff3bf62ad192b547f6c7126e7e25045e76f978"},
 ]
-markers = {main = "platform_system == \"Linux\" and platform_machine == \"x86_64\""}
 
 [[package]]
 name = "numpy"
@@ -4399,11 +4381,11 @@ multidict = ">=4.0"
 propcache = ">=0.2.1"
 
 [extras]
-all = ["causal-conv1d", "flash-head", "flash-linear-attention"]
+all = ["flash-head", "flash-linear-attention"]
 flashhead = ["flash-head"]
-server = ["causal-conv1d", "flash-linear-attention"]
+server = ["flash-linear-attention"]
 
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<3.14"
-content-hash = "ffe82dd47613e1ee5e9b0d520e9f683002412599c3384e6805ae0c2afda68e94"
+content-hash = "43a805ff05d07857edaeb5767159f580497d932a9f89aed8c31007adee6a3573"

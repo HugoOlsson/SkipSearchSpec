@@ -11,9 +11,9 @@ from sklearn.decomposition import PCA
 from skip_search_spec.helpers.shared_decoding_tools import build_fixed_window_dataloader
 from skip_search_spec.protocols.windows import DatasetSpec, ModelAndTokenizer
 from skip_search_spec.training.flashhead.building_clusters import build_clusters
-from skip_search_spec.training.flashhead.inference_testing import compare_dense_vs_routed_until_mismatch
-from skip_search_spec.training.flashhead.inference_testing2 import evaluate_topk_containment_on_token_windows
-from skip_search_spec.training.flashhead.inspection import inspect_cluster_tokens, visualize_centroids_2d, visualize_cluster_sizes, visualize_sampled_token_vectors_2d
+from skip_search_spec.training.flashhead.old.inference_testing import compare_dense_vs_routed_until_mismatch
+from skip_search_spec.training.flashhead.flashhead_inference_testing import evaluate_topk_containment_on_token_windows
+from skip_search_spec.training.flashhead.old.inspection import inspect_cluster_tokens, visualize_centroids_2d, visualize_cluster_sizes, visualize_sampled_token_vectors_2d
 from skip_search_spec.training.flashhead.storage import load_flashhead, save_flashhead
 
 
@@ -76,39 +76,12 @@ def build_flashhead_head(store_path: str, model_name: str) -> None:
     )
 
     print()
-    print("finished building clusters")
-
-    print()
-    print(f"token_to_cluster_mapping shape: {built_clusters.token_to_cluster_mapping.shape}")
-    print(f"centroids shape: {built_clusters.centroids.shape}")
-    print(f"cluster_sizes shape: {built_clusters.cluster_sizes.shape}")
-
-    print()
-    print("first 20 token -> cluster assignments:")
-    print(built_clusters.token_to_cluster_mapping[:20])
-
-    print()
-    print("first 10 cluster sizes:")
-    print(built_clusters.cluster_sizes[:10])
-
-    print()
     print("largest cluster size:")
     print(int(built_clusters.cluster_sizes.max().item()))
 
     print()
     print("smallest cluster size:")
     print(int(built_clusters.cluster_sizes.min().item()))
-
-    print()
-    print("first 3 centroid vectors:")
-    print(built_clusters.centroids[:3, :8])
-
-    print()
-    print(f"cluster_to_token_ids shape: {built_clusters.cluster_to_token_ids.shape}")
-
-    print()
-    print("first cluster, first 20 token ids:")
-    print(built_clusters.cluster_to_token_ids[0, :20])
 
     save_flashhead(
         path=store_path,
@@ -170,11 +143,4 @@ def evaluate_flashhead(stored_path: str, model_name: str) -> None:
     )
 
     print(metrics)
-
-    visualize_cluster_sizes(stored.cluster_sizes)
-    visualize_centroids_2d(stored.centroids)
-    visualize_sampled_token_vectors_2d(
-        loaded.lm_head_vector_table,
-        stored.token_to_cluster_mapping,
-    )
     plt.show()

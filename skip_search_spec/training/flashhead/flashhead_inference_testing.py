@@ -1,14 +1,25 @@
 from dataclasses import dataclass
 from typing import Iterable
 
+from skip_search_spec.training.flashhead.building_clusters import l2_normalize
 import torch
 from torch import Tensor
 from transformers import PreTrainedModel, PreTrainedTokenizerBase
 
-from skip_search_spec.training.flashhead.inference_testing import (
-    rescore_candidate_token_ids_with_dense_logits,
-    route_one_hidden_vector,
-)
+
+@dataclass(frozen=True, slots=True)
+class RescoreResult:
+    candidate_token_ids: Tensor
+    candidate_scores: Tensor
+    best_token_id: Tensor  # scalar tensor on device
+
+
+@dataclass(frozen=True, slots=True)
+class RouteCandidatesResult:
+    top_cluster_ids: Tensor
+    top_cluster_scores: Tensor
+    candidate_token_ids: Tensor
+
 
 
 @dataclass(frozen=True, slots=True)
@@ -173,3 +184,71 @@ def evaluate_topk_containment_on_token_windows(
     print(f"  mean_candidate_count={metrics.mean_candidate_count:.2f}")
 
     return metrics
+
+def rescore_candidate_token_ids_with_dense_logits(
+    candidate_token_ids: Tensor,
+    dense_logits: Tensor,
+) -> RescoreResult:
+    if candidate_token_ids.ndim != 1:
+        raise ValueError("candidate_token_ids must have shape [num_candidates]")
+
+    if dense_logits.ndim != 1:
+        raise ValueError("dense_logits must have shape [vocab_size]")
+
+    candidate_scores = dense_logits[candidate_token_ids]
+    max_score = candidate_scores.max()
+    tied_mask = candidate_scores == max_score
+    best_token_id = candidate_token_ids[tied_mask].min()
+
+    return RescoreResult(
+        candidate_token_ids=candidate_token_ids,
+        candidate_scores=candidate_scores,
+        best_token_id=best_token_id,
+    )
+
+
+
+def route_one_hidden_vector(
+    hidden_vector: Tensor,
+    centroids: Tensor,
+    cluster_to_token_ids: Tensor,
+    *,
+    top_k_clusters: int,
+    normalize_hidden_for_routing: bool = True,
+) -> RouteCandidatesResult:
+    if hidden_vector.ndim != 1:
+        raise ValueError("hidden_vector must have shape [hidden_size]")
+
+    if centroids.ndim != 2:
+        raise ValueError("centroids must have shape [num_clusters, hidden_size]")
+
+    if cluster_to_token_ids.ndim != 2:
+        raise ValueError("cluster_to_token_ids must have shape [num_clusters, max_cluster_size]")
+
+    if centroids.shape[0] != cluster_to_token_ids.shape[0]:
+        raise ValueError("centroids and cluster_to_token_ids must agree on num_clusters")
+
+    if normalize_hidden_for_routing:
+        route_hidden = l2_normalize(hidden_vector, dim=-1)
+    else:
+        route_hidden = hidden_vector
+
+    cluster_scores = route_hidden @ centroids.transpose(0, 1)
+    actual_top_k = min(top_k_clusters, int(centroids.shape[0]))
+    top_cluster_scores, top_cluster_ids = torch.topk(cluster_scores, k=actual_top_k)
+
+    selected_cluster_token_ids = cluster_to_token_ids[top_cluster_ids].reshape(-1)
+
+    # IMPORTANT:
+    # cluster_to_token_ids is padded with -1, and -1 is valid indexing in PyTorch,
+    # so we must remove padded entries before using these as token ids.
+    candidate_token_ids = selected_cluster_token_ids[selected_cluster_token_ids >= 0]
+
+    if candidate_token_ids.numel() == 0:
+        raise RuntimeError("Routing produced zero valid candidate token ids")
+
+    return RouteCandidatesResult(
+        top_cluster_ids=top_cluster_ids,
+        top_cluster_scores=top_cluster_scores,
+        candidate_token_ids=candidate_token_ids,
+    )
