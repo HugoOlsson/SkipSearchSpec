@@ -293,7 +293,7 @@ def main() -> None:
 
         result = self_spec_inference_test(
             bridge_checkpoint_path=bridge_checkpoint_path,
-            prompt="Once upon a time there was a girl called Lilly. Lilly liked to play in the sun with her friends.",
+            prompt="The name of the capital of France is",
             max_new_tokens=150,
             draft_block_size=int(draft_block_size),
         )

@@ -30,7 +30,6 @@ from skip_search_spec.helpers.shared_decoding_tools import (
     forward_model_logits,
     forward_with_layer_mask,
     get_decoder_layers,
-    kl_teacher_to_student_next_token,
     make_layer_pattern,
     shift_next_token_logits,
     stage as shared_stage,
@@ -906,25 +905,22 @@ def evaluate_layer_skip_ablations(
                     labels=labels,
                 )
 
-                kl_full_to_masked = kl_teacher_to_student_next_token(
-                    logits_teacher=logits_full,
-                    logits_student=logits_masked,
-                    attention_mask=attention_mask,
-                )
+                shift_logits_masked = shift_next_token_logits(logits_masked)
+                shift_logits_full = shift_next_token_logits(logits_full)
 
                 sim_metrics = distribution_similarity_metrics(
-                    shift_logits_mid=shift_next_token_logits(logits_masked),
-                    shift_logits_full=shift_next_token_logits(logits_full),
+                    shift_logits_drafter=shift_logits_masked,
+                    shift_logits_verifier=shift_logits_full,
                 )
 
             ce_full_values.append(ce_full.item())
             ce_masked_values.append(ce_masked.item())
-            kl_values.append(kl_full_to_masked.item())
-            js_values.append(sim_metrics["js"].item())
-            top1_values.append(sim_metrics["top1_agreement"].item())
-            overlap_values.append(sim_metrics["overlap"].item())
+            kl_values.append(sim_metrics["kl_verifier_to_drafter"].item())
+            js_values.append(sim_metrics["js_verifier_drafter"].item())
+            top1_values.append(sim_metrics["top1_drafter_matches_verifier"].item())
+            overlap_values.append(sim_metrics["prob_mass_overlap_verifier_drafter"].item())
             p_masked_on_full_argmax_values.append(
-                sim_metrics["p_mid_on_full_argmax"].item()
+                sim_metrics["p_drafter_on_verifier_top1"].item()
             )
 
             print(
@@ -934,7 +930,7 @@ def evaluate_layer_skip_ablations(
                 f"ce_masked={ce_masked.item():.4f} "
                 f"ce_full={ce_full.item():.4f} "
                 f"ce_gap={(ce_masked.item() - ce_full.item()):.4f} "
-                f"kl={kl_full_to_masked.item():.4f}"
+                f"kl={sim_metrics['kl_verifier_to_drafter'].item():.4f}"
             )
 
         mean_ce_masked = sum(ce_masked_values) / len(ce_masked_values)

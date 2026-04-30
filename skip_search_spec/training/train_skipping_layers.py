@@ -47,24 +47,24 @@ def train_skipping_layers(
     *,
     model_name: str,
     dataset_mix: list[tuple[DatasetSpec, float, int]],
-    context_len: int,
-    num_windows_to_use: int = 256,
+    context_len: int = 256, # Always use 256 token windows to get a good balance between context and compute
+    num_windows_to_use: int,
     batch_size: int = 2,
-    active_start_layers=1,
-    active_end_layers=1,
-    num_epochs: int = 1,
-    max_steps: int | None = None,
+    active_start_layers: int,
+    active_end_layers: int,
+    num_epochs: int = 1, # Always one to maximize data exposure per compute
+    max_steps: int | None = 100_000_000, # just something big
     lr: float = 1e-4,
     weight_decay: float = 0.0,
     max_grad_norm: float | None = None,
     kl_loss_weight: float = 1.0,
-    hidden_loss_weight: float = 0.0,
     ce_loss_weight: float = 1.0,
+    hidden_loss_weight: float = 0.0,
     teacher_temperature: float = 1.0,
     reference_hidden_source: ReferenceHiddenSource = "reentry",
     model_kwargs: dict[str, Any] | None = None,
-    checkpoint_every_steps: int | None = 500,
-    log_every: int = 50,
+    checkpoint_every_steps: int | None = None,
+    log_every: int = 100,
     measurement_save_interval_seconds: float = 60.0,
 ) -> TrainGapBridgeOutput:
     stage("train_gap_bridge: start")
