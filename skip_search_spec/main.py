@@ -51,7 +51,7 @@ def main() -> None:
         fraction_edu = 0.7
 
         models = ["Qwen/Qwen3.5-4B"]
-        active_start_end_lengths = [(4, 4)]
+        active_start_end_lengths = [(6, 6)]
 
         # SINGLE LAYER AT START
         print("Version: 1.4")
