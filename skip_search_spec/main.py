@@ -48,13 +48,11 @@ def main() -> None:
         fraction_tiny = 0.3
         fraction_edu = 0.7
 
-        # SINGLE LAYER AT START
-        print("Version: 1.4")
-
-        # models = ["Qwen/Qwen2.5-0.5B", "Qwen/Qwen2.5-3B", "Qwen/Qwen2.5-7B", "Qwen/Qwen3.5-0.8B", "Qwen/Qwen3.5-4B", "Qwen/Qwen3.5-9B"]
-
         models = ["Qwen/Qwen2.5-3B", "Qwen/Qwen3.5-4B"]
         active_start_end_lengths = [(1,1), (2, 0), (4, 4), (8, 0)]
+
+        # SINGLE LAYER AT START
+        print("Version: 1.4")
 
         for active_start_layers, active_end_layers in active_start_end_lengths: 
 
@@ -223,7 +221,7 @@ def main() -> None:
 
         plot_ablation_json(
             file_path,
-            metric="kl_per_removed_layer",
+            metric="mean_top1_agreement",
             top_k=None,   # or e.g. 50
         )
 
@@ -242,18 +240,21 @@ def main() -> None:
         from skip_search_spec.analysis.plot_training_metrics import plot_training_metric_jsons
 
         file_paths = [
-            "measurements/2026-04-29-ac289b/middle_gap_skip/14241917_AP29__Qwen_Qwen2_5-3B_4_28_4/run.json",
-            "measurements/2026-04-29-ac289b/middle_gap_skip/14132321_AP29__Qwen_Qwen3_5-4B_2_30_0/run.json",
-            "measurements/2026-04-29-ac289b/middle_gap_skip/14061160_AP29__Qwen_Qwen2_5-3B_2_34_0/run.json",
-            "measurements/2026-04-29-ac289b/middle_gap_skip/13550030_AP29__Qwen_Qwen3_5-4B_1_30_1/run.json",
-            "measurements/2026-04-29-ac289b/middle_gap_skip/13473853_AP29__Qwen_Qwen2_5-3B_1_34_1/run.json",
+            "measurements/2026-04-29-3b686b/middle_gap_skip/19080074_AP29__Qwen_Qwen2_5-3B_1_34_1/run.json",
+            "measurements/2026-04-29-3b686b/middle_gap_skip/19124208_AP29__Qwen_Qwen3_5-4B_1_30_1/run.json",
+            "measurements/2026-04-29-3b686b/middle_gap_skip/19200197_AP29__Qwen_Qwen2_5-3B_2_34_0/run.json",
+            "measurements/2026-04-29-3b686b/middle_gap_skip/19244111_AP29__Qwen_Qwen3_5-4B_2_30_0/run.json",
+            "measurements/2026-04-29-3b686b/middle_gap_skip/19315436_AP29__Qwen_Qwen2_5-3B_4_28_4/run.json",
+            "measurements/2026-04-29-3b686b/middle_gap_skip/19370067_AP29__Qwen_Qwen3_5-4B_4_24_4/run.json",
+            "measurements/2026-04-29-3b686b/middle_gap_skip/19450569_AP29__Qwen_Qwen2_5-3B_8_28_0/run.json",
+            "measurements/2026-04-29-3b686b/middle_gap_skip/19495741_AP29__Qwen_Qwen3_5-4B_8_24_0/run.json",
         ]
 
         plot_training_metric_jsons(
             file_paths,
             metric_name="kl_verifier_to_drafter",
             phase="train",
-            output_dir="measurements/training_metric_plots2",
+            output_dir="measurements/training_metric_plots3",
         )
 
 

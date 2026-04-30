@@ -1,0 +1,16 @@
+
+
+
+
+measurements/2026-04-29-3b686b {
+    # Was made before the Embedl meeting 2026-04-30. 
+
+    number_of_windows = 10_000
+    num_epochs = 1 # Ensure never get scores on data it has seen
+    fraction_tiny = 0.3
+    fraction_edu = 0.7
+
+    models = ["Qwen/Qwen2.5-3B", "Qwen/Qwen3.5-4B"]
+    active_start_end_lengths = [(1,1), (2, 0), (4, 4), (8, 0)]
+}
+

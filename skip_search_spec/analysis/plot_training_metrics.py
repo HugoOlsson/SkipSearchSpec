@@ -102,6 +102,24 @@ def _load_metric_series(
         values=values,
     )
 
+def _moving_average(values: list[float], window: int) -> list[float]:
+    if window <= 1:
+        return values
+
+    smoothed: list[float] = []
+    running_sum = 0.0
+
+    for i, value in enumerate(values):
+        running_sum += value
+
+        if i >= window:
+            running_sum -= values[i - window]
+
+        count = min(i + 1, window)
+        smoothed.append(running_sum / count)
+
+    return smoothed
+
 
 def plot_training_metric_jsons(
     json_paths: Iterable[str | Path],
@@ -110,6 +128,8 @@ def plot_training_metric_jsons(
     phase: str = "train",
     output_dir: str | Path = "measurements/training_metric_plots",
     y_log_scale: bool = False,
+    y_range: tuple[float, float] | None = (0,4),
+    smooth_window: int = 10,
 ) -> Path:
     paths = [Path(p) for p in json_paths]
 
@@ -127,19 +147,28 @@ def plot_training_metric_jsons(
     fig, ax = plt.subplots(figsize=(13, 7))
 
     for series in series_list:
+        values = _moving_average(series.values, smooth_window)
+
         ax.plot(
             series.steps,
-            series.values,
+            values,
             linewidth=1.8,
             label=series.label,
         )
 
-    ax.set_title(f"{metric_name} over training")
+    title = f"{metric_name} over training"
+    if smooth_window > 1:
+        title += f" smoothed, window={smooth_window}"
+
+    ax.set_title(title)
     ax.set_xlabel("step")
     ax.set_ylabel(metric_name)
 
     if y_log_scale:
         ax.set_yscale("log")
+
+    if y_range is not None:
+        ax.set_ylim(*y_range)
 
     ax.grid(True, alpha=0.3)
     ax.legend(fontsize=7)

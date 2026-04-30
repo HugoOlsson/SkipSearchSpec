@@ -1,0 +1,4185 @@
+{
+  "context": {
+    "created_at_utc": "2026-04-29T19:20:01.979+00:00",
+    "dataset_name": "TinyStories:0.3 + FineWeb-Edu-1B:0.7",
+    "experiment_type": "middle_gap_skip",
+    "git_commit": "3b686ba5b3f8725b6e20880ca68104066680267d",
+    "git_tag": null,
+    "model_names": [
+      "Qwen/Qwen2.5-3B"
+    ],
+    "run_config": {
+      "active_layers": [
+        0,
+        1
+      ],
+      "batch_size": 4,
+      "binary_mask": "[1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]",
+      "ce_loss_weight": 1.0,
+      "checkpoint_every_steps": 2000,
+      "context_len": 256,
+      "dataset_mix": [
+        {
+          "config_name": "default",
+          "huggingface_path": "roneneldan/TinyStories",
+          "max_examples": 21000,
+          "name": "TinyStories",
+          "split": "train",
+          "text_field": "text",
+          "weight": 0.3
+        },
+        {
+          "config_name": "default",
+          "huggingface_path": "codelion/fineweb-edu-1B",
+          "max_examples": 10500,
+          "name": "FineWeb-Edu-1B",
+          "split": "train",
+          "text_field": "text",
+          "weight": 0.7
+        }
+      ],
+      "device": "cuda",
+      "effective_mode": "EARLY-EXIT",
+      "gap_end": 36,
+      "gap_length": 34,
+      "gap_start": 2,
+      "hidden_loss_weight": 0,
+      "hidden_size": 2048,
+      "kl_loss_weight": 1.0,
+      "log_every": 50,
+      "lr": 0.0001,
+      "max_grad_norm": null,
+      "max_steps": 1000000,
+      "model_kwargs": {},
+      "model_name": "Qwen/Qwen2.5-3B",
+      "num_epochs": 1,
+      "num_layers": 36,
+      "num_windows_to_use": 10000,
+      "reference_hidden_source": "reentry",
+      "skipped_layers": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35
+      ],
+      "steps_per_epoch": 2500,
+      "teacher_temperature": 1.0,
+      "visual_mask": "\u2588\u2588\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7",
+      "weight_decay": 0.0
+    },
+    "run_id": "19200197_AP29",
+    "run_name": "Qwen_Qwen2_5-3B_2:34:0"
+  },
+  "metric_events": [
+    {
+      "name": "loss_total",
+      "phase": "train",
+      "step": 1,
+      "timestamp_utc": "2026-04-29T19:20:02.137+00:00",
+      "unit": null,
+      "value": 39.42224884033203
+    },
+    {
+      "name": "loss_kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 1,
+      "timestamp_utc": "2026-04-29T19:20:02.137+00:00",
+      "unit": null,
+      "value": 18.798023223876953
+    },
+    {
+      "name": "loss_bridge_reentry_mse",
+      "phase": "train",
+      "step": 1,
+      "timestamp_utc": "2026-04-29T19:20:02.137+00:00",
+      "unit": null,
+      "value": 105.0752944946289
+    },
+    {
+      "name": "loss_ce_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 1,
+      "timestamp_utc": "2026-04-29T19:20:02.137+00:00",
+      "unit": null,
+      "value": 20.624225616455078
+    },
+    {
+      "name": "kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 1,
+      "timestamp_utc": "2026-04-29T19:20:02.137+00:00",
+      "unit": null,
+      "value": 18.798025131225586
+    },
+    {
+      "name": "kl_drafter_to_verifier",
+      "phase": "train",
+      "step": 1,
+      "timestamp_utc": "2026-04-29T19:20:02.137+00:00",
+      "unit": null,
+      "value": 20.31502914428711
+    },
+    {
+      "name": "js_verifier_drafter",
+      "phase": "train",
+      "step": 1,
+      "timestamp_utc": "2026-04-29T19:20:02.137+00:00",
+      "unit": null,
+      "value": 0.6902106404304504
+    },
+    {
+      "name": "top1_drafter_matches_verifier",
+      "phase": "train",
+      "step": 1,
+      "timestamp_utc": "2026-04-29T19:20:02.137+00:00",
+      "unit": null,
+      "value": 0.0019607844296842813
+    },
+    {
+      "name": "prob_mass_overlap_verifier_drafter",
+      "phase": "train",
+      "step": 1,
+      "timestamp_utc": "2026-04-29T19:20:02.137+00:00",
+      "unit": null,
+      "value": 0.0026081742253154516
+    },
+    {
+      "name": "p_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 1,
+      "timestamp_utc": "2026-04-29T19:20:02.137+00:00",
+      "unit": null,
+      "value": 0.0014835665933787823
+    },
+    {
+      "name": "loss_total",
+      "phase": "train",
+      "step": 50,
+      "timestamp_utc": "2026-04-29T19:20:07.235+00:00",
+      "unit": null,
+      "value": 10.703611373901367
+    },
+    {
+      "name": "loss_kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 50,
+      "timestamp_utc": "2026-04-29T19:20:07.235+00:00",
+      "unit": null,
+      "value": 4.993492603302002
+    },
+    {
+      "name": "loss_bridge_reentry_mse",
+      "phase": "train",
+      "step": 50,
+      "timestamp_utc": "2026-04-29T19:20:07.235+00:00",
+      "unit": null,
+      "value": 114.87088775634766
+    },
+    {
+      "name": "loss_ce_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 50,
+      "timestamp_utc": "2026-04-29T19:20:07.235+00:00",
+      "unit": null,
+      "value": 5.710118770599365
+    },
+    {
+      "name": "kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 50,
+      "timestamp_utc": "2026-04-29T19:20:07.235+00:00",
+      "unit": null,
+      "value": 4.993492603302002
+    },
+    {
+      "name": "kl_drafter_to_verifier",
+      "phase": "train",
+      "step": 50,
+      "timestamp_utc": "2026-04-29T19:20:07.235+00:00",
+      "unit": null,
+      "value": 5.736732482910156
+    },
+    {
+      "name": "js_verifier_drafter",
+      "phase": "train",
+      "step": 50,
+      "timestamp_utc": "2026-04-29T19:20:07.236+00:00",
+      "unit": null,
+      "value": 0.46821925044059753
+    },
+    {
+      "name": "top1_drafter_matches_verifier",
+      "phase": "train",
+      "step": 50,
+      "timestamp_utc": "2026-04-29T19:20:07.236+00:00",
+      "unit": null,
+      "value": 0.2137255072593689
+    },
+    {
+      "name": "prob_mass_overlap_verifier_drafter",
+      "phase": "train",
+      "step": 50,
+      "timestamp_utc": "2026-04-29T19:20:07.236+00:00",
+      "unit": null,
+      "value": 0.21467755734920502
+    },
+    {
+      "name": "p_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 50,
+      "timestamp_utc": "2026-04-29T19:20:07.236+00:00",
+      "unit": null,
+      "value": 0.12451120465993881
+    },
+    {
+      "name": "loss_total",
+      "phase": "train",
+      "step": 100,
+      "timestamp_utc": "2026-04-29T19:20:12.408+00:00",
+      "unit": null,
+      "value": 8.630086898803711
+    },
+    {
+      "name": "loss_kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 100,
+      "timestamp_utc": "2026-04-29T19:20:12.408+00:00",
+      "unit": null,
+      "value": 3.8717198371887207
+    },
+    {
+      "name": "loss_bridge_reentry_mse",
+      "phase": "train",
+      "step": 100,
+      "timestamp_utc": "2026-04-29T19:20:12.408+00:00",
+      "unit": null,
+      "value": 105.4625473022461
+    },
+    {
+      "name": "loss_ce_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 100,
+      "timestamp_utc": "2026-04-29T19:20:12.408+00:00",
+      "unit": null,
+      "value": 4.758367538452148
+    },
+    {
+      "name": "kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 100,
+      "timestamp_utc": "2026-04-29T19:20:12.408+00:00",
+      "unit": null,
+      "value": 3.8717200756073
+    },
+    {
+      "name": "kl_drafter_to_verifier",
+      "phase": "train",
+      "step": 100,
+      "timestamp_utc": "2026-04-29T19:20:12.408+00:00",
+      "unit": null,
+      "value": 5.4543585777282715
+    },
+    {
+      "name": "js_verifier_drafter",
+      "phase": "train",
+      "step": 100,
+      "timestamp_utc": "2026-04-29T19:20:12.408+00:00",
+      "unit": null,
+      "value": 0.43705490231513977
+    },
+    {
+      "name": "top1_drafter_matches_verifier",
+      "phase": "train",
+      "step": 100,
+      "timestamp_utc": "2026-04-29T19:20:12.408+00:00",
+      "unit": null,
+      "value": 0.30000001192092896
+    },
+    {
+      "name": "prob_mass_overlap_verifier_drafter",
+      "phase": "train",
+      "step": 100,
+      "timestamp_utc": "2026-04-29T19:20:12.408+00:00",
+      "unit": null,
+      "value": 0.25074225664138794
+    },
+    {
+      "name": "p_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 100,
+      "timestamp_utc": "2026-04-29T19:20:12.408+00:00",
+      "unit": null,
+      "value": 0.15006448328495026
+    },
+    {
+      "name": "loss_total",
+      "phase": "train",
+      "step": 150,
+      "timestamp_utc": "2026-04-29T19:20:17.549+00:00",
+      "unit": null,
+      "value": 7.50408935546875
+    },
+    {
+      "name": "loss_kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 150,
+      "timestamp_utc": "2026-04-29T19:20:17.549+00:00",
+      "unit": null,
+      "value": 3.281623601913452
+    },
+    {
+      "name": "loss_bridge_reentry_mse",
+      "phase": "train",
+      "step": 150,
+      "timestamp_utc": "2026-04-29T19:20:17.549+00:00",
+      "unit": null,
+      "value": 119.6949691772461
+    },
+    {
+      "name": "loss_ce_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 150,
+      "timestamp_utc": "2026-04-29T19:20:17.549+00:00",
+      "unit": null,
+      "value": 4.222465515136719
+    },
+    {
+      "name": "kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 150,
+      "timestamp_utc": "2026-04-29T19:20:17.549+00:00",
+      "unit": null,
+      "value": 3.2816238403320312
+    },
+    {
+      "name": "kl_drafter_to_verifier",
+      "phase": "train",
+      "step": 150,
+      "timestamp_utc": "2026-04-29T19:20:17.549+00:00",
+      "unit": null,
+      "value": 4.007678508758545
+    },
+    {
+      "name": "js_verifier_drafter",
+      "phase": "train",
+      "step": 150,
+      "timestamp_utc": "2026-04-29T19:20:17.549+00:00",
+      "unit": null,
+      "value": 0.3884246349334717
+    },
+    {
+      "name": "top1_drafter_matches_verifier",
+      "phase": "train",
+      "step": 150,
+      "timestamp_utc": "2026-04-29T19:20:17.549+00:00",
+      "unit": null,
+      "value": 0.322549045085907
+    },
+    {
+      "name": "prob_mass_overlap_verifier_drafter",
+      "phase": "train",
+      "step": 150,
+      "timestamp_utc": "2026-04-29T19:20:17.549+00:00",
+      "unit": null,
+      "value": 0.3002682626247406
+    },
+    {
+      "name": "p_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 150,
+      "timestamp_utc": "2026-04-29T19:20:17.549+00:00",
+      "unit": null,
+      "value": 0.16689781844615936
+    },
+    {
+      "name": "loss_total",
+      "phase": "train",
+      "step": 200,
+      "timestamp_utc": "2026-04-29T19:20:22.710+00:00",
+      "unit": null,
+      "value": 8.79928970336914
+    },
+    {
+      "name": "loss_kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 200,
+      "timestamp_utc": "2026-04-29T19:20:22.710+00:00",
+      "unit": null,
+      "value": 3.8340795040130615
+    },
+    {
+      "name": "loss_bridge_reentry_mse",
+      "phase": "train",
+      "step": 200,
+      "timestamp_utc": "2026-04-29T19:20:22.710+00:00",
+      "unit": null,
+      "value": 122.27218627929688
+    },
+    {
+      "name": "loss_ce_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 200,
+      "timestamp_utc": "2026-04-29T19:20:22.710+00:00",
+      "unit": null,
+      "value": 4.965210437774658
+    },
+    {
+      "name": "kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 200,
+      "timestamp_utc": "2026-04-29T19:20:22.710+00:00",
+      "unit": null,
+      "value": 3.8340797424316406
+    },
+    {
+      "name": "kl_drafter_to_verifier",
+      "phase": "train",
+      "step": 200,
+      "timestamp_utc": "2026-04-29T19:20:22.710+00:00",
+      "unit": null,
+      "value": 4.6354780197143555
+    },
+    {
+      "name": "js_verifier_drafter",
+      "phase": "train",
+      "step": 200,
+      "timestamp_utc": "2026-04-29T19:20:22.710+00:00",
+      "unit": null,
+      "value": 0.4182736575603485
+    },
+    {
+      "name": "top1_drafter_matches_verifier",
+      "phase": "train",
+      "step": 200,
+      "timestamp_utc": "2026-04-29T19:20:22.711+00:00",
+      "unit": null,
+      "value": 0.30000001192092896
+    },
+    {
+      "name": "prob_mass_overlap_verifier_drafter",
+      "phase": "train",
+      "step": 200,
+      "timestamp_utc": "2026-04-29T19:20:22.711+00:00",
+      "unit": null,
+      "value": 0.27280980348587036
+    },
+    {
+      "name": "p_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 200,
+      "timestamp_utc": "2026-04-29T19:20:22.711+00:00",
+      "unit": null,
+      "value": 0.14975374937057495
+    },
+    {
+      "name": "loss_total",
+      "phase": "train",
+      "step": 250,
+      "timestamp_utc": "2026-04-29T19:20:27.865+00:00",
+      "unit": null,
+      "value": 6.475536346435547
+    },
+    {
+      "name": "loss_kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 250,
+      "timestamp_utc": "2026-04-29T19:20:27.865+00:00",
+      "unit": null,
+      "value": 2.8649213314056396
+    },
+    {
+      "name": "loss_bridge_reentry_mse",
+      "phase": "train",
+      "step": 250,
+      "timestamp_utc": "2026-04-29T19:20:27.865+00:00",
+      "unit": null,
+      "value": 105.15946960449219
+    },
+    {
+      "name": "loss_ce_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 250,
+      "timestamp_utc": "2026-04-29T19:20:27.865+00:00",
+      "unit": null,
+      "value": 3.6106152534484863
+    },
+    {
+      "name": "kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 250,
+      "timestamp_utc": "2026-04-29T19:20:27.865+00:00",
+      "unit": null,
+      "value": 2.8649215698242188
+    },
+    {
+      "name": "kl_drafter_to_verifier",
+      "phase": "train",
+      "step": 250,
+      "timestamp_utc": "2026-04-29T19:20:27.865+00:00",
+      "unit": null,
+      "value": 3.8016326427459717
+    },
+    {
+      "name": "js_verifier_drafter",
+      "phase": "train",
+      "step": 250,
+      "timestamp_utc": "2026-04-29T19:20:27.865+00:00",
+      "unit": null,
+      "value": 0.3659135103225708
+    },
+    {
+      "name": "top1_drafter_matches_verifier",
+      "phase": "train",
+      "step": 250,
+      "timestamp_utc": "2026-04-29T19:20:27.865+00:00",
+      "unit": null,
+      "value": 0.3607843220233917
+    },
+    {
+      "name": "prob_mass_overlap_verifier_drafter",
+      "phase": "train",
+      "step": 250,
+      "timestamp_utc": "2026-04-29T19:20:27.865+00:00",
+      "unit": null,
+      "value": 0.3305469751358032
+    },
+    {
+      "name": "p_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 250,
+      "timestamp_utc": "2026-04-29T19:20:27.865+00:00",
+      "unit": null,
+      "value": 0.20921871066093445
+    },
+    {
+      "name": "loss_total",
+      "phase": "train",
+      "step": 300,
+      "timestamp_utc": "2026-04-29T19:20:33.005+00:00",
+      "unit": null,
+      "value": 8.734790802001953
+    },
+    {
+      "name": "loss_kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 300,
+      "timestamp_utc": "2026-04-29T19:20:33.005+00:00",
+      "unit": null,
+      "value": 3.8979830741882324
+    },
+    {
+      "name": "loss_bridge_reentry_mse",
+      "phase": "train",
+      "step": 300,
+      "timestamp_utc": "2026-04-29T19:20:33.005+00:00",
+      "unit": null,
+      "value": 118.13668823242188
+    },
+    {
+      "name": "loss_ce_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 300,
+      "timestamp_utc": "2026-04-29T19:20:33.005+00:00",
+      "unit": null,
+      "value": 4.8368072509765625
+    },
+    {
+      "name": "kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 300,
+      "timestamp_utc": "2026-04-29T19:20:33.005+00:00",
+      "unit": null,
+      "value": 3.8979833126068115
+    },
+    {
+      "name": "kl_drafter_to_verifier",
+      "phase": "train",
+      "step": 300,
+      "timestamp_utc": "2026-04-29T19:20:33.005+00:00",
+      "unit": null,
+      "value": 5.095239162445068
+    },
+    {
+      "name": "js_verifier_drafter",
+      "phase": "train",
+      "step": 300,
+      "timestamp_utc": "2026-04-29T19:20:33.005+00:00",
+      "unit": null,
+      "value": 0.4172531068325043
+    },
+    {
+      "name": "top1_drafter_matches_verifier",
+      "phase": "train",
+      "step": 300,
+      "timestamp_utc": "2026-04-29T19:20:33.005+00:00",
+      "unit": null,
+      "value": 0.32549020648002625
+    },
+    {
+      "name": "prob_mass_overlap_verifier_drafter",
+      "phase": "train",
+      "step": 300,
+      "timestamp_utc": "2026-04-29T19:20:33.005+00:00",
+      "unit": null,
+      "value": 0.2784944772720337
+    },
+    {
+      "name": "p_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 300,
+      "timestamp_utc": "2026-04-29T19:20:33.005+00:00",
+      "unit": null,
+      "value": 0.1760338991880417
+    },
+    {
+      "name": "loss_total",
+      "phase": "train",
+      "step": 350,
+      "timestamp_utc": "2026-04-29T19:20:38.132+00:00",
+      "unit": null,
+      "value": 6.25132942199707
+    },
+    {
+      "name": "loss_kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 350,
+      "timestamp_utc": "2026-04-29T19:20:38.132+00:00",
+      "unit": null,
+      "value": 2.670374631881714
+    },
+    {
+      "name": "loss_bridge_reentry_mse",
+      "phase": "train",
+      "step": 350,
+      "timestamp_utc": "2026-04-29T19:20:38.132+00:00",
+      "unit": null,
+      "value": 99.2011947631836
+    },
+    {
+      "name": "loss_ce_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 350,
+      "timestamp_utc": "2026-04-29T19:20:38.132+00:00",
+      "unit": null,
+      "value": 3.5809550285339355
+    },
+    {
+      "name": "kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 350,
+      "timestamp_utc": "2026-04-29T19:20:38.132+00:00",
+      "unit": null,
+      "value": 2.670374870300293
+    },
+    {
+      "name": "kl_drafter_to_verifier",
+      "phase": "train",
+      "step": 350,
+      "timestamp_utc": "2026-04-29T19:20:38.132+00:00",
+      "unit": null,
+      "value": 3.712602376937866
+    },
+    {
+      "name": "js_verifier_drafter",
+      "phase": "train",
+      "step": 350,
+      "timestamp_utc": "2026-04-29T19:20:38.132+00:00",
+      "unit": null,
+      "value": 0.34928464889526367
+    },
+    {
+      "name": "top1_drafter_matches_verifier",
+      "phase": "train",
+      "step": 350,
+      "timestamp_utc": "2026-04-29T19:20:38.132+00:00",
+      "unit": null,
+      "value": 0.3852941393852234
+    },
+    {
+      "name": "prob_mass_overlap_verifier_drafter",
+      "phase": "train",
+      "step": 350,
+      "timestamp_utc": "2026-04-29T19:20:38.132+00:00",
+      "unit": null,
+      "value": 0.35116568207740784
+    },
+    {
+      "name": "p_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 350,
+      "timestamp_utc": "2026-04-29T19:20:38.132+00:00",
+      "unit": null,
+      "value": 0.2142031043767929
+    },
+    {
+      "name": "loss_total",
+      "phase": "train",
+      "step": 400,
+      "timestamp_utc": "2026-04-29T19:20:43.287+00:00",
+      "unit": null,
+      "value": 8.082230567932129
+    },
+    {
+      "name": "loss_kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 400,
+      "timestamp_utc": "2026-04-29T19:20:43.287+00:00",
+      "unit": null,
+      "value": 3.529006242752075
+    },
+    {
+      "name": "loss_bridge_reentry_mse",
+      "phase": "train",
+      "step": 400,
+      "timestamp_utc": "2026-04-29T19:20:43.287+00:00",
+      "unit": null,
+      "value": 119.67970275878906
+    },
+    {
+      "name": "loss_ce_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 400,
+      "timestamp_utc": "2026-04-29T19:20:43.287+00:00",
+      "unit": null,
+      "value": 4.553224563598633
+    },
+    {
+      "name": "kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 400,
+      "timestamp_utc": "2026-04-29T19:20:43.287+00:00",
+      "unit": null,
+      "value": 3.5290064811706543
+    },
+    {
+      "name": "kl_drafter_to_verifier",
+      "phase": "train",
+      "step": 400,
+      "timestamp_utc": "2026-04-29T19:20:43.287+00:00",
+      "unit": null,
+      "value": 4.503854751586914
+    },
+    {
+      "name": "js_verifier_drafter",
+      "phase": "train",
+      "step": 400,
+      "timestamp_utc": "2026-04-29T19:20:43.287+00:00",
+      "unit": null,
+      "value": 0.40474072098731995
+    },
+    {
+      "name": "top1_drafter_matches_verifier",
+      "phase": "train",
+      "step": 400,
+      "timestamp_utc": "2026-04-29T19:20:43.287+00:00",
+      "unit": null,
+      "value": 0.3127451241016388
+    },
+    {
+      "name": "prob_mass_overlap_verifier_drafter",
+      "phase": "train",
+      "step": 400,
+      "timestamp_utc": "2026-04-29T19:20:43.287+00:00",
+      "unit": null,
+      "value": 0.28808608651161194
+    },
+    {
+      "name": "p_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 400,
+      "timestamp_utc": "2026-04-29T19:20:43.287+00:00",
+      "unit": null,
+      "value": 0.1700378954410553
+    },
+    {
+      "name": "loss_total",
+      "phase": "train",
+      "step": 450,
+      "timestamp_utc": "2026-04-29T19:20:48.441+00:00",
+      "unit": null,
+      "value": 6.639462471008301
+    },
+    {
+      "name": "loss_kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 450,
+      "timestamp_utc": "2026-04-29T19:20:48.441+00:00",
+      "unit": null,
+      "value": 2.8394362926483154
+    },
+    {
+      "name": "loss_bridge_reentry_mse",
+      "phase": "train",
+      "step": 450,
+      "timestamp_utc": "2026-04-29T19:20:48.441+00:00",
+      "unit": null,
+      "value": 112.30715942382812
+    },
+    {
+      "name": "loss_ce_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 450,
+      "timestamp_utc": "2026-04-29T19:20:48.441+00:00",
+      "unit": null,
+      "value": 3.8000259399414062
+    },
+    {
+      "name": "kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 450,
+      "timestamp_utc": "2026-04-29T19:20:48.441+00:00",
+      "unit": null,
+      "value": 2.8394365310668945
+    },
+    {
+      "name": "kl_drafter_to_verifier",
+      "phase": "train",
+      "step": 450,
+      "timestamp_utc": "2026-04-29T19:20:48.441+00:00",
+      "unit": null,
+      "value": 3.4309606552124023
+    },
+    {
+      "name": "js_verifier_drafter",
+      "phase": "train",
+      "step": 450,
+      "timestamp_utc": "2026-04-29T19:20:48.441+00:00",
+      "unit": null,
+      "value": 0.36389806866645813
+    },
+    {
+      "name": "top1_drafter_matches_verifier",
+      "phase": "train",
+      "step": 450,
+      "timestamp_utc": "2026-04-29T19:20:48.441+00:00",
+      "unit": null,
+      "value": 0.3480392396450043
+    },
+    {
+      "name": "prob_mass_overlap_verifier_drafter",
+      "phase": "train",
+      "step": 450,
+      "timestamp_utc": "2026-04-29T19:20:48.441+00:00",
+      "unit": null,
+      "value": 0.3272004723548889
+    },
+    {
+      "name": "p_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 450,
+      "timestamp_utc": "2026-04-29T19:20:48.441+00:00",
+      "unit": null,
+      "value": 0.187583789229393
+    },
+    {
+      "name": "loss_total",
+      "phase": "train",
+      "step": 500,
+      "timestamp_utc": "2026-04-29T19:20:53.586+00:00",
+      "unit": null,
+      "value": 4.639619827270508
+    },
+    {
+      "name": "loss_kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 500,
+      "timestamp_utc": "2026-04-29T19:20:53.586+00:00",
+      "unit": null,
+      "value": 1.9594248533248901
+    },
+    {
+      "name": "loss_bridge_reentry_mse",
+      "phase": "train",
+      "step": 500,
+      "timestamp_utc": "2026-04-29T19:20:53.586+00:00",
+      "unit": null,
+      "value": 85.5811538696289
+    },
+    {
+      "name": "loss_ce_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 500,
+      "timestamp_utc": "2026-04-29T19:20:53.587+00:00",
+      "unit": null,
+      "value": 2.6801950931549072
+    },
+    {
+      "name": "kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 500,
+      "timestamp_utc": "2026-04-29T19:20:53.587+00:00",
+      "unit": null,
+      "value": 1.9594249725341797
+    },
+    {
+      "name": "kl_drafter_to_verifier",
+      "phase": "train",
+      "step": 500,
+      "timestamp_utc": "2026-04-29T19:20:53.587+00:00",
+      "unit": null,
+      "value": 3.0747618675231934
+    },
+    {
+      "name": "js_verifier_drafter",
+      "phase": "train",
+      "step": 500,
+      "timestamp_utc": "2026-04-29T19:20:53.587+00:00",
+      "unit": null,
+      "value": 0.2983892560005188
+    },
+    {
+      "name": "top1_drafter_matches_verifier",
+      "phase": "train",
+      "step": 500,
+      "timestamp_utc": "2026-04-29T19:20:53.587+00:00",
+      "unit": null,
+      "value": 0.45686277747154236
+    },
+    {
+      "name": "prob_mass_overlap_verifier_drafter",
+      "phase": "train",
+      "step": 500,
+      "timestamp_utc": "2026-04-29T19:20:53.587+00:00",
+      "unit": null,
+      "value": 0.41545408964157104
+    },
+    {
+      "name": "p_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 500,
+      "timestamp_utc": "2026-04-29T19:20:53.587+00:00",
+      "unit": null,
+      "value": 0.27242404222488403
+    },
+    {
+      "name": "loss_total",
+      "phase": "train",
+      "step": 550,
+      "timestamp_utc": "2026-04-29T19:20:58.736+00:00",
+      "unit": null,
+      "value": 6.917269706726074
+    },
+    {
+      "name": "loss_kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 550,
+      "timestamp_utc": "2026-04-29T19:20:58.736+00:00",
+      "unit": null,
+      "value": 2.9537320137023926
+    },
+    {
+      "name": "loss_bridge_reentry_mse",
+      "phase": "train",
+      "step": 550,
+      "timestamp_utc": "2026-04-29T19:20:58.736+00:00",
+      "unit": null,
+      "value": 120.5641860961914
+    },
+    {
+      "name": "loss_ce_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 550,
+      "timestamp_utc": "2026-04-29T19:20:58.736+00:00",
+      "unit": null,
+      "value": 3.9635379314422607
+    },
+    {
+      "name": "kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 550,
+      "timestamp_utc": "2026-04-29T19:20:58.736+00:00",
+      "unit": null,
+      "value": 2.9537322521209717
+    },
+    {
+      "name": "kl_drafter_to_verifier",
+      "phase": "train",
+      "step": 550,
+      "timestamp_utc": "2026-04-29T19:20:58.736+00:00",
+      "unit": null,
+      "value": 3.7262985706329346
+    },
+    {
+      "name": "js_verifier_drafter",
+      "phase": "train",
+      "step": 550,
+      "timestamp_utc": "2026-04-29T19:20:58.736+00:00",
+      "unit": null,
+      "value": 0.38044124841690063
+    },
+    {
+      "name": "top1_drafter_matches_verifier",
+      "phase": "train",
+      "step": 550,
+      "timestamp_utc": "2026-04-29T19:20:58.736+00:00",
+      "unit": null,
+      "value": 0.344117671251297
+    },
+    {
+      "name": "prob_mass_overlap_verifier_drafter",
+      "phase": "train",
+      "step": 550,
+      "timestamp_utc": "2026-04-29T19:20:58.736+00:00",
+      "unit": null,
+      "value": 0.3059851825237274
+    },
+    {
+      "name": "p_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 550,
+      "timestamp_utc": "2026-04-29T19:20:58.736+00:00",
+      "unit": null,
+      "value": 0.16119036078453064
+    },
+    {
+      "name": "loss_total",
+      "phase": "train",
+      "step": 600,
+      "timestamp_utc": "2026-04-29T19:21:03.885+00:00",
+      "unit": null,
+      "value": 5.842795372009277
+    },
+    {
+      "name": "loss_kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 600,
+      "timestamp_utc": "2026-04-29T19:21:03.885+00:00",
+      "unit": null,
+      "value": 2.450770616531372
+    },
+    {
+      "name": "loss_bridge_reentry_mse",
+      "phase": "train",
+      "step": 600,
+      "timestamp_utc": "2026-04-29T19:21:03.885+00:00",
+      "unit": null,
+      "value": 106.55839538574219
+    },
+    {
+      "name": "loss_ce_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 600,
+      "timestamp_utc": "2026-04-29T19:21:03.885+00:00",
+      "unit": null,
+      "value": 3.3920247554779053
+    },
+    {
+      "name": "kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 600,
+      "timestamp_utc": "2026-04-29T19:21:03.885+00:00",
+      "unit": null,
+      "value": 2.450770854949951
+    },
+    {
+      "name": "kl_drafter_to_verifier",
+      "phase": "train",
+      "step": 600,
+      "timestamp_utc": "2026-04-29T19:21:03.885+00:00",
+      "unit": null,
+      "value": 3.055302858352661
+    },
+    {
+      "name": "js_verifier_drafter",
+      "phase": "train",
+      "step": 600,
+      "timestamp_utc": "2026-04-29T19:21:03.885+00:00",
+      "unit": null,
+      "value": 0.33143743872642517
+    },
+    {
+      "name": "top1_drafter_matches_verifier",
+      "phase": "train",
+      "step": 600,
+      "timestamp_utc": "2026-04-29T19:21:03.885+00:00",
+      "unit": null,
+      "value": 0.38431376218795776
+    },
+    {
+      "name": "prob_mass_overlap_verifier_drafter",
+      "phase": "train",
+      "step": 600,
+      "timestamp_utc": "2026-04-29T19:21:03.885+00:00",
+      "unit": null,
+      "value": 0.36607927083969116
+    },
+    {
+      "name": "p_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 600,
+      "timestamp_utc": "2026-04-29T19:21:03.885+00:00",
+      "unit": null,
+      "value": 0.2218359261751175
+    },
+    {
+      "name": "loss_total",
+      "phase": "train",
+      "step": 650,
+      "timestamp_utc": "2026-04-29T19:21:09.039+00:00",
+      "unit": null,
+      "value": 5.654374599456787
+    },
+    {
+      "name": "loss_kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 650,
+      "timestamp_utc": "2026-04-29T19:21:09.039+00:00",
+      "unit": null,
+      "value": 2.4317128658294678
+    },
+    {
+      "name": "loss_bridge_reentry_mse",
+      "phase": "train",
+      "step": 650,
+      "timestamp_utc": "2026-04-29T19:21:09.039+00:00",
+      "unit": null,
+      "value": 100.20657348632812
+    },
+    {
+      "name": "loss_ce_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 650,
+      "timestamp_utc": "2026-04-29T19:21:09.039+00:00",
+      "unit": null,
+      "value": 3.2226617336273193
+    },
+    {
+      "name": "kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 650,
+      "timestamp_utc": "2026-04-29T19:21:09.039+00:00",
+      "unit": null,
+      "value": 2.431713104248047
+    },
+    {
+      "name": "kl_drafter_to_verifier",
+      "phase": "train",
+      "step": 650,
+      "timestamp_utc": "2026-04-29T19:21:09.039+00:00",
+      "unit": null,
+      "value": 3.405290365219116
+    },
+    {
+      "name": "js_verifier_drafter",
+      "phase": "train",
+      "step": 650,
+      "timestamp_utc": "2026-04-29T19:21:09.039+00:00",
+      "unit": null,
+      "value": 0.3331179916858673
+    },
+    {
+      "name": "top1_drafter_matches_verifier",
+      "phase": "train",
+      "step": 650,
+      "timestamp_utc": "2026-04-29T19:21:09.039+00:00",
+      "unit": null,
+      "value": 0.4019608199596405
+    },
+    {
+      "name": "prob_mass_overlap_verifier_drafter",
+      "phase": "train",
+      "step": 650,
+      "timestamp_utc": "2026-04-29T19:21:09.039+00:00",
+      "unit": null,
+      "value": 0.3716062903404236
+    },
+    {
+      "name": "p_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 650,
+      "timestamp_utc": "2026-04-29T19:21:09.039+00:00",
+      "unit": null,
+      "value": 0.24396279454231262
+    },
+    {
+      "name": "loss_total",
+      "phase": "train",
+      "step": 700,
+      "timestamp_utc": "2026-04-29T19:21:14.189+00:00",
+      "unit": null,
+      "value": 5.7208685874938965
+    },
+    {
+      "name": "loss_kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 700,
+      "timestamp_utc": "2026-04-29T19:21:14.189+00:00",
+      "unit": null,
+      "value": 2.350980758666992
+    },
+    {
+      "name": "loss_bridge_reentry_mse",
+      "phase": "train",
+      "step": 700,
+      "timestamp_utc": "2026-04-29T19:21:14.189+00:00",
+      "unit": null,
+      "value": 121.7746353149414
+    },
+    {
+      "name": "loss_ce_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 700,
+      "timestamp_utc": "2026-04-29T19:21:14.189+00:00",
+      "unit": null,
+      "value": 3.3698878288269043
+    },
+    {
+      "name": "kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 700,
+      "timestamp_utc": "2026-04-29T19:21:14.189+00:00",
+      "unit": null,
+      "value": 2.3509809970855713
+    },
+    {
+      "name": "kl_drafter_to_verifier",
+      "phase": "train",
+      "step": 700,
+      "timestamp_utc": "2026-04-29T19:21:14.189+00:00",
+      "unit": null,
+      "value": 2.8351893424987793
+    },
+    {
+      "name": "js_verifier_drafter",
+      "phase": "train",
+      "step": 700,
+      "timestamp_utc": "2026-04-29T19:21:14.189+00:00",
+      "unit": null,
+      "value": 0.31954580545425415
+    },
+    {
+      "name": "top1_drafter_matches_verifier",
+      "phase": "train",
+      "step": 700,
+      "timestamp_utc": "2026-04-29T19:21:14.189+00:00",
+      "unit": null,
+      "value": 0.40392160415649414
+    },
+    {
+      "name": "prob_mass_overlap_verifier_drafter",
+      "phase": "train",
+      "step": 700,
+      "timestamp_utc": "2026-04-29T19:21:14.189+00:00",
+      "unit": null,
+      "value": 0.3864697813987732
+    },
+    {
+      "name": "p_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 700,
+      "timestamp_utc": "2026-04-29T19:21:14.189+00:00",
+      "unit": null,
+      "value": 0.23322783410549164
+    },
+    {
+      "name": "loss_total",
+      "phase": "train",
+      "step": 750,
+      "timestamp_utc": "2026-04-29T19:21:19.325+00:00",
+      "unit": null,
+      "value": 7.0429487228393555
+    },
+    {
+      "name": "loss_kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 750,
+      "timestamp_utc": "2026-04-29T19:21:19.325+00:00",
+      "unit": null,
+      "value": 3.0869345664978027
+    },
+    {
+      "name": "loss_bridge_reentry_mse",
+      "phase": "train",
+      "step": 750,
+      "timestamp_utc": "2026-04-29T19:21:19.325+00:00",
+      "unit": null,
+      "value": 114.73133850097656
+    },
+    {
+      "name": "loss_ce_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 750,
+      "timestamp_utc": "2026-04-29T19:21:19.325+00:00",
+      "unit": null,
+      "value": 3.956014394760132
+    },
+    {
+      "name": "kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 750,
+      "timestamp_utc": "2026-04-29T19:21:19.325+00:00",
+      "unit": null,
+      "value": 3.086934804916382
+    },
+    {
+      "name": "kl_drafter_to_verifier",
+      "phase": "train",
+      "step": 750,
+      "timestamp_utc": "2026-04-29T19:21:19.325+00:00",
+      "unit": null,
+      "value": 4.788641452789307
+    },
+    {
+      "name": "js_verifier_drafter",
+      "phase": "train",
+      "step": 750,
+      "timestamp_utc": "2026-04-29T19:21:19.325+00:00",
+      "unit": null,
+      "value": 0.3932854235172272
+    },
+    {
+      "name": "top1_drafter_matches_verifier",
+      "phase": "train",
+      "step": 750,
+      "timestamp_utc": "2026-04-29T19:21:19.325+00:00",
+      "unit": null,
+      "value": 0.34607845544815063
+    },
+    {
+      "name": "prob_mass_overlap_verifier_drafter",
+      "phase": "train",
+      "step": 750,
+      "timestamp_utc": "2026-04-29T19:21:19.325+00:00",
+      "unit": null,
+      "value": 0.3029192388057709
+    },
+    {
+      "name": "p_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 750,
+      "timestamp_utc": "2026-04-29T19:21:19.325+00:00",
+      "unit": null,
+      "value": 0.18771852552890778
+    },
+    {
+      "name": "loss_total",
+      "phase": "train",
+      "step": 800,
+      "timestamp_utc": "2026-04-29T19:21:24.481+00:00",
+      "unit": null,
+      "value": 5.852025508880615
+    },
+    {
+      "name": "loss_kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 800,
+      "timestamp_utc": "2026-04-29T19:21:24.481+00:00",
+      "unit": null,
+      "value": 2.431255340576172
+    },
+    {
+      "name": "loss_bridge_reentry_mse",
+      "phase": "train",
+      "step": 800,
+      "timestamp_utc": "2026-04-29T19:21:24.481+00:00",
+      "unit": null,
+      "value": 113.05665588378906
+    },
+    {
+      "name": "loss_ce_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 800,
+      "timestamp_utc": "2026-04-29T19:21:24.481+00:00",
+      "unit": null,
+      "value": 3.4207701683044434
+    },
+    {
+      "name": "kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 800,
+      "timestamp_utc": "2026-04-29T19:21:24.481+00:00",
+      "unit": null,
+      "value": 2.431255340576172
+    },
+    {
+      "name": "kl_drafter_to_verifier",
+      "phase": "train",
+      "step": 800,
+      "timestamp_utc": "2026-04-29T19:21:24.481+00:00",
+      "unit": null,
+      "value": 3.1958158016204834
+    },
+    {
+      "name": "js_verifier_drafter",
+      "phase": "train",
+      "step": 800,
+      "timestamp_utc": "2026-04-29T19:21:24.481+00:00",
+      "unit": null,
+      "value": 0.3330707848072052
+    },
+    {
+      "name": "top1_drafter_matches_verifier",
+      "phase": "train",
+      "step": 800,
+      "timestamp_utc": "2026-04-29T19:21:24.481+00:00",
+      "unit": null,
+      "value": 0.3813725709915161
+    },
+    {
+      "name": "prob_mass_overlap_verifier_drafter",
+      "phase": "train",
+      "step": 800,
+      "timestamp_utc": "2026-04-29T19:21:24.481+00:00",
+      "unit": null,
+      "value": 0.3660011887550354
+    },
+    {
+      "name": "p_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 800,
+      "timestamp_utc": "2026-04-29T19:21:24.481+00:00",
+      "unit": null,
+      "value": 0.21043789386749268
+    },
+    {
+      "name": "loss_total",
+      "phase": "train",
+      "step": 850,
+      "timestamp_utc": "2026-04-29T19:21:29.635+00:00",
+      "unit": null,
+      "value": 5.230443000793457
+    },
+    {
+      "name": "loss_kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 850,
+      "timestamp_utc": "2026-04-29T19:21:29.635+00:00",
+      "unit": null,
+      "value": 2.163508653640747
+    },
+    {
+      "name": "loss_bridge_reentry_mse",
+      "phase": "train",
+      "step": 850,
+      "timestamp_utc": "2026-04-29T19:21:29.635+00:00",
+      "unit": null,
+      "value": 99.49036407470703
+    },
+    {
+      "name": "loss_ce_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 850,
+      "timestamp_utc": "2026-04-29T19:21:29.635+00:00",
+      "unit": null,
+      "value": 3.06693434715271
+    },
+    {
+      "name": "kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 850,
+      "timestamp_utc": "2026-04-29T19:21:29.635+00:00",
+      "unit": null,
+      "value": 2.163508653640747
+    },
+    {
+      "name": "kl_drafter_to_verifier",
+      "phase": "train",
+      "step": 850,
+      "timestamp_utc": "2026-04-29T19:21:29.635+00:00",
+      "unit": null,
+      "value": 2.9227190017700195
+    },
+    {
+      "name": "js_verifier_drafter",
+      "phase": "train",
+      "step": 850,
+      "timestamp_utc": "2026-04-29T19:21:29.635+00:00",
+      "unit": null,
+      "value": 0.31262412667274475
+    },
+    {
+      "name": "top1_drafter_matches_verifier",
+      "phase": "train",
+      "step": 850,
+      "timestamp_utc": "2026-04-29T19:21:29.635+00:00",
+      "unit": null,
+      "value": 0.4107843339443207
+    },
+    {
+      "name": "prob_mass_overlap_verifier_drafter",
+      "phase": "train",
+      "step": 850,
+      "timestamp_utc": "2026-04-29T19:21:29.635+00:00",
+      "unit": null,
+      "value": 0.3935583233833313
+    },
+    {
+      "name": "p_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 850,
+      "timestamp_utc": "2026-04-29T19:21:29.635+00:00",
+      "unit": null,
+      "value": 0.24020397663116455
+    },
+    {
+      "name": "loss_total",
+      "phase": "train",
+      "step": 900,
+      "timestamp_utc": "2026-04-29T19:21:34.787+00:00",
+      "unit": null,
+      "value": 6.082148551940918
+    },
+    {
+      "name": "loss_kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 900,
+      "timestamp_utc": "2026-04-29T19:21:34.787+00:00",
+      "unit": null,
+      "value": 2.5912811756134033
+    },
+    {
+      "name": "loss_bridge_reentry_mse",
+      "phase": "train",
+      "step": 900,
+      "timestamp_utc": "2026-04-29T19:21:34.787+00:00",
+      "unit": null,
+      "value": 113.62238311767578
+    },
+    {
+      "name": "loss_ce_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 900,
+      "timestamp_utc": "2026-04-29T19:21:34.787+00:00",
+      "unit": null,
+      "value": 3.4908671379089355
+    },
+    {
+      "name": "kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 900,
+      "timestamp_utc": "2026-04-29T19:21:34.787+00:00",
+      "unit": null,
+      "value": 2.5912811756134033
+    },
+    {
+      "name": "kl_drafter_to_verifier",
+      "phase": "train",
+      "step": 900,
+      "timestamp_utc": "2026-04-29T19:21:34.787+00:00",
+      "unit": null,
+      "value": 3.4542391300201416
+    },
+    {
+      "name": "js_verifier_drafter",
+      "phase": "train",
+      "step": 900,
+      "timestamp_utc": "2026-04-29T19:21:34.787+00:00",
+      "unit": null,
+      "value": 0.3472863435745239
+    },
+    {
+      "name": "top1_drafter_matches_verifier",
+      "phase": "train",
+      "step": 900,
+      "timestamp_utc": "2026-04-29T19:21:34.787+00:00",
+      "unit": null,
+      "value": 0.364705890417099
+    },
+    {
+      "name": "prob_mass_overlap_verifier_drafter",
+      "phase": "train",
+      "step": 900,
+      "timestamp_utc": "2026-04-29T19:21:34.787+00:00",
+      "unit": null,
+      "value": 0.34965792298316956
+    },
+    {
+      "name": "p_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 900,
+      "timestamp_utc": "2026-04-29T19:21:34.787+00:00",
+      "unit": null,
+      "value": 0.20610466599464417
+    },
+    {
+      "name": "loss_total",
+      "phase": "train",
+      "step": 950,
+      "timestamp_utc": "2026-04-29T19:21:39.926+00:00",
+      "unit": null,
+      "value": 3.9355664253234863
+    },
+    {
+      "name": "loss_kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 950,
+      "timestamp_utc": "2026-04-29T19:21:39.926+00:00",
+      "unit": null,
+      "value": 1.6616014242172241
+    },
+    {
+      "name": "loss_bridge_reentry_mse",
+      "phase": "train",
+      "step": 950,
+      "timestamp_utc": "2026-04-29T19:21:39.926+00:00",
+      "unit": null,
+      "value": 85.35449981689453
+    },
+    {
+      "name": "loss_ce_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 950,
+      "timestamp_utc": "2026-04-29T19:21:39.926+00:00",
+      "unit": null,
+      "value": 2.2739651203155518
+    },
+    {
+      "name": "kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 950,
+      "timestamp_utc": "2026-04-29T19:21:39.926+00:00",
+      "unit": null,
+      "value": 1.6616015434265137
+    },
+    {
+      "name": "kl_drafter_to_verifier",
+      "phase": "train",
+      "step": 950,
+      "timestamp_utc": "2026-04-29T19:21:39.926+00:00",
+      "unit": null,
+      "value": 2.8453102111816406
+    },
+    {
+      "name": "js_verifier_drafter",
+      "phase": "train",
+      "step": 950,
+      "timestamp_utc": "2026-04-29T19:21:39.926+00:00",
+      "unit": null,
+      "value": 0.2780095934867859
+    },
+    {
+      "name": "top1_drafter_matches_verifier",
+      "phase": "train",
+      "step": 950,
+      "timestamp_utc": "2026-04-29T19:21:39.926+00:00",
+      "unit": null,
+      "value": 0.4960784614086151
+    },
+    {
+      "name": "prob_mass_overlap_verifier_drafter",
+      "phase": "train",
+      "step": 950,
+      "timestamp_utc": "2026-04-29T19:21:39.926+00:00",
+      "unit": null,
+      "value": 0.43687203526496887
+    },
+    {
+      "name": "p_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 950,
+      "timestamp_utc": "2026-04-29T19:21:39.926+00:00",
+      "unit": null,
+      "value": 0.3072497546672821
+    },
+    {
+      "name": "loss_total",
+      "phase": "train",
+      "step": 1000,
+      "timestamp_utc": "2026-04-29T19:21:45.078+00:00",
+      "unit": null,
+      "value": 5.724907875061035
+    },
+    {
+      "name": "loss_kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 1000,
+      "timestamp_utc": "2026-04-29T19:21:45.078+00:00",
+      "unit": null,
+      "value": 2.3931009769439697
+    },
+    {
+      "name": "loss_bridge_reentry_mse",
+      "phase": "train",
+      "step": 1000,
+      "timestamp_utc": "2026-04-29T19:21:45.078+00:00",
+      "unit": null,
+      "value": 104.78118896484375
+    },
+    {
+      "name": "loss_ce_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 1000,
+      "timestamp_utc": "2026-04-29T19:21:45.078+00:00",
+      "unit": null,
+      "value": 3.3318071365356445
+    },
+    {
+      "name": "kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 1000,
+      "timestamp_utc": "2026-04-29T19:21:45.078+00:00",
+      "unit": null,
+      "value": 2.3931009769439697
+    },
+    {
+      "name": "kl_drafter_to_verifier",
+      "phase": "train",
+      "step": 1000,
+      "timestamp_utc": "2026-04-29T19:21:45.078+00:00",
+      "unit": null,
+      "value": 3.112203359603882
+    },
+    {
+      "name": "js_verifier_drafter",
+      "phase": "train",
+      "step": 1000,
+      "timestamp_utc": "2026-04-29T19:21:45.078+00:00",
+      "unit": null,
+      "value": 0.32899585366249084
+    },
+    {
+      "name": "top1_drafter_matches_verifier",
+      "phase": "train",
+      "step": 1000,
+      "timestamp_utc": "2026-04-29T19:21:45.078+00:00",
+      "unit": null,
+      "value": 0.3705882430076599
+    },
+    {
+      "name": "prob_mass_overlap_verifier_drafter",
+      "phase": "train",
+      "step": 1000,
+      "timestamp_utc": "2026-04-29T19:21:45.078+00:00",
+      "unit": null,
+      "value": 0.37113475799560547
+    },
+    {
+      "name": "p_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 1000,
+      "timestamp_utc": "2026-04-29T19:21:45.078+00:00",
+      "unit": null,
+      "value": 0.22092555463314056
+    },
+    {
+      "name": "loss_total",
+      "phase": "train",
+      "step": 1050,
+      "timestamp_utc": "2026-04-29T19:21:50.234+00:00",
+      "unit": null,
+      "value": 3.999969482421875
+    },
+    {
+      "name": "loss_kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 1050,
+      "timestamp_utc": "2026-04-29T19:21:50.234+00:00",
+      "unit": null,
+      "value": 1.645216703414917
+    },
+    {
+      "name": "loss_bridge_reentry_mse",
+      "phase": "train",
+      "step": 1050,
+      "timestamp_utc": "2026-04-29T19:21:50.234+00:00",
+      "unit": null,
+      "value": 95.74703979492188
+    },
+    {
+      "name": "loss_ce_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 1050,
+      "timestamp_utc": "2026-04-29T19:21:50.234+00:00",
+      "unit": null,
+      "value": 2.354752779006958
+    },
+    {
+      "name": "kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 1050,
+      "timestamp_utc": "2026-04-29T19:21:50.234+00:00",
+      "unit": null,
+      "value": 1.6452168226242065
+    },
+    {
+      "name": "kl_drafter_to_verifier",
+      "phase": "train",
+      "step": 1050,
+      "timestamp_utc": "2026-04-29T19:21:50.234+00:00",
+      "unit": null,
+      "value": 2.3671445846557617
+    },
+    {
+      "name": "js_verifier_drafter",
+      "phase": "train",
+      "step": 1050,
+      "timestamp_utc": "2026-04-29T19:21:50.234+00:00",
+      "unit": null,
+      "value": 0.25218531489372253
+    },
+    {
+      "name": "top1_drafter_matches_verifier",
+      "phase": "train",
+      "step": 1050,
+      "timestamp_utc": "2026-04-29T19:21:50.234+00:00",
+      "unit": null,
+      "value": 0.4990196228027344
+    },
+    {
+      "name": "prob_mass_overlap_verifier_drafter",
+      "phase": "train",
+      "step": 1050,
+      "timestamp_utc": "2026-04-29T19:21:50.234+00:00",
+      "unit": null,
+      "value": 0.4780829846858978
+    },
+    {
+      "name": "p_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 1050,
+      "timestamp_utc": "2026-04-29T19:21:50.234+00:00",
+      "unit": null,
+      "value": 0.3276115953922272
+    },
+    {
+      "name": "loss_total",
+      "phase": "train",
+      "step": 1100,
+      "timestamp_utc": "2026-04-29T19:21:55.379+00:00",
+      "unit": null,
+      "value": 4.737374305725098
+    },
+    {
+      "name": "loss_kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 1100,
+      "timestamp_utc": "2026-04-29T19:21:55.379+00:00",
+      "unit": null,
+      "value": 1.9569703340530396
+    },
+    {
+      "name": "loss_bridge_reentry_mse",
+      "phase": "train",
+      "step": 1100,
+      "timestamp_utc": "2026-04-29T19:21:55.379+00:00",
+      "unit": null,
+      "value": 95.16752624511719
+    },
+    {
+      "name": "loss_ce_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 1100,
+      "timestamp_utc": "2026-04-29T19:21:55.379+00:00",
+      "unit": null,
+      "value": 2.7804040908813477
+    },
+    {
+      "name": "kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 1100,
+      "timestamp_utc": "2026-04-29T19:21:55.379+00:00",
+      "unit": null,
+      "value": 1.956970453262329
+    },
+    {
+      "name": "kl_drafter_to_verifier",
+      "phase": "train",
+      "step": 1100,
+      "timestamp_utc": "2026-04-29T19:21:55.379+00:00",
+      "unit": null,
+      "value": 3.002809524536133
+    },
+    {
+      "name": "js_verifier_drafter",
+      "phase": "train",
+      "step": 1100,
+      "timestamp_utc": "2026-04-29T19:21:55.379+00:00",
+      "unit": null,
+      "value": 0.3003307580947876
+    },
+    {
+      "name": "top1_drafter_matches_verifier",
+      "phase": "train",
+      "step": 1100,
+      "timestamp_utc": "2026-04-29T19:21:55.379+00:00",
+      "unit": null,
+      "value": 0.44705885648727417
+    },
+    {
+      "name": "prob_mass_overlap_verifier_drafter",
+      "phase": "train",
+      "step": 1100,
+      "timestamp_utc": "2026-04-29T19:21:55.379+00:00",
+      "unit": null,
+      "value": 0.40888142585754395
+    },
+    {
+      "name": "p_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 1100,
+      "timestamp_utc": "2026-04-29T19:21:55.379+00:00",
+      "unit": null,
+      "value": 0.2537488043308258
+    },
+    {
+      "name": "loss_total",
+      "phase": "train",
+      "step": 1150,
+      "timestamp_utc": "2026-04-29T19:22:00.525+00:00",
+      "unit": null,
+      "value": 5.151699542999268
+    },
+    {
+      "name": "loss_kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 1150,
+      "timestamp_utc": "2026-04-29T19:22:00.525+00:00",
+      "unit": null,
+      "value": 2.0728769302368164
+    },
+    {
+      "name": "loss_bridge_reentry_mse",
+      "phase": "train",
+      "step": 1150,
+      "timestamp_utc": "2026-04-29T19:22:00.525+00:00",
+      "unit": null,
+      "value": 99.60745239257812
+    },
+    {
+      "name": "loss_ce_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 1150,
+      "timestamp_utc": "2026-04-29T19:22:00.525+00:00",
+      "unit": null,
+      "value": 3.078822612762451
+    },
+    {
+      "name": "kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 1150,
+      "timestamp_utc": "2026-04-29T19:22:00.525+00:00",
+      "unit": null,
+      "value": 2.0728771686553955
+    },
+    {
+      "name": "kl_drafter_to_verifier",
+      "phase": "train",
+      "step": 1150,
+      "timestamp_utc": "2026-04-29T19:22:00.525+00:00",
+      "unit": null,
+      "value": 2.889521360397339
+    },
+    {
+      "name": "js_verifier_drafter",
+      "phase": "train",
+      "step": 1150,
+      "timestamp_utc": "2026-04-29T19:22:00.525+00:00",
+      "unit": null,
+      "value": 0.31308040022850037
+    },
+    {
+      "name": "top1_drafter_matches_verifier",
+      "phase": "train",
+      "step": 1150,
+      "timestamp_utc": "2026-04-29T19:22:00.525+00:00",
+      "unit": null,
+      "value": 0.3960784673690796
+    },
+    {
+      "name": "prob_mass_overlap_verifier_drafter",
+      "phase": "train",
+      "step": 1150,
+      "timestamp_utc": "2026-04-29T19:22:00.525+00:00",
+      "unit": null,
+      "value": 0.39051151275634766
+    },
+    {
+      "name": "p_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 1150,
+      "timestamp_utc": "2026-04-29T19:22:00.525+00:00",
+      "unit": null,
+      "value": 0.2220073789358139
+    },
+    {
+      "name": "loss_total",
+      "phase": "train",
+      "step": 1200,
+      "timestamp_utc": "2026-04-29T19:22:05.663+00:00",
+      "unit": null,
+      "value": 5.779845237731934
+    },
+    {
+      "name": "loss_kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 1200,
+      "timestamp_utc": "2026-04-29T19:22:05.663+00:00",
+      "unit": null,
+      "value": 2.3859610557556152
+    },
+    {
+      "name": "loss_bridge_reentry_mse",
+      "phase": "train",
+      "step": 1200,
+      "timestamp_utc": "2026-04-29T19:22:05.663+00:00",
+      "unit": null,
+      "value": 110.52254486083984
+    },
+    {
+      "name": "loss_ce_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 1200,
+      "timestamp_utc": "2026-04-29T19:22:05.663+00:00",
+      "unit": null,
+      "value": 3.3938844203948975
+    },
+    {
+      "name": "kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 1200,
+      "timestamp_utc": "2026-04-29T19:22:05.663+00:00",
+      "unit": null,
+      "value": 2.3859610557556152
+    },
+    {
+      "name": "kl_drafter_to_verifier",
+      "phase": "train",
+      "step": 1200,
+      "timestamp_utc": "2026-04-29T19:22:05.663+00:00",
+      "unit": null,
+      "value": 3.2963638305664062
+    },
+    {
+      "name": "js_verifier_drafter",
+      "phase": "train",
+      "step": 1200,
+      "timestamp_utc": "2026-04-29T19:22:05.663+00:00",
+      "unit": null,
+      "value": 0.3423076272010803
+    },
+    {
+      "name": "top1_drafter_matches_verifier",
+      "phase": "train",
+      "step": 1200,
+      "timestamp_utc": "2026-04-29T19:22:05.663+00:00",
+      "unit": null,
+      "value": 0.3588235378265381
+    },
+    {
+      "name": "prob_mass_overlap_verifier_drafter",
+      "phase": "train",
+      "step": 1200,
+      "timestamp_utc": "2026-04-29T19:22:05.663+00:00",
+      "unit": null,
+      "value": 0.3516598641872406
+    },
+    {
+      "name": "p_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 1200,
+      "timestamp_utc": "2026-04-29T19:22:05.663+00:00",
+      "unit": null,
+      "value": 0.19852252304553986
+    },
+    {
+      "name": "loss_total",
+      "phase": "train",
+      "step": 1250,
+      "timestamp_utc": "2026-04-29T19:22:10.809+00:00",
+      "unit": null,
+      "value": 5.354272842407227
+    },
+    {
+      "name": "loss_kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 1250,
+      "timestamp_utc": "2026-04-29T19:22:10.809+00:00",
+      "unit": null,
+      "value": 2.220696449279785
+    },
+    {
+      "name": "loss_bridge_reentry_mse",
+      "phase": "train",
+      "step": 1250,
+      "timestamp_utc": "2026-04-29T19:22:10.809+00:00",
+      "unit": null,
+      "value": 105.15440368652344
+    },
+    {
+      "name": "loss_ce_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 1250,
+      "timestamp_utc": "2026-04-29T19:22:10.809+00:00",
+      "unit": null,
+      "value": 3.1335766315460205
+    },
+    {
+      "name": "kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 1250,
+      "timestamp_utc": "2026-04-29T19:22:10.809+00:00",
+      "unit": null,
+      "value": 2.220696449279785
+    },
+    {
+      "name": "kl_drafter_to_verifier",
+      "phase": "train",
+      "step": 1250,
+      "timestamp_utc": "2026-04-29T19:22:10.809+00:00",
+      "unit": null,
+      "value": 3.1824066638946533
+    },
+    {
+      "name": "js_verifier_drafter",
+      "phase": "train",
+      "step": 1250,
+      "timestamp_utc": "2026-04-29T19:22:10.809+00:00",
+      "unit": null,
+      "value": 0.321605920791626
+    },
+    {
+      "name": "top1_drafter_matches_verifier",
+      "phase": "train",
+      "step": 1250,
+      "timestamp_utc": "2026-04-29T19:22:10.809+00:00",
+      "unit": null,
+      "value": 0.40490198135375977
+    },
+    {
+      "name": "prob_mass_overlap_verifier_drafter",
+      "phase": "train",
+      "step": 1250,
+      "timestamp_utc": "2026-04-29T19:22:10.809+00:00",
+      "unit": null,
+      "value": 0.3775131404399872
+    },
+    {
+      "name": "p_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 1250,
+      "timestamp_utc": "2026-04-29T19:22:10.809+00:00",
+      "unit": null,
+      "value": 0.2229769229888916
+    },
+    {
+      "name": "loss_total",
+      "phase": "train",
+      "step": 1300,
+      "timestamp_utc": "2026-04-29T19:22:15.962+00:00",
+      "unit": null,
+      "value": 4.988422393798828
+    },
+    {
+      "name": "loss_kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 1300,
+      "timestamp_utc": "2026-04-29T19:22:15.962+00:00",
+      "unit": null,
+      "value": 1.9737958908081055
+    },
+    {
+      "name": "loss_bridge_reentry_mse",
+      "phase": "train",
+      "step": 1300,
+      "timestamp_utc": "2026-04-29T19:22:15.962+00:00",
+      "unit": null,
+      "value": 145.15719604492188
+    },
+    {
+      "name": "loss_ce_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 1300,
+      "timestamp_utc": "2026-04-29T19:22:15.962+00:00",
+      "unit": null,
+      "value": 3.0146262645721436
+    },
+    {
+      "name": "kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 1300,
+      "timestamp_utc": "2026-04-29T19:22:15.962+00:00",
+      "unit": null,
+      "value": 1.973796010017395
+    },
+    {
+      "name": "kl_drafter_to_verifier",
+      "phase": "train",
+      "step": 1300,
+      "timestamp_utc": "2026-04-29T19:22:15.962+00:00",
+      "unit": null,
+      "value": 2.70977783203125
+    },
+    {
+      "name": "js_verifier_drafter",
+      "phase": "train",
+      "step": 1300,
+      "timestamp_utc": "2026-04-29T19:22:15.962+00:00",
+      "unit": null,
+      "value": 0.30007168650627136
+    },
+    {
+      "name": "top1_drafter_matches_verifier",
+      "phase": "train",
+      "step": 1300,
+      "timestamp_utc": "2026-04-29T19:22:15.962+00:00",
+      "unit": null,
+      "value": 0.4284313917160034
+    },
+    {
+      "name": "prob_mass_overlap_verifier_drafter",
+      "phase": "train",
+      "step": 1300,
+      "timestamp_utc": "2026-04-29T19:22:15.962+00:00",
+      "unit": null,
+      "value": 0.40614041686058044
+    },
+    {
+      "name": "p_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 1300,
+      "timestamp_utc": "2026-04-29T19:22:15.962+00:00",
+      "unit": null,
+      "value": 0.24643869698047638
+    },
+    {
+      "name": "loss_total",
+      "phase": "train",
+      "step": 1350,
+      "timestamp_utc": "2026-04-29T19:22:21.118+00:00",
+      "unit": null,
+      "value": 5.109927177429199
+    },
+    {
+      "name": "loss_kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 1350,
+      "timestamp_utc": "2026-04-29T19:22:21.118+00:00",
+      "unit": null,
+      "value": 2.0328938961029053
+    },
+    {
+      "name": "loss_bridge_reentry_mse",
+      "phase": "train",
+      "step": 1350,
+      "timestamp_utc": "2026-04-29T19:22:21.118+00:00",
+      "unit": null,
+      "value": 103.08487701416016
+    },
+    {
+      "name": "loss_ce_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 1350,
+      "timestamp_utc": "2026-04-29T19:22:21.118+00:00",
+      "unit": null,
+      "value": 3.077033519744873
+    },
+    {
+      "name": "kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 1350,
+      "timestamp_utc": "2026-04-29T19:22:21.118+00:00",
+      "unit": null,
+      "value": 2.0328938961029053
+    },
+    {
+      "name": "kl_drafter_to_verifier",
+      "phase": "train",
+      "step": 1350,
+      "timestamp_utc": "2026-04-29T19:22:21.118+00:00",
+      "unit": null,
+      "value": 2.7653627395629883
+    },
+    {
+      "name": "js_verifier_drafter",
+      "phase": "train",
+      "step": 1350,
+      "timestamp_utc": "2026-04-29T19:22:21.118+00:00",
+      "unit": null,
+      "value": 0.3085790276527405
+    },
+    {
+      "name": "top1_drafter_matches_verifier",
+      "phase": "train",
+      "step": 1350,
+      "timestamp_utc": "2026-04-29T19:22:21.118+00:00",
+      "unit": null,
+      "value": 0.39901962876319885
+    },
+    {
+      "name": "prob_mass_overlap_verifier_drafter",
+      "phase": "train",
+      "step": 1350,
+      "timestamp_utc": "2026-04-29T19:22:21.118+00:00",
+      "unit": null,
+      "value": 0.3931758403778076
+    },
+    {
+      "name": "p_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 1350,
+      "timestamp_utc": "2026-04-29T19:22:21.118+00:00",
+      "unit": null,
+      "value": 0.21191345155239105
+    },
+    {
+      "name": "loss_total",
+      "phase": "train",
+      "step": 1400,
+      "timestamp_utc": "2026-04-29T19:22:26.267+00:00",
+      "unit": null,
+      "value": 5.423964500427246
+    },
+    {
+      "name": "loss_kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 1400,
+      "timestamp_utc": "2026-04-29T19:22:26.267+00:00",
+      "unit": null,
+      "value": 2.2028677463531494
+    },
+    {
+      "name": "loss_bridge_reentry_mse",
+      "phase": "train",
+      "step": 1400,
+      "timestamp_utc": "2026-04-29T19:22:26.267+00:00",
+      "unit": null,
+      "value": 121.32868194580078
+    },
+    {
+      "name": "loss_ce_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 1400,
+      "timestamp_utc": "2026-04-29T19:22:26.267+00:00",
+      "unit": null,
+      "value": 3.2210965156555176
+    },
+    {
+      "name": "kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 1400,
+      "timestamp_utc": "2026-04-29T19:22:26.267+00:00",
+      "unit": null,
+      "value": 2.2028677463531494
+    },
+    {
+      "name": "kl_drafter_to_verifier",
+      "phase": "train",
+      "step": 1400,
+      "timestamp_utc": "2026-04-29T19:22:26.267+00:00",
+      "unit": null,
+      "value": 2.5946602821350098
+    },
+    {
+      "name": "js_verifier_drafter",
+      "phase": "train",
+      "step": 1400,
+      "timestamp_utc": "2026-04-29T19:22:26.267+00:00",
+      "unit": null,
+      "value": 0.31688299775123596
+    },
+    {
+      "name": "top1_drafter_matches_verifier",
+      "phase": "train",
+      "step": 1400,
+      "timestamp_utc": "2026-04-29T19:22:26.267+00:00",
+      "unit": null,
+      "value": 0.3970588445663452
+    },
+    {
+      "name": "prob_mass_overlap_verifier_drafter",
+      "phase": "train",
+      "step": 1400,
+      "timestamp_utc": "2026-04-29T19:22:26.267+00:00",
+      "unit": null,
+      "value": 0.3779493570327759
+    },
+    {
+      "name": "p_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 1400,
+      "timestamp_utc": "2026-04-29T19:22:26.267+00:00",
+      "unit": null,
+      "value": 0.21437808871269226
+    },
+    {
+      "name": "loss_total",
+      "phase": "train",
+      "step": 1450,
+      "timestamp_utc": "2026-04-29T19:22:31.401+00:00",
+      "unit": null,
+      "value": 5.567930221557617
+    },
+    {
+      "name": "loss_kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 1450,
+      "timestamp_utc": "2026-04-29T19:22:31.401+00:00",
+      "unit": null,
+      "value": 2.31410551071167
+    },
+    {
+      "name": "loss_bridge_reentry_mse",
+      "phase": "train",
+      "step": 1450,
+      "timestamp_utc": "2026-04-29T19:22:31.401+00:00",
+      "unit": null,
+      "value": 115.84439849853516
+    },
+    {
+      "name": "loss_ce_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 1450,
+      "timestamp_utc": "2026-04-29T19:22:31.401+00:00",
+      "unit": null,
+      "value": 3.253824472427368
+    },
+    {
+      "name": "kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 1450,
+      "timestamp_utc": "2026-04-29T19:22:31.401+00:00",
+      "unit": null,
+      "value": 2.314105749130249
+    },
+    {
+      "name": "kl_drafter_to_verifier",
+      "phase": "train",
+      "step": 1450,
+      "timestamp_utc": "2026-04-29T19:22:31.401+00:00",
+      "unit": null,
+      "value": 2.891061544418335
+    },
+    {
+      "name": "js_verifier_drafter",
+      "phase": "train",
+      "step": 1450,
+      "timestamp_utc": "2026-04-29T19:22:31.401+00:00",
+      "unit": null,
+      "value": 0.32083860039711
+    },
+    {
+      "name": "top1_drafter_matches_verifier",
+      "phase": "train",
+      "step": 1450,
+      "timestamp_utc": "2026-04-29T19:22:31.401+00:00",
+      "unit": null,
+      "value": 0.3980392515659332
+    },
+    {
+      "name": "prob_mass_overlap_verifier_drafter",
+      "phase": "train",
+      "step": 1450,
+      "timestamp_utc": "2026-04-29T19:22:31.401+00:00",
+      "unit": null,
+      "value": 0.38425296545028687
+    },
+    {
+      "name": "p_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 1450,
+      "timestamp_utc": "2026-04-29T19:22:31.401+00:00",
+      "unit": null,
+      "value": 0.24380749464035034
+    },
+    {
+      "name": "loss_total",
+      "phase": "train",
+      "step": 1500,
+      "timestamp_utc": "2026-04-29T19:22:36.553+00:00",
+      "unit": null,
+      "value": 4.767329216003418
+    },
+    {
+      "name": "loss_kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 1500,
+      "timestamp_utc": "2026-04-29T19:22:36.553+00:00",
+      "unit": null,
+      "value": 1.953080654144287
+    },
+    {
+      "name": "loss_bridge_reentry_mse",
+      "phase": "train",
+      "step": 1500,
+      "timestamp_utc": "2026-04-29T19:22:36.553+00:00",
+      "unit": null,
+      "value": 94.2940444946289
+    },
+    {
+      "name": "loss_ce_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 1500,
+      "timestamp_utc": "2026-04-29T19:22:36.553+00:00",
+      "unit": null,
+      "value": 2.81424880027771
+    },
+    {
+      "name": "kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 1500,
+      "timestamp_utc": "2026-04-29T19:22:36.553+00:00",
+      "unit": null,
+      "value": 1.9530807733535767
+    },
+    {
+      "name": "kl_drafter_to_verifier",
+      "phase": "train",
+      "step": 1500,
+      "timestamp_utc": "2026-04-29T19:22:36.553+00:00",
+      "unit": null,
+      "value": 2.8720812797546387
+    },
+    {
+      "name": "js_verifier_drafter",
+      "phase": "train",
+      "step": 1500,
+      "timestamp_utc": "2026-04-29T19:22:36.553+00:00",
+      "unit": null,
+      "value": 0.2956429719924927
+    },
+    {
+      "name": "top1_drafter_matches_verifier",
+      "phase": "train",
+      "step": 1500,
+      "timestamp_utc": "2026-04-29T19:22:36.553+00:00",
+      "unit": null,
+      "value": 0.41372552514076233
+    },
+    {
+      "name": "prob_mass_overlap_verifier_drafter",
+      "phase": "train",
+      "step": 1500,
+      "timestamp_utc": "2026-04-29T19:22:36.553+00:00",
+      "unit": null,
+      "value": 0.41665658354759216
+    },
+    {
+      "name": "p_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 1500,
+      "timestamp_utc": "2026-04-29T19:22:36.553+00:00",
+      "unit": null,
+      "value": 0.2581751346588135
+    },
+    {
+      "name": "loss_total",
+      "phase": "train",
+      "step": 1550,
+      "timestamp_utc": "2026-04-29T19:22:41.708+00:00",
+      "unit": null,
+      "value": 5.2058563232421875
+    },
+    {
+      "name": "loss_kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 1550,
+      "timestamp_utc": "2026-04-29T19:22:41.708+00:00",
+      "unit": null,
+      "value": 2.0278611183166504
+    },
+    {
+      "name": "loss_bridge_reentry_mse",
+      "phase": "train",
+      "step": 1550,
+      "timestamp_utc": "2026-04-29T19:22:41.708+00:00",
+      "unit": null,
+      "value": 116.88192749023438
+    },
+    {
+      "name": "loss_ce_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 1550,
+      "timestamp_utc": "2026-04-29T19:22:41.708+00:00",
+      "unit": null,
+      "value": 3.177995204925537
+    },
+    {
+      "name": "kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 1550,
+      "timestamp_utc": "2026-04-29T19:22:41.708+00:00",
+      "unit": null,
+      "value": 2.0278613567352295
+    },
+    {
+      "name": "kl_drafter_to_verifier",
+      "phase": "train",
+      "step": 1550,
+      "timestamp_utc": "2026-04-29T19:22:41.708+00:00",
+      "unit": null,
+      "value": 2.448925733566284
+    },
+    {
+      "name": "js_verifier_drafter",
+      "phase": "train",
+      "step": 1550,
+      "timestamp_utc": "2026-04-29T19:22:41.708+00:00",
+      "unit": null,
+      "value": 0.29887402057647705
+    },
+    {
+      "name": "top1_drafter_matches_verifier",
+      "phase": "train",
+      "step": 1550,
+      "timestamp_utc": "2026-04-29T19:22:41.708+00:00",
+      "unit": null,
+      "value": 0.42058825492858887
+    },
+    {
+      "name": "prob_mass_overlap_verifier_drafter",
+      "phase": "train",
+      "step": 1550,
+      "timestamp_utc": "2026-04-29T19:22:41.708+00:00",
+      "unit": null,
+      "value": 0.39906933903694153
+    },
+    {
+      "name": "p_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 1550,
+      "timestamp_utc": "2026-04-29T19:22:41.708+00:00",
+      "unit": null,
+      "value": 0.20639155805110931
+    },
+    {
+      "name": "loss_total",
+      "phase": "train",
+      "step": 1600,
+      "timestamp_utc": "2026-04-29T19:22:46.888+00:00",
+      "unit": null,
+      "value": 5.121204376220703
+    },
+    {
+      "name": "loss_kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 1600,
+      "timestamp_utc": "2026-04-29T19:22:46.888+00:00",
+      "unit": null,
+      "value": 2.0236315727233887
+    },
+    {
+      "name": "loss_bridge_reentry_mse",
+      "phase": "train",
+      "step": 1600,
+      "timestamp_utc": "2026-04-29T19:22:46.888+00:00",
+      "unit": null,
+      "value": 112.71464538574219
+    },
+    {
+      "name": "loss_ce_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 1600,
+      "timestamp_utc": "2026-04-29T19:22:46.888+00:00",
+      "unit": null,
+      "value": 3.0975725650787354
+    },
+    {
+      "name": "kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 1600,
+      "timestamp_utc": "2026-04-29T19:22:46.888+00:00",
+      "unit": null,
+      "value": 2.0236318111419678
+    },
+    {
+      "name": "kl_drafter_to_verifier",
+      "phase": "train",
+      "step": 1600,
+      "timestamp_utc": "2026-04-29T19:22:46.888+00:00",
+      "unit": null,
+      "value": 2.341676950454712
+    },
+    {
+      "name": "js_verifier_drafter",
+      "phase": "train",
+      "step": 1600,
+      "timestamp_utc": "2026-04-29T19:22:46.888+00:00",
+      "unit": null,
+      "value": 0.29891034960746765
+    },
+    {
+      "name": "top1_drafter_matches_verifier",
+      "phase": "train",
+      "step": 1600,
+      "timestamp_utc": "2026-04-29T19:22:46.888+00:00",
+      "unit": null,
+      "value": 0.3764706254005432
+    },
+    {
+      "name": "prob_mass_overlap_verifier_drafter",
+      "phase": "train",
+      "step": 1600,
+      "timestamp_utc": "2026-04-29T19:22:46.888+00:00",
+      "unit": null,
+      "value": 0.40266263484954834
+    },
+    {
+      "name": "p_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 1600,
+      "timestamp_utc": "2026-04-29T19:22:46.888+00:00",
+      "unit": null,
+      "value": 0.22502484917640686
+    },
+    {
+      "name": "loss_total",
+      "phase": "train",
+      "step": 1650,
+      "timestamp_utc": "2026-04-29T19:22:52.043+00:00",
+      "unit": null,
+      "value": 4.597342491149902
+    },
+    {
+      "name": "loss_kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 1650,
+      "timestamp_utc": "2026-04-29T19:22:52.043+00:00",
+      "unit": null,
+      "value": 1.8397982120513916
+    },
+    {
+      "name": "loss_bridge_reentry_mse",
+      "phase": "train",
+      "step": 1650,
+      "timestamp_utc": "2026-04-29T19:22:52.043+00:00",
+      "unit": null,
+      "value": 100.9100341796875
+    },
+    {
+      "name": "loss_ce_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 1650,
+      "timestamp_utc": "2026-04-29T19:22:52.043+00:00",
+      "unit": null,
+      "value": 2.75754451751709
+    },
+    {
+      "name": "kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 1650,
+      "timestamp_utc": "2026-04-29T19:22:52.043+00:00",
+      "unit": null,
+      "value": 1.8397982120513916
+    },
+    {
+      "name": "kl_drafter_to_verifier",
+      "phase": "train",
+      "step": 1650,
+      "timestamp_utc": "2026-04-29T19:22:52.043+00:00",
+      "unit": null,
+      "value": 2.2875747680664062
+    },
+    {
+      "name": "js_verifier_drafter",
+      "phase": "train",
+      "step": 1650,
+      "timestamp_utc": "2026-04-29T19:22:52.043+00:00",
+      "unit": null,
+      "value": 0.2825726270675659
+    },
+    {
+      "name": "top1_drafter_matches_verifier",
+      "phase": "train",
+      "step": 1650,
+      "timestamp_utc": "2026-04-29T19:22:52.043+00:00",
+      "unit": null,
+      "value": 0.42450982332229614
+    },
+    {
+      "name": "prob_mass_overlap_verifier_drafter",
+      "phase": "train",
+      "step": 1650,
+      "timestamp_utc": "2026-04-29T19:22:52.043+00:00",
+      "unit": null,
+      "value": 0.4258989691734314
+    },
+    {
+      "name": "p_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 1650,
+      "timestamp_utc": "2026-04-29T19:22:52.043+00:00",
+      "unit": null,
+      "value": 0.24473516643047333
+    },
+    {
+      "name": "loss_total",
+      "phase": "train",
+      "step": 1700,
+      "timestamp_utc": "2026-04-29T19:22:57.206+00:00",
+      "unit": null,
+      "value": 4.760944366455078
+    },
+    {
+      "name": "loss_kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 1700,
+      "timestamp_utc": "2026-04-29T19:22:57.206+00:00",
+      "unit": null,
+      "value": 2.0387699604034424
+    },
+    {
+      "name": "loss_bridge_reentry_mse",
+      "phase": "train",
+      "step": 1700,
+      "timestamp_utc": "2026-04-29T19:22:57.206+00:00",
+      "unit": null,
+      "value": 81.64810180664062
+    },
+    {
+      "name": "loss_ce_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 1700,
+      "timestamp_utc": "2026-04-29T19:22:57.206+00:00",
+      "unit": null,
+      "value": 2.722174644470215
+    },
+    {
+      "name": "kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 1700,
+      "timestamp_utc": "2026-04-29T19:22:57.206+00:00",
+      "unit": null,
+      "value": 2.0387701988220215
+    },
+    {
+      "name": "kl_drafter_to_verifier",
+      "phase": "train",
+      "step": 1700,
+      "timestamp_utc": "2026-04-29T19:22:57.206+00:00",
+      "unit": null,
+      "value": 3.420241355895996
+    },
+    {
+      "name": "js_verifier_drafter",
+      "phase": "train",
+      "step": 1700,
+      "timestamp_utc": "2026-04-29T19:22:57.206+00:00",
+      "unit": null,
+      "value": 0.3145131468772888
+    },
+    {
+      "name": "top1_drafter_matches_verifier",
+      "phase": "train",
+      "step": 1700,
+      "timestamp_utc": "2026-04-29T19:22:57.206+00:00",
+      "unit": null,
+      "value": 0.4235294461250305
+    },
+    {
+      "name": "prob_mass_overlap_verifier_drafter",
+      "phase": "train",
+      "step": 1700,
+      "timestamp_utc": "2026-04-29T19:22:57.206+00:00",
+      "unit": null,
+      "value": 0.3971629738807678
+    },
+    {
+      "name": "p_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 1700,
+      "timestamp_utc": "2026-04-29T19:22:57.206+00:00",
+      "unit": null,
+      "value": 0.263550341129303
+    },
+    {
+      "name": "loss_total",
+      "phase": "train",
+      "step": 1750,
+      "timestamp_utc": "2026-04-29T19:23:02.366+00:00",
+      "unit": null,
+      "value": 5.151628017425537
+    },
+    {
+      "name": "loss_kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 1750,
+      "timestamp_utc": "2026-04-29T19:23:02.366+00:00",
+      "unit": null,
+      "value": 2.182645797729492
+    },
+    {
+      "name": "loss_bridge_reentry_mse",
+      "phase": "train",
+      "step": 1750,
+      "timestamp_utc": "2026-04-29T19:23:02.366+00:00",
+      "unit": null,
+      "value": 87.77265930175781
+    },
+    {
+      "name": "loss_ce_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 1750,
+      "timestamp_utc": "2026-04-29T19:23:02.366+00:00",
+      "unit": null,
+      "value": 2.968982219696045
+    },
+    {
+      "name": "kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 1750,
+      "timestamp_utc": "2026-04-29T19:23:02.366+00:00",
+      "unit": null,
+      "value": 2.1826460361480713
+    },
+    {
+      "name": "kl_drafter_to_verifier",
+      "phase": "train",
+      "step": 1750,
+      "timestamp_utc": "2026-04-29T19:23:02.366+00:00",
+      "unit": null,
+      "value": 3.1596269607543945
+    },
+    {
+      "name": "js_verifier_drafter",
+      "phase": "train",
+      "step": 1750,
+      "timestamp_utc": "2026-04-29T19:23:02.366+00:00",
+      "unit": null,
+      "value": 0.3250483572483063
+    },
+    {
+      "name": "top1_drafter_matches_verifier",
+      "phase": "train",
+      "step": 1750,
+      "timestamp_utc": "2026-04-29T19:23:02.366+00:00",
+      "unit": null,
+      "value": 0.3862745463848114
+    },
+    {
+      "name": "prob_mass_overlap_verifier_drafter",
+      "phase": "train",
+      "step": 1750,
+      "timestamp_utc": "2026-04-29T19:23:02.366+00:00",
+      "unit": null,
+      "value": 0.37952351570129395
+    },
+    {
+      "name": "p_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 1750,
+      "timestamp_utc": "2026-04-29T19:23:02.366+00:00",
+      "unit": null,
+      "value": 0.2479376196861267
+    },
+    {
+      "name": "loss_total",
+      "phase": "train",
+      "step": 1800,
+      "timestamp_utc": "2026-04-29T19:23:07.516+00:00",
+      "unit": null,
+      "value": 5.324199676513672
+    },
+    {
+      "name": "loss_kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 1800,
+      "timestamp_utc": "2026-04-29T19:23:07.516+00:00",
+      "unit": null,
+      "value": 2.361499071121216
+    },
+    {
+      "name": "loss_bridge_reentry_mse",
+      "phase": "train",
+      "step": 1800,
+      "timestamp_utc": "2026-04-29T19:23:07.516+00:00",
+      "unit": null,
+      "value": 87.7367172241211
+    },
+    {
+      "name": "loss_ce_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 1800,
+      "timestamp_utc": "2026-04-29T19:23:07.516+00:00",
+      "unit": null,
+      "value": 2.962700843811035
+    },
+    {
+      "name": "kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 1800,
+      "timestamp_utc": "2026-04-29T19:23:07.517+00:00",
+      "unit": null,
+      "value": 2.361499071121216
+    },
+    {
+      "name": "kl_drafter_to_verifier",
+      "phase": "train",
+      "step": 1800,
+      "timestamp_utc": "2026-04-29T19:23:07.517+00:00",
+      "unit": null,
+      "value": 4.776763916015625
+    },
+    {
+      "name": "js_verifier_drafter",
+      "phase": "train",
+      "step": 1800,
+      "timestamp_utc": "2026-04-29T19:23:07.517+00:00",
+      "unit": null,
+      "value": 0.3344179689884186
+    },
+    {
+      "name": "top1_drafter_matches_verifier",
+      "phase": "train",
+      "step": 1800,
+      "timestamp_utc": "2026-04-29T19:23:07.517+00:00",
+      "unit": null,
+      "value": 0.43529415130615234
+    },
+    {
+      "name": "prob_mass_overlap_verifier_drafter",
+      "phase": "train",
+      "step": 1800,
+      "timestamp_utc": "2026-04-29T19:23:07.517+00:00",
+      "unit": null,
+      "value": 0.37753406167030334
+    },
+    {
+      "name": "p_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 1800,
+      "timestamp_utc": "2026-04-29T19:23:07.517+00:00",
+      "unit": null,
+      "value": 0.2756863832473755
+    },
+    {
+      "name": "loss_total",
+      "phase": "train",
+      "step": 1850,
+      "timestamp_utc": "2026-04-29T19:23:12.676+00:00",
+      "unit": null,
+      "value": 5.955901145935059
+    },
+    {
+      "name": "loss_kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 1850,
+      "timestamp_utc": "2026-04-29T19:23:12.676+00:00",
+      "unit": null,
+      "value": 2.507741689682007
+    },
+    {
+      "name": "loss_bridge_reentry_mse",
+      "phase": "train",
+      "step": 1850,
+      "timestamp_utc": "2026-04-29T19:23:12.676+00:00",
+      "unit": null,
+      "value": 115.9889144897461
+    },
+    {
+      "name": "loss_ce_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 1850,
+      "timestamp_utc": "2026-04-29T19:23:12.676+00:00",
+      "unit": null,
+      "value": 3.4481594562530518
+    },
+    {
+      "name": "kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 1850,
+      "timestamp_utc": "2026-04-29T19:23:12.676+00:00",
+      "unit": null,
+      "value": 2.507741689682007
+    },
+    {
+      "name": "kl_drafter_to_verifier",
+      "phase": "train",
+      "step": 1850,
+      "timestamp_utc": "2026-04-29T19:23:12.676+00:00",
+      "unit": null,
+      "value": 3.4676711559295654
+    },
+    {
+      "name": "js_verifier_drafter",
+      "phase": "train",
+      "step": 1850,
+      "timestamp_utc": "2026-04-29T19:23:12.676+00:00",
+      "unit": null,
+      "value": 0.3479144275188446
+    },
+    {
+      "name": "top1_drafter_matches_verifier",
+      "phase": "train",
+      "step": 1850,
+      "timestamp_utc": "2026-04-29T19:23:12.676+00:00",
+      "unit": null,
+      "value": 0.3490196168422699
+    },
+    {
+      "name": "prob_mass_overlap_verifier_drafter",
+      "phase": "train",
+      "step": 1850,
+      "timestamp_utc": "2026-04-29T19:23:12.676+00:00",
+      "unit": null,
+      "value": 0.35467079281806946
+    },
+    {
+      "name": "p_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 1850,
+      "timestamp_utc": "2026-04-29T19:23:12.676+00:00",
+      "unit": null,
+      "value": 0.21388697624206543
+    },
+    {
+      "name": "loss_total",
+      "phase": "train",
+      "step": 1900,
+      "timestamp_utc": "2026-04-29T19:23:17.839+00:00",
+      "unit": null,
+      "value": 4.892995834350586
+    },
+    {
+      "name": "loss_kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 1900,
+      "timestamp_utc": "2026-04-29T19:23:17.839+00:00",
+      "unit": null,
+      "value": 1.9843828678131104
+    },
+    {
+      "name": "loss_bridge_reentry_mse",
+      "phase": "train",
+      "step": 1900,
+      "timestamp_utc": "2026-04-29T19:23:17.839+00:00",
+      "unit": null,
+      "value": 104.29952239990234
+    },
+    {
+      "name": "loss_ce_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 1900,
+      "timestamp_utc": "2026-04-29T19:23:17.839+00:00",
+      "unit": null,
+      "value": 2.9086132049560547
+    },
+    {
+      "name": "kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 1900,
+      "timestamp_utc": "2026-04-29T19:23:17.839+00:00",
+      "unit": null,
+      "value": 1.9843829870224
+    },
+    {
+      "name": "kl_drafter_to_verifier",
+      "phase": "train",
+      "step": 1900,
+      "timestamp_utc": "2026-04-29T19:23:17.839+00:00",
+      "unit": null,
+      "value": 2.652040719985962
+    },
+    {
+      "name": "js_verifier_drafter",
+      "phase": "train",
+      "step": 1900,
+      "timestamp_utc": "2026-04-29T19:23:17.839+00:00",
+      "unit": null,
+      "value": 0.2950061559677124
+    },
+    {
+      "name": "top1_drafter_matches_verifier",
+      "phase": "train",
+      "step": 1900,
+      "timestamp_utc": "2026-04-29T19:23:17.839+00:00",
+      "unit": null,
+      "value": 0.4441176652908325
+    },
+    {
+      "name": "prob_mass_overlap_verifier_drafter",
+      "phase": "train",
+      "step": 1900,
+      "timestamp_utc": "2026-04-29T19:23:17.839+00:00",
+      "unit": null,
+      "value": 0.41334646940231323
+    },
+    {
+      "name": "p_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 1900,
+      "timestamp_utc": "2026-04-29T19:23:17.839+00:00",
+      "unit": null,
+      "value": 0.2557600438594818
+    },
+    {
+      "name": "loss_total",
+      "phase": "train",
+      "step": 1950,
+      "timestamp_utc": "2026-04-29T19:23:23.000+00:00",
+      "unit": null,
+      "value": 4.659978866577148
+    },
+    {
+      "name": "loss_kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 1950,
+      "timestamp_utc": "2026-04-29T19:23:23.000+00:00",
+      "unit": null,
+      "value": 1.8871897459030151
+    },
+    {
+      "name": "loss_bridge_reentry_mse",
+      "phase": "train",
+      "step": 1950,
+      "timestamp_utc": "2026-04-29T19:23:23.000+00:00",
+      "unit": null,
+      "value": 97.16605377197266
+    },
+    {
+      "name": "loss_ce_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 1950,
+      "timestamp_utc": "2026-04-29T19:23:23.000+00:00",
+      "unit": null,
+      "value": 2.7727890014648438
+    },
+    {
+      "name": "kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 1950,
+      "timestamp_utc": "2026-04-29T19:23:23.000+00:00",
+      "unit": null,
+      "value": 1.8871898651123047
+    },
+    {
+      "name": "kl_drafter_to_verifier",
+      "phase": "train",
+      "step": 1950,
+      "timestamp_utc": "2026-04-29T19:23:23.000+00:00",
+      "unit": null,
+      "value": 2.6921334266662598
+    },
+    {
+      "name": "js_verifier_drafter",
+      "phase": "train",
+      "step": 1950,
+      "timestamp_utc": "2026-04-29T19:23:23.000+00:00",
+      "unit": null,
+      "value": 0.2903323769569397
+    },
+    {
+      "name": "top1_drafter_matches_verifier",
+      "phase": "train",
+      "step": 1950,
+      "timestamp_utc": "2026-04-29T19:23:23.000+00:00",
+      "unit": null,
+      "value": 0.44019609689712524
+    },
+    {
+      "name": "prob_mass_overlap_verifier_drafter",
+      "phase": "train",
+      "step": 1950,
+      "timestamp_utc": "2026-04-29T19:23:23.000+00:00",
+      "unit": null,
+      "value": 0.42388516664505005
+    },
+    {
+      "name": "p_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 1950,
+      "timestamp_utc": "2026-04-29T19:23:23.000+00:00",
+      "unit": null,
+      "value": 0.2708737254142761
+    },
+    {
+      "name": "loss_total",
+      "phase": "train",
+      "step": 2000,
+      "timestamp_utc": "2026-04-29T19:23:28.296+00:00",
+      "unit": null,
+      "value": 3.7664244174957275
+    },
+    {
+      "name": "loss_kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 2000,
+      "timestamp_utc": "2026-04-29T19:23:28.296+00:00",
+      "unit": null,
+      "value": 1.4909696578979492
+    },
+    {
+      "name": "loss_bridge_reentry_mse",
+      "phase": "train",
+      "step": 2000,
+      "timestamp_utc": "2026-04-29T19:23:28.296+00:00",
+      "unit": null,
+      "value": 95.43130493164062
+    },
+    {
+      "name": "loss_ce_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 2000,
+      "timestamp_utc": "2026-04-29T19:23:28.296+00:00",
+      "unit": null,
+      "value": 2.2754547595977783
+    },
+    {
+      "name": "kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 2000,
+      "timestamp_utc": "2026-04-29T19:23:28.296+00:00",
+      "unit": null,
+      "value": 1.4909697771072388
+    },
+    {
+      "name": "kl_drafter_to_verifier",
+      "phase": "train",
+      "step": 2000,
+      "timestamp_utc": "2026-04-29T19:23:28.296+00:00",
+      "unit": null,
+      "value": 2.081541061401367
+    },
+    {
+      "name": "js_verifier_drafter",
+      "phase": "train",
+      "step": 2000,
+      "timestamp_utc": "2026-04-29T19:23:28.296+00:00",
+      "unit": null,
+      "value": 0.24445989727973938
+    },
+    {
+      "name": "top1_drafter_matches_verifier",
+      "phase": "train",
+      "step": 2000,
+      "timestamp_utc": "2026-04-29T19:23:28.296+00:00",
+      "unit": null,
+      "value": 0.5186274647712708
+    },
+    {
+      "name": "prob_mass_overlap_verifier_drafter",
+      "phase": "train",
+      "step": 2000,
+      "timestamp_utc": "2026-04-29T19:23:28.296+00:00",
+      "unit": null,
+      "value": 0.48630085587501526
+    },
+    {
+      "name": "p_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 2000,
+      "timestamp_utc": "2026-04-29T19:23:28.296+00:00",
+      "unit": null,
+      "value": 0.3232552111148834
+    },
+    {
+      "name": "loss_total",
+      "phase": "train",
+      "step": 2050,
+      "timestamp_utc": "2026-04-29T19:23:33.464+00:00",
+      "unit": null,
+      "value": 4.937845230102539
+    },
+    {
+      "name": "loss_kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 2050,
+      "timestamp_utc": "2026-04-29T19:23:33.464+00:00",
+      "unit": null,
+      "value": 2.0585052967071533
+    },
+    {
+      "name": "loss_bridge_reentry_mse",
+      "phase": "train",
+      "step": 2050,
+      "timestamp_utc": "2026-04-29T19:23:33.464+00:00",
+      "unit": null,
+      "value": 100.40449523925781
+    },
+    {
+      "name": "loss_ce_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 2050,
+      "timestamp_utc": "2026-04-29T19:23:33.464+00:00",
+      "unit": null,
+      "value": 2.8793399333953857
+    },
+    {
+      "name": "kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 2050,
+      "timestamp_utc": "2026-04-29T19:23:33.464+00:00",
+      "unit": null,
+      "value": 2.0585052967071533
+    },
+    {
+      "name": "kl_drafter_to_verifier",
+      "phase": "train",
+      "step": 2050,
+      "timestamp_utc": "2026-04-29T19:23:33.464+00:00",
+      "unit": null,
+      "value": 2.807180404663086
+    },
+    {
+      "name": "js_verifier_drafter",
+      "phase": "train",
+      "step": 2050,
+      "timestamp_utc": "2026-04-29T19:23:33.464+00:00",
+      "unit": null,
+      "value": 0.29912900924682617
+    },
+    {
+      "name": "top1_drafter_matches_verifier",
+      "phase": "train",
+      "step": 2050,
+      "timestamp_utc": "2026-04-29T19:23:33.464+00:00",
+      "unit": null,
+      "value": 0.4127451181411743
+    },
+    {
+      "name": "prob_mass_overlap_verifier_drafter",
+      "phase": "train",
+      "step": 2050,
+      "timestamp_utc": "2026-04-29T19:23:33.464+00:00",
+      "unit": null,
+      "value": 0.4108400344848633
+    },
+    {
+      "name": "p_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 2050,
+      "timestamp_utc": "2026-04-29T19:23:33.464+00:00",
+      "unit": null,
+      "value": 0.2645605504512787
+    },
+    {
+      "name": "loss_total",
+      "phase": "train",
+      "step": 2100,
+      "timestamp_utc": "2026-04-29T19:23:38.630+00:00",
+      "unit": null,
+      "value": 5.1260199546813965
+    },
+    {
+      "name": "loss_kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 2100,
+      "timestamp_utc": "2026-04-29T19:23:38.631+00:00",
+      "unit": null,
+      "value": 2.145112991333008
+    },
+    {
+      "name": "loss_bridge_reentry_mse",
+      "phase": "train",
+      "step": 2100,
+      "timestamp_utc": "2026-04-29T19:23:38.631+00:00",
+      "unit": null,
+      "value": 100.15424346923828
+    },
+    {
+      "name": "loss_ce_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 2100,
+      "timestamp_utc": "2026-04-29T19:23:38.631+00:00",
+      "unit": null,
+      "value": 2.9809069633483887
+    },
+    {
+      "name": "kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 2100,
+      "timestamp_utc": "2026-04-29T19:23:38.631+00:00",
+      "unit": null,
+      "value": 2.145112991333008
+    },
+    {
+      "name": "kl_drafter_to_verifier",
+      "phase": "train",
+      "step": 2100,
+      "timestamp_utc": "2026-04-29T19:23:38.631+00:00",
+      "unit": null,
+      "value": 3.1361031532287598
+    },
+    {
+      "name": "js_verifier_drafter",
+      "phase": "train",
+      "step": 2100,
+      "timestamp_utc": "2026-04-29T19:23:38.631+00:00",
+      "unit": null,
+      "value": 0.30988016724586487
+    },
+    {
+      "name": "top1_drafter_matches_verifier",
+      "phase": "train",
+      "step": 2100,
+      "timestamp_utc": "2026-04-29T19:23:38.631+00:00",
+      "unit": null,
+      "value": 0.4637255072593689
+    },
+    {
+      "name": "prob_mass_overlap_verifier_drafter",
+      "phase": "train",
+      "step": 2100,
+      "timestamp_utc": "2026-04-29T19:23:38.631+00:00",
+      "unit": null,
+      "value": 0.40290752053260803
+    },
+    {
+      "name": "p_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 2100,
+      "timestamp_utc": "2026-04-29T19:23:38.631+00:00",
+      "unit": null,
+      "value": 0.2633492946624756
+    },
+    {
+      "name": "loss_total",
+      "phase": "train",
+      "step": 2150,
+      "timestamp_utc": "2026-04-29T19:23:43.797+00:00",
+      "unit": null,
+      "value": 4.490449905395508
+    },
+    {
+      "name": "loss_kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 2150,
+      "timestamp_utc": "2026-04-29T19:23:43.797+00:00",
+      "unit": null,
+      "value": 1.7936527729034424
+    },
+    {
+      "name": "loss_bridge_reentry_mse",
+      "phase": "train",
+      "step": 2150,
+      "timestamp_utc": "2026-04-29T19:23:43.797+00:00",
+      "unit": null,
+      "value": 100.0879898071289
+    },
+    {
+      "name": "loss_ce_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 2150,
+      "timestamp_utc": "2026-04-29T19:23:43.797+00:00",
+      "unit": null,
+      "value": 2.6967968940734863
+    },
+    {
+      "name": "kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 2150,
+      "timestamp_utc": "2026-04-29T19:23:43.797+00:00",
+      "unit": null,
+      "value": 1.793652892112732
+    },
+    {
+      "name": "kl_drafter_to_verifier",
+      "phase": "train",
+      "step": 2150,
+      "timestamp_utc": "2026-04-29T19:23:43.798+00:00",
+      "unit": null,
+      "value": 2.6673548221588135
+    },
+    {
+      "name": "js_verifier_drafter",
+      "phase": "train",
+      "step": 2150,
+      "timestamp_utc": "2026-04-29T19:23:43.798+00:00",
+      "unit": null,
+      "value": 0.2865022122859955
+    },
+    {
+      "name": "top1_drafter_matches_verifier",
+      "phase": "train",
+      "step": 2150,
+      "timestamp_utc": "2026-04-29T19:23:43.798+00:00",
+      "unit": null,
+      "value": 0.4333333671092987
+    },
+    {
+      "name": "prob_mass_overlap_verifier_drafter",
+      "phase": "train",
+      "step": 2150,
+      "timestamp_utc": "2026-04-29T19:23:43.798+00:00",
+      "unit": null,
+      "value": 0.42408043146133423
+    },
+    {
+      "name": "p_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 2150,
+      "timestamp_utc": "2026-04-29T19:23:43.798+00:00",
+      "unit": null,
+      "value": 0.26224708557128906
+    },
+    {
+      "name": "loss_total",
+      "phase": "train",
+      "step": 2200,
+      "timestamp_utc": "2026-04-29T19:23:48.948+00:00",
+      "unit": null,
+      "value": 4.313091278076172
+    },
+    {
+      "name": "loss_kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 2200,
+      "timestamp_utc": "2026-04-29T19:23:48.948+00:00",
+      "unit": null,
+      "value": 1.8021018505096436
+    },
+    {
+      "name": "loss_bridge_reentry_mse",
+      "phase": "train",
+      "step": 2200,
+      "timestamp_utc": "2026-04-29T19:23:48.948+00:00",
+      "unit": null,
+      "value": 100.63783264160156
+    },
+    {
+      "name": "loss_ce_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 2200,
+      "timestamp_utc": "2026-04-29T19:23:48.948+00:00",
+      "unit": null,
+      "value": 2.5109896659851074
+    },
+    {
+      "name": "kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 2200,
+      "timestamp_utc": "2026-04-29T19:23:48.948+00:00",
+      "unit": null,
+      "value": 1.802101969718933
+    },
+    {
+      "name": "kl_drafter_to_verifier",
+      "phase": "train",
+      "step": 2200,
+      "timestamp_utc": "2026-04-29T19:23:48.948+00:00",
+      "unit": null,
+      "value": 2.3765640258789062
+    },
+    {
+      "name": "js_verifier_drafter",
+      "phase": "train",
+      "step": 2200,
+      "timestamp_utc": "2026-04-29T19:23:48.948+00:00",
+      "unit": null,
+      "value": 0.27701863646507263
+    },
+    {
+      "name": "top1_drafter_matches_verifier",
+      "phase": "train",
+      "step": 2200,
+      "timestamp_utc": "2026-04-29T19:23:48.948+00:00",
+      "unit": null,
+      "value": 0.4598039388656616
+    },
+    {
+      "name": "prob_mass_overlap_verifier_drafter",
+      "phase": "train",
+      "step": 2200,
+      "timestamp_utc": "2026-04-29T19:23:48.948+00:00",
+      "unit": null,
+      "value": 0.4348413348197937
+    },
+    {
+      "name": "p_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 2200,
+      "timestamp_utc": "2026-04-29T19:23:48.948+00:00",
+      "unit": null,
+      "value": 0.28484687209129333
+    },
+    {
+      "name": "loss_total",
+      "phase": "train",
+      "step": 2250,
+      "timestamp_utc": "2026-04-29T19:23:54.100+00:00",
+      "unit": null,
+      "value": 5.445066452026367
+    },
+    {
+      "name": "loss_kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 2250,
+      "timestamp_utc": "2026-04-29T19:23:54.100+00:00",
+      "unit": null,
+      "value": 2.2556376457214355
+    },
+    {
+      "name": "loss_bridge_reentry_mse",
+      "phase": "train",
+      "step": 2250,
+      "timestamp_utc": "2026-04-29T19:23:54.100+00:00",
+      "unit": null,
+      "value": 109.72091674804688
+    },
+    {
+      "name": "loss_ce_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 2250,
+      "timestamp_utc": "2026-04-29T19:23:54.100+00:00",
+      "unit": null,
+      "value": 3.1894288063049316
+    },
+    {
+      "name": "kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 2250,
+      "timestamp_utc": "2026-04-29T19:23:54.100+00:00",
+      "unit": null,
+      "value": 2.2556378841400146
+    },
+    {
+      "name": "kl_drafter_to_verifier",
+      "phase": "train",
+      "step": 2250,
+      "timestamp_utc": "2026-04-29T19:23:54.100+00:00",
+      "unit": null,
+      "value": 3.084648609161377
+    },
+    {
+      "name": "js_verifier_drafter",
+      "phase": "train",
+      "step": 2250,
+      "timestamp_utc": "2026-04-29T19:23:54.100+00:00",
+      "unit": null,
+      "value": 0.3279922306537628
+    },
+    {
+      "name": "top1_drafter_matches_verifier",
+      "phase": "train",
+      "step": 2250,
+      "timestamp_utc": "2026-04-29T19:23:54.100+00:00",
+      "unit": null,
+      "value": 0.40882354974746704
+    },
+    {
+      "name": "prob_mass_overlap_verifier_drafter",
+      "phase": "train",
+      "step": 2250,
+      "timestamp_utc": "2026-04-29T19:23:54.100+00:00",
+      "unit": null,
+      "value": 0.36959075927734375
+    },
+    {
+      "name": "p_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 2250,
+      "timestamp_utc": "2026-04-29T19:23:54.101+00:00",
+      "unit": null,
+      "value": 0.2211642563343048
+    },
+    {
+      "name": "loss_total",
+      "phase": "train",
+      "step": 2300,
+      "timestamp_utc": "2026-04-29T19:23:59.253+00:00",
+      "unit": null,
+      "value": 4.545889854431152
+    },
+    {
+      "name": "loss_kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 2300,
+      "timestamp_utc": "2026-04-29T19:23:59.253+00:00",
+      "unit": null,
+      "value": 1.7757935523986816
+    },
+    {
+      "name": "loss_bridge_reentry_mse",
+      "phase": "train",
+      "step": 2300,
+      "timestamp_utc": "2026-04-29T19:23:59.253+00:00",
+      "unit": null,
+      "value": 107.42916870117188
+    },
+    {
+      "name": "loss_ce_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 2300,
+      "timestamp_utc": "2026-04-29T19:23:59.253+00:00",
+      "unit": null,
+      "value": 2.7700960636138916
+    },
+    {
+      "name": "kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 2300,
+      "timestamp_utc": "2026-04-29T19:23:59.253+00:00",
+      "unit": null,
+      "value": 1.7757936716079712
+    },
+    {
+      "name": "kl_drafter_to_verifier",
+      "phase": "train",
+      "step": 2300,
+      "timestamp_utc": "2026-04-29T19:23:59.253+00:00",
+      "unit": null,
+      "value": 2.1966969966888428
+    },
+    {
+      "name": "js_verifier_drafter",
+      "phase": "train",
+      "step": 2300,
+      "timestamp_utc": "2026-04-29T19:23:59.253+00:00",
+      "unit": null,
+      "value": 0.27886754274368286
+    },
+    {
+      "name": "top1_drafter_matches_verifier",
+      "phase": "train",
+      "step": 2300,
+      "timestamp_utc": "2026-04-29T19:23:59.254+00:00",
+      "unit": null,
+      "value": 0.4107843339443207
+    },
+    {
+      "name": "prob_mass_overlap_verifier_drafter",
+      "phase": "train",
+      "step": 2300,
+      "timestamp_utc": "2026-04-29T19:23:59.254+00:00",
+      "unit": null,
+      "value": 0.42669156193733215
+    },
+    {
+      "name": "p_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 2300,
+      "timestamp_utc": "2026-04-29T19:23:59.254+00:00",
+      "unit": null,
+      "value": 0.24874673783779144
+    },
+    {
+      "name": "loss_total",
+      "phase": "train",
+      "step": 2350,
+      "timestamp_utc": "2026-04-29T19:24:04.408+00:00",
+      "unit": null,
+      "value": 4.490304470062256
+    },
+    {
+      "name": "loss_kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 2350,
+      "timestamp_utc": "2026-04-29T19:24:04.409+00:00",
+      "unit": null,
+      "value": 1.8088196516036987
+    },
+    {
+      "name": "loss_bridge_reentry_mse",
+      "phase": "train",
+      "step": 2350,
+      "timestamp_utc": "2026-04-29T19:24:04.409+00:00",
+      "unit": null,
+      "value": 91.79666900634766
+    },
+    {
+      "name": "loss_ce_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 2350,
+      "timestamp_utc": "2026-04-29T19:24:04.409+00:00",
+      "unit": null,
+      "value": 2.6814849376678467
+    },
+    {
+      "name": "kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 2350,
+      "timestamp_utc": "2026-04-29T19:24:04.409+00:00",
+      "unit": null,
+      "value": 1.8088197708129883
+    },
+    {
+      "name": "kl_drafter_to_verifier",
+      "phase": "train",
+      "step": 2350,
+      "timestamp_utc": "2026-04-29T19:24:04.409+00:00",
+      "unit": null,
+      "value": 2.9713988304138184
+    },
+    {
+      "name": "js_verifier_drafter",
+      "phase": "train",
+      "step": 2350,
+      "timestamp_utc": "2026-04-29T19:24:04.409+00:00",
+      "unit": null,
+      "value": 0.2908462584018707
+    },
+    {
+      "name": "top1_drafter_matches_verifier",
+      "phase": "train",
+      "step": 2350,
+      "timestamp_utc": "2026-04-29T19:24:04.409+00:00",
+      "unit": null,
+      "value": 0.40980395674705505
+    },
+    {
+      "name": "prob_mass_overlap_verifier_drafter",
+      "phase": "train",
+      "step": 2350,
+      "timestamp_utc": "2026-04-29T19:24:04.409+00:00",
+      "unit": null,
+      "value": 0.418144553899765
+    },
+    {
+      "name": "p_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 2350,
+      "timestamp_utc": "2026-04-29T19:24:04.409+00:00",
+      "unit": null,
+      "value": 0.24259991943836212
+    },
+    {
+      "name": "loss_total",
+      "phase": "train",
+      "step": 2400,
+      "timestamp_utc": "2026-04-29T19:24:09.558+00:00",
+      "unit": null,
+      "value": 4.805637359619141
+    },
+    {
+      "name": "loss_kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 2400,
+      "timestamp_utc": "2026-04-29T19:24:09.558+00:00",
+      "unit": null,
+      "value": 1.9123413562774658
+    },
+    {
+      "name": "loss_bridge_reentry_mse",
+      "phase": "train",
+      "step": 2400,
+      "timestamp_utc": "2026-04-29T19:24:09.558+00:00",
+      "unit": null,
+      "value": 128.21144104003906
+    },
+    {
+      "name": "loss_ce_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 2400,
+      "timestamp_utc": "2026-04-29T19:24:09.558+00:00",
+      "unit": null,
+      "value": 2.893296241760254
+    },
+    {
+      "name": "kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 2400,
+      "timestamp_utc": "2026-04-29T19:24:09.558+00:00",
+      "unit": null,
+      "value": 1.9123414754867554
+    },
+    {
+      "name": "kl_drafter_to_verifier",
+      "phase": "train",
+      "step": 2400,
+      "timestamp_utc": "2026-04-29T19:24:09.558+00:00",
+      "unit": null,
+      "value": 2.2547433376312256
+    },
+    {
+      "name": "js_verifier_drafter",
+      "phase": "train",
+      "step": 2400,
+      "timestamp_utc": "2026-04-29T19:24:09.558+00:00",
+      "unit": null,
+      "value": 0.28451719880104065
+    },
+    {
+      "name": "top1_drafter_matches_verifier",
+      "phase": "train",
+      "step": 2400,
+      "timestamp_utc": "2026-04-29T19:24:09.558+00:00",
+      "unit": null,
+      "value": 0.4215686619281769
+    },
+    {
+      "name": "prob_mass_overlap_verifier_drafter",
+      "phase": "train",
+      "step": 2400,
+      "timestamp_utc": "2026-04-29T19:24:09.558+00:00",
+      "unit": null,
+      "value": 0.41929492354393005
+    },
+    {
+      "name": "p_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 2400,
+      "timestamp_utc": "2026-04-29T19:24:09.558+00:00",
+      "unit": null,
+      "value": 0.24488645792007446
+    },
+    {
+      "name": "loss_total",
+      "phase": "train",
+      "step": 2450,
+      "timestamp_utc": "2026-04-29T19:24:14.726+00:00",
+      "unit": null,
+      "value": 4.958334922790527
+    },
+    {
+      "name": "loss_kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 2450,
+      "timestamp_utc": "2026-04-29T19:24:14.726+00:00",
+      "unit": null,
+      "value": 1.9100978374481201
+    },
+    {
+      "name": "loss_bridge_reentry_mse",
+      "phase": "train",
+      "step": 2450,
+      "timestamp_utc": "2026-04-29T19:24:14.726+00:00",
+      "unit": null,
+      "value": 116.88536834716797
+    },
+    {
+      "name": "loss_ce_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 2450,
+      "timestamp_utc": "2026-04-29T19:24:14.726+00:00",
+      "unit": null,
+      "value": 3.0482373237609863
+    },
+    {
+      "name": "kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 2450,
+      "timestamp_utc": "2026-04-29T19:24:14.726+00:00",
+      "unit": null,
+      "value": 1.9100979566574097
+    },
+    {
+      "name": "kl_drafter_to_verifier",
+      "phase": "train",
+      "step": 2450,
+      "timestamp_utc": "2026-04-29T19:24:14.726+00:00",
+      "unit": null,
+      "value": 2.645742416381836
+    },
+    {
+      "name": "js_verifier_drafter",
+      "phase": "train",
+      "step": 2450,
+      "timestamp_utc": "2026-04-29T19:24:14.726+00:00",
+      "unit": null,
+      "value": 0.30414631962776184
+    },
+    {
+      "name": "top1_drafter_matches_verifier",
+      "phase": "train",
+      "step": 2450,
+      "timestamp_utc": "2026-04-29T19:24:14.726+00:00",
+      "unit": null,
+      "value": 0.4068627655506134
+    },
+    {
+      "name": "prob_mass_overlap_verifier_drafter",
+      "phase": "train",
+      "step": 2450,
+      "timestamp_utc": "2026-04-29T19:24:14.726+00:00",
+      "unit": null,
+      "value": 0.3950040936470032
+    },
+    {
+      "name": "p_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 2450,
+      "timestamp_utc": "2026-04-29T19:24:14.726+00:00",
+      "unit": null,
+      "value": 0.20970197021961212
+    },
+    {
+      "name": "loss_total",
+      "phase": "train",
+      "step": 2500,
+      "timestamp_utc": "2026-04-29T19:24:19.883+00:00",
+      "unit": null,
+      "value": 4.945148468017578
+    },
+    {
+      "name": "loss_kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 2500,
+      "timestamp_utc": "2026-04-29T19:24:19.883+00:00",
+      "unit": null,
+      "value": 2.0167181491851807
+    },
+    {
+      "name": "loss_bridge_reentry_mse",
+      "phase": "train",
+      "step": 2500,
+      "timestamp_utc": "2026-04-29T19:24:19.883+00:00",
+      "unit": null,
+      "value": 117.26907348632812
+    },
+    {
+      "name": "loss_ce_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 2500,
+      "timestamp_utc": "2026-04-29T19:24:19.883+00:00",
+      "unit": null,
+      "value": 2.9284303188323975
+    },
+    {
+      "name": "kl_verifier_to_drafter",
+      "phase": "train",
+      "step": 2500,
+      "timestamp_utc": "2026-04-29T19:24:19.883+00:00",
+      "unit": null,
+      "value": 2.0167181491851807
+    },
+    {
+      "name": "kl_drafter_to_verifier",
+      "phase": "train",
+      "step": 2500,
+      "timestamp_utc": "2026-04-29T19:24:19.883+00:00",
+      "unit": null,
+      "value": 2.551640748977661
+    },
+    {
+      "name": "js_verifier_drafter",
+      "phase": "train",
+      "step": 2500,
+      "timestamp_utc": "2026-04-29T19:24:19.883+00:00",
+      "unit": null,
+      "value": 0.2994807958602905
+    },
+    {
+      "name": "top1_drafter_matches_verifier",
+      "phase": "train",
+      "step": 2500,
+      "timestamp_utc": "2026-04-29T19:24:19.883+00:00",
+      "unit": null,
+      "value": 0.4264706075191498
+    },
+    {
+      "name": "prob_mass_overlap_verifier_drafter",
+      "phase": "train",
+      "step": 2500,
+      "timestamp_utc": "2026-04-29T19:24:19.883+00:00",
+      "unit": null,
+      "value": 0.4047693908214569
+    },
+    {
+      "name": "p_drafter_on_verifier_top1",
+      "phase": "train",
+      "step": 2500,
+      "timestamp_utc": "2026-04-29T19:24:19.883+00:00",
+      "unit": null,
+      "value": 0.23993295431137085
+    }
+  ]
+}
