@@ -1,0 +1,3600 @@
+{
+  "schema_version": 1,
+  "tokenizer_name": "Qwen/Qwen3.5-4B",
+  "tokens": [
+    {
+      "token_id": 248045,
+      "type": "prompt",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 846,
+      "type": "prompt",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 198,
+      "type": "prompt",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 39113,
+      "type": "prompt",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 728,
+      "type": "prompt",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 264,
+      "type": "prompt",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 3255,
+      "type": "prompt",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 883,
+      "type": "prompt",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 264,
+      "type": "prompt",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 5388,
+      "type": "prompt",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 2512,
+      "type": "prompt",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 13853,
+      "type": "prompt",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 13,
+      "type": "prompt",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 248046,
+      "type": "prompt",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 198,
+      "type": "prompt",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 248045,
+      "type": "prompt",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 74455,
+      "type": "prompt",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 198,
+      "type": "prompt",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 248068,
+      "type": "prompt",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 271,
+      "type": "prompt",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 248069,
+      "type": "prompt",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 271,
+      "type": "prompt",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 623,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 279,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 1
+    },
+    {
+      "token_id": 5388,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 1
+    },
+    {
+      "token_id": 11012,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 11,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 2
+    },
+    {
+      "token_id": 41025,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 2
+    },
+    {
+      "token_id": 32709,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 863,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 3
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 3
+    },
+    {
+      "token_id": 7476,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 290,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 4
+    },
+    {
+      "token_id": 6092,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 4
+    },
+    {
+      "token_id": 13721,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 314,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 5
+    },
+    {
+      "token_id": 279,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 5
+    },
+    {
+      "token_id": 17739,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 6451,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 6
+    },
+    {
+      "token_id": 11,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 6
+    },
+    {
+      "token_id": 68507,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 681,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 7
+    },
+    {
+      "token_id": 279,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 7
+    },
+    {
+      "token_id": 11,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 11815,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 8
+    },
+    {
+      "token_id": 11,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 8
+    },
+    {
+      "token_id": 264,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 5388,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 9
+    },
+    {
+      "token_id": 6725,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 9
+    },
+    {
+      "token_id": 13853,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 10
+    },
+    {
+      "token_id": 198,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 10
+    },
+    {
+      "token_id": 13853,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 557,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 11
+    },
+    {
+      "token_id": 524,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 11
+    },
+    {
+      "token_id": 5532,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 914,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 12
+    },
+    {
+      "token_id": 1066,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 12
+    },
+    {
+      "token_id": 279,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 8276,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 13
+    },
+    {
+      "token_id": 314,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 13
+    },
+    {
+      "token_id": 5388,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 303,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 14
+    },
+    {
+      "token_id": 279,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 14
+    },
+    {
+      "token_id": 13721,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 11,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 15
+    },
+    {
+      "token_id": 694,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 15
+    },
+    {
+      "token_id": 6130,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 557,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 16
+    },
+    {
+      "token_id": 551,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 16
+    },
+    {
+      "token_id": 279,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 24830,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 17
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 17
+    },
+    {
+      "token_id": 1216,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 557,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 18
+    },
+    {
+      "token_id": 264,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 18
+    },
+    {
+      "token_id": 10728,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 26931,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 19
+    },
+    {
+      "token_id": 11,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 19
+    },
+    {
+      "token_id": 1915,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 88346,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 20
+    },
+    {
+      "token_id": 11,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 20
+    },
+    {
+      "token_id": 7026,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 11,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 21
+    },
+    {
+      "token_id": 864,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 21
+    },
+    {
+      "token_id": 6311,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 314,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 22
+    },
+    {
+      "token_id": 220,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 22
+    },
+    {
+      "token_id": 440,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 264,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 23
+    },
+    {
+      "token_id": 2526,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 23
+    },
+    {
+      "token_id": 17699,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 421,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 24
+    },
+    {
+      "token_id": 551,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 24
+    },
+    {
+      "token_id": 279,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 1331,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 25
+    },
+    {
+      "token_id": 314,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 25
+    },
+    {
+      "token_id": 1829,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 314,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 26
+    },
+    {
+      "token_id": 220,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 26
+    },
+    {
+      "token_id": 89674,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 15879,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 27
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 27
+    },
+    {
+      "token_id": 30942,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 321,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 28
+    },
+    {
+      "token_id": 551,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 28
+    },
+    {
+      "token_id": 28568,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 4102,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 29
+    },
+    {
+      "token_id": 11,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 29
+    },
+    {
+      "token_id": 321,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 264,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 30
+    },
+    {
+      "token_id": 2330,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 30
+    },
+    {
+      "token_id": 6213,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 421,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 31
+    },
+    {
+      "token_id": 6749,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 31
+    },
+    {
+      "token_id": 9047,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 310,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 32
+    },
+    {
+      "token_id": 1353,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 32
+    },
+    {
+      "token_id": 3222,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 264,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 33
+    },
+    {
+      "token_id": 4281,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 33
+    },
+    {
+      "token_id": 279,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 1788,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 34
+    },
+    {
+      "token_id": 3065,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 34
+    },
+    {
+      "token_id": 21172,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 314,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 35
+    },
+    {
+      "token_id": 279,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 35
+    },
+    {
+      "token_id": 1396,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 3603,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 36
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 36
+    },
+    {
+      "token_id": 8329,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 303,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 37
+    },
+    {
+      "token_id": 279,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 37
+    },
+    {
+      "token_id": 91485,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 38
+    },
+    {
+      "token_id": 271,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 38
+    },
+    {
+      "token_id": 303,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 279,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 39
+    },
+    {
+      "token_id": 3177,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 39
+    },
+    {
+      "token_id": 6092,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 40
+    },
+    {
+      "token_id": 271,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 40
+    },
+    {
+      "token_id": 31318,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 557,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 41
+    },
+    {
+      "token_id": 264,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 41
+    },
+    {
+      "token_id": 579,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 6714,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 42
+    },
+    {
+      "token_id": 557,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 42
+    },
+    {
+      "token_id": 2531,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 557,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 43
+    },
+    {
+      "token_id": 264,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 43
+    },
+    {
+      "token_id": 4145,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 44
+    },
+    {
+      "token_id": 271,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 44
+    },
+    {
+      "token_id": 25,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 551,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 45
+    },
+    {
+      "token_id": 557,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 45
+    },
+    {
+      "token_id": 279,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 7374,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 46
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 46
+    },
+    {
+      "token_id": 13721,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 51624,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 47
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 47
+    },
+    {
+      "token_id": 579,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 45344,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 48
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 48
+    },
+    {
+      "token_id": 54756,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 51624,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 49
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 49
+    },
+    {
+      "token_id": 328,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 18291,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 50
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 50
+    },
+    {
+      "token_id": 45677,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 53423,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 51
+    },
+    {
+      "token_id": 1920,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 51
+    },
+    {
+      "token_id": 321,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 11962,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 52
+    },
+    {
+      "token_id": 1149,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 52
+    },
+    {
+      "token_id": 1,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 51624,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 53
+    },
+    {
+      "token_id": 1149,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 53
+    },
+    {
+      "token_id": 29296,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 54
+    },
+    {
+      "token_id": 1216,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 54
+    },
+    {
+      "token_id": 271,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 31318,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 55
+    },
+    {
+      "token_id": 557,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 55
+    },
+    {
+      "token_id": 11179,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 6353,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 56
+    },
+    {
+      "token_id": 551,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 56
+    },
+    {
+      "token_id": 11,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 13853,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 57
+    },
+    {
+      "token_id": 11,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 57
+    },
+    {
+      "token_id": 430,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 13853,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 58
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 58
+    },
+    {
+      "token_id": 279,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 6797,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 59
+    },
+    {
+      "token_id": 15537,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 59
+    },
+    {
+      "token_id": 31516,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 290,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 60
+    },
+    {
+      "token_id": 680,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 60
+    },
+    {
+      "token_id": 888,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 279,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 61
+    },
+    {
+      "token_id": 14693,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 61
+    },
+    {
+      "token_id": 33002,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 314,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 62
+    },
+    {
+      "token_id": 279,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 62
+    },
+    {
+      "token_id": 11,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 13853,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 63
+    },
+    {
+      "token_id": 11,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 63
+    },
+    {
+      "token_id": 1000,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 14714,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 64
+    },
+    {
+      "token_id": 685,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 64
+    },
+    {
+      "token_id": 54682,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 780,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 65
+    },
+    {
+      "token_id": 1560,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 65
+    },
+    {
+      "token_id": 310,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 279,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 66
+    },
+    {
+      "token_id": 5817,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 66
+    },
+    {
+      "token_id": 2235,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 31253,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 67
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 67
+    },
+    {
+      "token_id": 36620,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 31253,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 68
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 68
+    },
+    {
+      "token_id": 4757,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 303,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 69
+    },
+    {
+      "token_id": 279,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 69
+    },
+    {
+      "token_id": 506,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 279,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 70
+    },
+    {
+      "token_id": 6092,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 70
+    },
+    {
+      "token_id": 3990,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 314,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 71
+    },
+    {
+      "token_id": 279,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 71
+    },
+    {
+      "token_id": 9057,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 72
+    },
+    {
+      "token_id": 271,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 72
+    },
+    {
+      "token_id": 2532,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 1000,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 73
+    },
+    {
+      "token_id": 2364,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 73
+    },
+    {
+      "token_id": 11,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 551,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 74
+    },
+    {
+      "token_id": 557,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 74
+    },
+    {
+      "token_id": 1000,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 3655,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 75
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 75
+    },
+    {
+      "token_id": 2364,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 1441,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 76
+    },
+    {
+      "token_id": 383,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 76
+    },
+    {
+      "token_id": 321,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 3655,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 77
+    },
+    {
+      "token_id": 364,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 77
+    },
+    {
+      "token_id": 13,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 561,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 78
+    },
+    {
+      "token_id": 1727,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 78
+    },
+    {
+      "token_id": 5133,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 7576,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 79
+    },
+    {
+      "token_id": 11,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 79
+    },
+    {
+      "token_id": 2531,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 557,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 80
+    },
+    {
+      "token_id": 264,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 80
+    },
+    {
+      "token_id": 310,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 3609,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 81
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 81
+    },
+    {
+      "token_id": 8577,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 310,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 82
+    },
+    {
+      "token_id": 13853,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 82
+    },
+    {
+      "token_id": 13,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 271,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 83
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 83
+    },
+    {
+      "token_id": 3833,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 6353,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 84
+    },
+    {
+      "token_id": 11,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 84
+    },
+    {
+      "token_id": 40473,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 6353,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 85
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 85
+    },
+    {
+      "token_id": 40297,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 6353,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 86
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 86
+    },
+    {
+      "token_id": 11,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 13853,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 87
+    },
+    {
+      "token_id": 11,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 87
+    },
+    {
+      "token_id": 264,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 2545,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 88
+    },
+    {
+      "token_id": 7914,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 88
+    },
+    {
+      "token_id": 3777,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 7914,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 89
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 89
+    },
+    {
+      "token_id": 6725,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 8105,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 90
+    },
+    {
+      "token_id": 11,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 90
+    },
+    {
+      "token_id": 35530,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 995,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 91
+    },
+    {
+      "token_id": 264,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 91
+    },
+    {
+      "token_id": 10298,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 680,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 92
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 92
+    },
+    {
+      "token_id": 685,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 310,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 93
+    },
+    {
+      "token_id": 220,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 93
+    },
+    {
+      "token_id": 13853,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 11,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 94
+    },
+    {
+      "token_id": 694,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 94
+    },
+    {
+      "token_id": 780,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 5388,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 95
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 95
+    },
+    {
+      "token_id": 3460,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 264,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 96
+    },
+    {
+      "token_id": 2526,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 96
+    },
+    {
+      "token_id": 71214,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 303,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 97
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 97
+    },
+    {
+      "token_id": 440,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 26382,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 98
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 98
+    },
+    {
+      "token_id": 328,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 9419,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 99
+    },
+    {
+      "token_id": 11,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 99
+    },
+    {
+      "token_id": 31318,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 11,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 100
+    },
+    {
+      "token_id": 13853,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 100
+    },
+    {
+      "token_id": 0,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 353,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 101
+    },
+    {
+      "token_id": 1459,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 101
+    },
+    {
+      "token_id": 1669,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 264,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 102
+    },
+    {
+      "token_id": 9584,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 102
+    },
+    {
+      "token_id": 2414,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 8687,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 103
+    },
+    {
+      "token_id": 271,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 103
+    },
+    {
+      "token_id": 35530,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 42007,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 104
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 104
+    },
+    {
+      "token_id": 5467,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 680,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 105
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 105
+    },
+    {
+      "token_id": 264,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 2526,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 106
+    },
+    {
+      "token_id": 11,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 106
+    },
+    {
+      "token_id": 1505,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 26271,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 107
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 107
+    },
+    {
+      "token_id": 367,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 47440,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 108
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 108
+    },
+    {
+      "token_id": 6365,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 314,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 109
+    },
+    {
+      "token_id": 5392,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 109
+    },
+    {
+      "token_id": 13,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 271,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 110
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 110
+    },
+    {
+      "token_id": 31318,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 6749,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 111
+    },
+    {
+      "token_id": 506,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 111
+    },
+    {
+      "token_id": 55370,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 290,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 112
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 112
+    },
+    {
+      "token_id": 424,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 113
+    },
+    {
+      "token_id": 1216,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 113
+    },
+    {
+      "token_id": 28314,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 114
+    },
+    {
+      "token_id": 1216,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 114
+    },
+    {
+      "token_id": 1049,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 557,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 115
+    },
+    {
+      "token_id": 264,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 115
+    },
+    {
+      "token_id": 82738,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 279,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 116
+    },
+    {
+      "token_id": 6129,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 116
+    },
+    {
+      "token_id": 36334,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 314,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 117
+    },
+    {
+      "token_id": 780,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 117
+    },
+    {
+      "token_id": 391,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 314,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 118
+    },
+    {
+      "token_id": 1024,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 118
+    },
+    {
+      "token_id": 10849,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 321,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 119
+    },
+    {
+      "token_id": 3571,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 119
+    },
+    {
+      "token_id": 2235,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 36620,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 120
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 120
+    },
+    {
+      "token_id": 6522,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 121
+    },
+    {
+      "token_id": 271,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 121
+    },
+    {
+      "token_id": 6265,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 122
+    },
+    {
+      "token_id": 271,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 122
+    },
+    {
+      "token_id": 328,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 11569,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 123
+    },
+    {
+      "token_id": 11,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 123
+    },
+    {
+      "token_id": 2064,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 579,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 124
+    },
+    {
+      "token_id": 264,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 124
+    },
+    {
+      "token_id": 5020,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 1288,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 125
+    },
+    {
+      "token_id": 35530,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 125
+    },
+    {
+      "token_id": 13853,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 1018,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 126
+    },
+    {
+      "token_id": 11,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 126
+    },
+    {
+      "token_id": 3272,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 11,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 127
+    },
+    {
+      "token_id": 321,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 127
+    },
+    {
+      "token_id": 780,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 9495,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 128
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 128
+    },
+    {
+      "token_id": 6866,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 685,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 129
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 129
+    },
+    {
+      "token_id": 264,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 2526,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 130
+    },
+    {
+      "token_id": 11,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 130
+    },
+    {
+      "token_id": 72560,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 310,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 131
+    },
+    {
+      "token_id": 836,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 131
+    },
+    {
+      "token_id": 270,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 1456,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 132
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 132
+    },
+    {
+      "token_id": 2272,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 279,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 133
+    },
+    {
+      "token_id": 1788,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 133
+    },
+    {
+      "token_id": 62170,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 134
+    },
+    {
+      "token_id": 271,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 134
+    },
+    {
+      "token_id": 95257,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 33808,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 135
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 135
+    },
+    {
+      "token_id": 1301,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 424,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 136
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 136
+    },
+    {
+      "token_id": 68030,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 137
+    },
+    {
+      "token_id": 1001,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 137
+    },
+    {
+      "token_id": 25,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 328,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 138
+    },
+    {
+      "token_id": 64,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 138
+    },
+    {
+      "token_id": 88064,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 29664,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 139
+    },
+    {
+      "token_id": 11,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 139
+    },
+    {
+      "token_id": 2592,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 5384,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 140
+    },
+    {
+      "token_id": 1920,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 140
+    },
+    {
+      "token_id": 488,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 513,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 141
+    },
+    {
+      "token_id": 264,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 141
+    },
+    {
+      "token_id": 2224,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 8996,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 142
+    },
+    {
+      "token_id": 264,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 142
+    },
+    {
+      "token_id": 5122,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 11,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 143
+    },
+    {
+      "token_id": 13853,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 143
+    },
+    {
+      "token_id": 411,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 11,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 144
+    },
+    {
+      "token_id": 488,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 144
+    },
+    {
+      "token_id": 1902,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 381,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 145
+    },
+    {
+      "token_id": 264,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 145
+    },
+    {
+      "token_id": 599,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 1669,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 146
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 146
+    },
+    {
+      "token_id": 279,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 8697,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 147
+    },
+    {
+      "token_id": 314,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 147
+    },
+    {
+      "token_id": 6105,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 1328,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 148
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 148
+    },
+    {
+      "token_id": 1049,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 579,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 149
+    },
+    {
+      "token_id": 264,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 149
+    },
+    {
+      "token_id": 16673,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 310,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 150
+    },
+    {
+      "token_id": 1024,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 150
+    },
+    {
+      "token_id": 17093,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 151
+    },
+    {
+      "token_id": 353,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 151
+    },
+    {
+      "token_id": 469,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 1456,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 152
+    },
+    {
+      "token_id": 11,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 152
+    },
+    {
+      "token_id": 470,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 579,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 153
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 153
+    },
+    {
+      "token_id": 13159,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 154
+    },
+    {
+      "token_id": 2838,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 154
+    },
+    {
+      "token_id": 23586,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 155
+    },
+    {
+      "token_id": 2838,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 155
+    },
+    {
+      "token_id": 5044,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 1438,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 156
+    },
+    {
+      "token_id": 728,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 156
+    },
+    {
+      "token_id": 4300,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 424,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 157
+    },
+    {
+      "token_id": 310,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 157
+    },
+    {
+      "token_id": 279,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 31253,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 158
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 158
+    },
+    {
+      "token_id": 1675,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 159
+    },
+    {
+      "token_id": 1049,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 159
+    },
+    {
+      "token_id": 4998,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 1149,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 160
+    },
+    {
+      "token_id": 271,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 160
+    },
+    {
+      "token_id": 13,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 353,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 161
+    },
+    {
+      "token_id": 1144,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 161
+    },
+    {
+      "token_id": 471,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 9442,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 162
+    },
+    {
+      "token_id": 488,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 162
+    },
+    {
+      "token_id": 9076,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 2329,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 163
+    },
+    {
+      "token_id": 314,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 163
+    },
+    {
+      "token_id": 1149,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 271,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 164
+    },
+    {
+      "token_id": 1,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 164
+    },
+    {
+      "token_id": 9,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 271,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 165
+    },
+    {
+      "token_id": 1,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 165
+    },
+    {
+      "token_id": 31318,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 557,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 166
+    },
+    {
+      "token_id": 264,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 166
+    },
+    {
+      "token_id": 579,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 9495,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 167
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 167
+    },
+    {
+      "token_id": 23469,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 6273,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 168
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 168
+    },
+    {
+      "token_id": 791,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 45584,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 169
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 169
+    },
+    {
+      "token_id": 685,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 170
+    },
+    {
+      "token_id": 1001,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 170
+    },
+    {
+      "token_id": 1216,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 6661,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 171
+    },
+    {
+      "token_id": 551,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 171
+    },
+    {
+      "token_id": 9076,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 2329,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 172
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 172
+    },
+    {
+      "token_id": 1216,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 557,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 173
+    },
+    {
+      "token_id": 264,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 173
+    },
+    {
+      "token_id": 279,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 9281,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 174
+    },
+    {
+      "token_id": 314,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 174
+    },
+    {
+      "token_id": 7914,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 852,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 175
+    },
+    {
+      "token_id": 557,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 175
+    },
+    {
+      "token_id": 2590,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 2597,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 176
+    },
+    {
+      "token_id": 15239,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 176
+    },
+    {
+      "token_id": 2047,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 279,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 177
+    },
+    {
+      "token_id": 27706,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 177
+    },
+    {
+      "token_id": 780,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 22351,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 178
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 178
+    },
+    {
+      "token_id": 6679,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 383,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 179
+    },
+    {
+      "token_id": 279,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 179
+    },
+    {
+      "token_id": 303,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 279,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 180
+    },
+    {
+      "token_id": 17291,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 180
+    },
+    {
+      "token_id": 4808,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 1560,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 181
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 181
+    },
+    {
+      "token_id": 7247,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 182
+    },
+    {
+      "token_id": 271,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 182
+    },
+    {
+      "token_id": 13853,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 2329,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 183
+    },
+    {
+      "token_id": 557,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 183
+    },
+    {
+      "token_id": 54682,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 6359,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 184
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 184
+    },
+    {
+      "token_id": 888,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 310,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 185
+    },
+    {
+      "token_id": 708,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 185
+    },
+    {
+      "token_id": 279,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 1675,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 186
+    },
+    {
+      "token_id": 13,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 186
+    },
+    {
+      "token_id": 4998,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 11,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 187
+    },
+    {
+      "token_id": 694,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 187
+    },
+    {
+      "token_id": 1332,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 551,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 188
+    },
+    {
+      "token_id": 557,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 188
+    },
+    {
+      "token_id": 40070,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 3438,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 189
+    },
+    {
+      "token_id": 780,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 189
+    },
+    {
+      "token_id": 279,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 1375,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 190
+    },
+    {
+      "token_id": 314,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 190
+    },
+    {
+      "token_id": 5020,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 383,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 191
+    },
+    {
+      "token_id": 279,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 191
+    },
+    {
+      "token_id": 1172,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    },
+    {
+      "token_id": 279,
+      "type": "draft",
+      "status": "accepted",
+      "draft_block_index": 192
+    },
+    {
+      "token_id": 5817,
+      "type": "draft",
+      "status": "rejected",
+      "draft_block_index": 192
+    },
+    {
+      "token_id": 5373,
+      "type": "bonus",
+      "status": null,
+      "draft_block_index": null
+    }
+  ]
+}

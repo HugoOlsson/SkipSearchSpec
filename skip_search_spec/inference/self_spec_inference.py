@@ -64,15 +64,26 @@ class BridgeSelfSpeculator:
         max_new_tokens: int,
         draft_block_size: int = 4,
         stop_on_eos: bool = True,
+        use_chat_template: bool = True,
+        enable_thinking: bool = False,
         trace_json_path: str | Path | None = None,
     ) -> SelfSpecResult:
+        model_prompt = prompt
+        if use_chat_template:
+            model_prompt = format_user_chat_prompt(
+                tokenizer=self.tokenizer,
+                prompt=prompt,
+                enable_thinking=enable_thinking,
+            )
+
         encoded_prompt = self.tokenizer(
-            prompt,
+            model_prompt,
             return_tensors="pt",
             add_special_tokens=False,
         )
 
         input_ids = cast(torch.Tensor, encoded_prompt["input_ids"]).to(self.device)
+        prompt_len = input_ids.size(1)
 
         # START: FOR VISUALIZATION
         token_trace: list[TokenData] = [
@@ -227,13 +238,15 @@ class BridgeSelfSpeculator:
             accepted_ids = torch.cat([accepted_ids, verifier_token], dim=1)
             generated_tokens += 1
 
-            # Check if now contains EOS, if yes, then return prefix up to and including EOS:
+            # Chat templates can contain EOS/end-of-turn tokens in the prompt.
+            # Only generated tokens should trigger stopping.
             if stop_on_eos:
                 eos_token_id = self.tokenizer.eos_token_id
                 if isinstance(eos_token_id, int):
-                    eos_hits = (accepted_ids[0] == eos_token_id).nonzero(as_tuple=False)
+                    generated_suffix = accepted_ids[0, prompt_len:]
+                    eos_hits = (generated_suffix == eos_token_id).nonzero(as_tuple=False)
                     if eos_hits.numel() > 0:
-                        first_eos = int(eos_hits[0, 0].item())
+                        first_eos = prompt_len + int(eos_hits[0, 0].item())
                         accepted_ids = accepted_ids[:, : first_eos + 1]
                         break
 
@@ -367,6 +380,8 @@ def self_spec_inference_test(
     prompt: str,
     max_new_tokens: int,
     draft_block_size: int = 4,
+    use_chat_template: bool = True,
+    enable_thinking: bool = False,
 ) -> SelfSpecResult:
     speculator = load_bridge_self_speculator(
         bridge_checkpoint_path=bridge_checkpoint_path,
@@ -382,7 +397,26 @@ def self_spec_inference_test(
         prompt=prompt,
         max_new_tokens=max_new_tokens,
         draft_block_size=draft_block_size,
+        use_chat_template=use_chat_template,
+        enable_thinking=enable_thinking,
         trace_json_path=trace_json_path
+    )
+
+
+def format_user_chat_prompt(
+    *,
+    tokenizer: object,
+    prompt: str,
+    enable_thinking: bool = False,
+) -> str:
+    return cast(
+        str,
+        tokenizer.apply_chat_template(  # type: ignore[attr-defined]
+            [{"role": "user", "content": prompt}],
+            tokenize=False,
+            add_generation_prompt=True,
+            enable_thinking=enable_thinking,
+        ),
     )
 
 

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import os
 
+
+
 os.environ.setdefault("FLA_TILELANG", "0")
 # os.environ.setdefault("FLA_DISABLE_BACKEND_DISPATCH", "1")
 
@@ -293,8 +295,8 @@ def main() -> None:
 
         result = self_spec_inference_test(
             bridge_checkpoint_path=bridge_checkpoint_path,
-            prompt="The name of the capital of France is",
-            max_new_tokens=150,
+            prompt="Tell me a story about a dog called Bob.",
+            max_new_tokens=300,
             draft_block_size=int(draft_block_size),
         )
 
@@ -307,6 +309,19 @@ def main() -> None:
                 "accept_rate": result.accepted_draft_tokens / max(result.drafted_tokens, 1),
             }
         )
+
+    elif mode == "test_normal_inference":
+        from skip_search_spec.inference.normal_inference import generate_from_plain_prompt
+
+        text = generate_from_plain_prompt(
+            model_name_or_path="Qwen/Qwen3.5-4B",
+            prompt="Tell me a story about a dog called Bob.",
+            max_new_tokens=300,
+        )
+
+
+        print(text)
+
 
     else:
         raise ValueError(f"Unknown mode: {mode}")
