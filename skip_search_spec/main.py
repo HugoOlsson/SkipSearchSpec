@@ -50,8 +50,8 @@ def main() -> None:
         fraction_tiny = 0.3
         fraction_edu = 0.7
 
-        models = ["Qwen/Qwen3.5-4B"]
-        active_start_end_lengths = [(6, 6)]
+        models = ["meta-llama/Llama-3.2-1B"]
+        active_start_end_lengths = [(2, 2)]
 
         # SINGLE LAYER AT START
         print("Version: 1.4")

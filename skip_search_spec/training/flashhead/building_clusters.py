@@ -7,7 +7,6 @@ torch.set_num_threads(os.cpu_count() or 1)
 torch.set_num_interop_threads(1)
 
 
-
 # The final clutering result
 
 @dataclass(frozen=True, slots=True)
