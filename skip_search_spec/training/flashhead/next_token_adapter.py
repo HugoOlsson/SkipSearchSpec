@@ -98,8 +98,8 @@ class FlashHeadModule(nn.Module):
         if self.lm_head_bias is not None:
             candidate_scores = candidate_scores + self.lm_head_bias[candidate_token_ids]
 
-        best_candidate_index = candidate_scores.argmax()
-        return candidate_token_ids[best_candidate_index]
+        max_score = candidate_scores.max()
+        return candidate_token_ids[candidate_scores == max_score].min()
 
     def _validate_buffers(self) -> None:
         if self.centroids_t.ndim != 2:
