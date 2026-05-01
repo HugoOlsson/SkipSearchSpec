@@ -4,7 +4,7 @@ from dataclasses import asdict, dataclass
 import json
 from pathlib import Path
 import time
-from typing import cast
+from typing import Any, cast
 
 import torch
 
@@ -114,6 +114,8 @@ class BridgeSelfSpeculator:
             attention_mask=torch.ones_like(input_ids),
         )
         verifier_calls += 1
+        verifier_past_key_values: Any | None = verifier.past_key_values
+        verifier_cache_len = input_ids.size(1)
 
         bonus_token = verifier.logits[:, -1, :].argmax(
             dim=-1,
@@ -150,20 +152,39 @@ class BridgeSelfSpeculator:
             accepted_len_before_draft = accepted_ids.size(1)
             candidate_ids = torch.cat([accepted_ids, draft_tokens], dim=1)
 
-            # 3. Run verifier on the new entire prefix.
+            # 3. Run verifier on the suffix after the cached prefix.
+            verifier_input_start = (
+                verifier_cache_len
+                if verifier_past_key_values is not None
+                else 0
+            )
+            verifier_input_ids = candidate_ids[:, verifier_input_start:]
             verifier = self.bridged.run_verifier(
-                input_ids=candidate_ids,
+                input_ids=verifier_input_ids,
                 attention_mask=torch.ones_like(candidate_ids),
+                past_key_values=verifier_past_key_values,
             )
             verifier_calls += 1
+
+            if verifier_input_start == 0:
+                verifier_reference_hidden_full = verifier.reference_hidden
+            else:
+                verifier_reference_hidden_full = torch.cat(
+                    [
+                        verifier_reference_hidden[:, :verifier_input_start, :],
+                        verifier.reference_hidden,
+                    ],
+                    dim=1,
+                )
 
             # 4. Compare verifier predictions against the draft.
             #
             # The first drafted token is checked by the verifier logits at the
             # previous accepted token position.
+            verifier_logits_start = accepted_len_before_draft - 1 - verifier_input_start
             verifier_draft_tokens = verifier.logits[
                 :,
-                accepted_len_before_draft - 1 : accepted_len_before_draft - 1 + draft_tokens.size(1),
+                verifier_logits_start : verifier_logits_start + draft_tokens.size(1),
                 :,
             ].argmax(dim=-1)
 
@@ -212,11 +233,17 @@ class BridgeSelfSpeculator:
                 # The next loop needs verifier reference hidden for the prefix
                 # before this verifier-produced token.
                 next_reference_len = accepted_len_before_draft + num_accepted
-                verifier_reference_hidden = verifier.reference_hidden[
+                verifier_reference_hidden = verifier_reference_hidden_full[
                     :,
                     :next_reference_len,
                     :,
                 ]
+
+                verifier_past_key_values = crop_past_key_values(
+                    verifier.past_key_values,
+                    max_length=next_reference_len,
+                )
+                verifier_cache_len = next_reference_len
             else:
                 verifier_token = verifier.logits[:, -1, :].argmax(
                     dim=-1,
@@ -224,7 +251,9 @@ class BridgeSelfSpeculator:
                 )
 
                 # The bonus token is predicted from the full candidate prefix.
-                verifier_reference_hidden = verifier.reference_hidden
+                verifier_reference_hidden = verifier_reference_hidden_full
+                verifier_past_key_values = verifier.past_key_values
+                verifier_cache_len = candidate_ids.size(1)
 
             token_trace.append(
                 TokenData(
@@ -429,6 +458,25 @@ def _one_token_id(token: torch.Tensor) -> int:
     if len(ids) != 1:
         raise ValueError(f"Expected one token, got {len(ids)}.")
     return ids[0]
+
+
+def crop_past_key_values(
+    past_key_values: Any | None,
+    *,
+    max_length: int,
+) -> Any | None:
+    if past_key_values is None:
+        return None
+
+    crop = getattr(past_key_values, "crop", None)
+    if callable(crop):
+        crop(max_length)
+        return past_key_values
+
+    raise TypeError(
+        f"Expected past_key_values to expose a callable crop(max_length), "
+        f"got {type(past_key_values).__name__}."
+    )
 
 
 def save_token_trace_json(

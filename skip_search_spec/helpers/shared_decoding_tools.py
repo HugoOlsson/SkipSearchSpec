@@ -80,20 +80,55 @@ def get_hidden_size(model: Any) -> int:
     raise ValueError("Could not infer hidden size from model.")
 
 
+@dataclass(frozen=True, slots=True)
+class ModelForwardOutput:
+    logits: torch.Tensor
+    past_key_values: Any | None
+
+
 def forward_model_logits(
     *,
     model: Any,
     input_ids: torch.Tensor,
     attention_mask: torch.Tensor | None,
+    use_cache: bool = False,
+    past_key_values: Any | None = None,
 ) -> torch.Tensor:
+    return forward_model(
+        model=model,
+        input_ids=input_ids,
+        attention_mask=attention_mask,
+        use_cache=use_cache,
+        past_key_values=past_key_values,
+    ).logits
+
+
+def forward_model(
+    *,
+    model: Any,
+    input_ids: torch.Tensor,
+    attention_mask: torch.Tensor | None,
+    use_cache: bool = False,
+    past_key_values: Any | None = None,
+) -> ModelForwardOutput:
+    """
+    Run a decoder-only model and optionally keep its HF KV-cache.
+
+    The default stays uncached because the drafter path currently replaces
+    skipped layers with NoOpDecoderLayer, which is not cache-aware yet.
+    """
     outputs = model(
         input_ids=input_ids,
         attention_mask=attention_mask,
         output_hidden_states=False,
-        use_cache=False,
+        use_cache=use_cache,
+        past_key_values=past_key_values,
         return_dict=True,
     )
-    return cast(torch.Tensor, outputs.logits)
+    return ModelForwardOutput(
+        logits=cast(torch.Tensor, outputs.logits),
+        past_key_values=getattr(outputs, "past_key_values", None),
+    )
 
 
 # =============================================================================
@@ -614,5 +649,3 @@ def make_layer_pattern(
         visual_mask=visual,
         binary_string=binary_string,
     )
-
-

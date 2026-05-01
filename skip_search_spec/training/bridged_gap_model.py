@@ -16,6 +16,7 @@ from skip_search_spec.helpers.tooling import (
 from skip_search_spec.protocols.windows import ModelAndTokenizer
 from skip_search_spec.helpers.shared_decoding_tools import (
     GapSpec,
+    forward_model,
     forward_model_logits,
     get_backbone,
     get_decoder_layers,
@@ -77,6 +78,7 @@ class BridgedGapConfig:
 @dataclass(slots=True)
 class VerifierBridgeOutput:
     logits: torch.Tensor
+    past_key_values: Any | None
 
     # Hidden entering the re-entry module.
     # For internal gaps, this is input to layer gap.end.
@@ -290,6 +292,7 @@ class BridgedGapModel:
         *,
         input_ids: torch.Tensor,
         attention_mask: torch.Tensor | None,
+        past_key_values: Any | None = None,
     ) -> VerifierBridgeOutput:
         """
         Run the full model normally and capture:
@@ -325,10 +328,12 @@ class BridgedGapModel:
             handle = backbone.norm.register_forward_pre_hook(final_norm_prehook)
             stack.callback(handle.remove)
 
-            logits = forward_model_logits(
+            verifier_forward = forward_model(
                 model=self.model,
                 input_ids=input_ids,
                 attention_mask=attention_mask,
+                use_cache=True,
+                past_key_values=past_key_values,
             )
 
         if reentry_hidden is None:
@@ -343,7 +348,8 @@ class BridgedGapModel:
         )
 
         return VerifierBridgeOutput(
-            logits=logits.detach(),
+            logits=verifier_forward.logits.detach(),
+            past_key_values=verifier_forward.past_key_values,
             reentry_hidden=reentry_hidden,
             final_lm_layer_hidden=final_lm_layer_hidden,
             reference_hidden=reference_hidden.detach(),
