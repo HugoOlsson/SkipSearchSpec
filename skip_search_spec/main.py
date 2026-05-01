@@ -295,9 +295,10 @@ def main() -> None:
 
         result = self_spec_inference_test(
             bridge_checkpoint_path=bridge_checkpoint_path,
-            prompt="Tell me a story about a dog called Bob.",
-            max_new_tokens=300,
+            prompt="Here is a list of the 40 last presidents of the USA: 1. Donald Trump",
+            max_new_tokens=200,
             draft_block_size=int(draft_block_size),
+            use_chat_template=False,
         )
 
         print(result.text)

@@ -13,3 +13,4 @@ htmlcov/
 *.pt
 observer_dataset_*/
 measurements/**/*.png
+speculation_traces
