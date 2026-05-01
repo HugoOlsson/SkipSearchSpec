@@ -114,8 +114,10 @@ class BridgeSelfSpeculator:
             attention_mask=torch.ones_like(input_ids),
         )
         verifier_calls += 1
+        # KV-CACHE HANDLING START
         verifier_past_key_values: Any | None = verifier.past_key_values
         verifier_cache_len = input_ids.size(1)
+        # KV-CACHE HANDLING END
 
         bonus_token = verifier.logits[:, -1, :].argmax(
             dim=-1,
@@ -153,6 +155,7 @@ class BridgeSelfSpeculator:
             candidate_ids = torch.cat([accepted_ids, draft_tokens], dim=1)
 
             # 3. Run verifier on the suffix after the cached prefix.
+            # KV-CACHE HANDLING START
             verifier_input_start = (
                 verifier_cache_len
                 if verifier_past_key_values is not None
@@ -164,8 +167,10 @@ class BridgeSelfSpeculator:
                 attention_mask=torch.ones_like(candidate_ids),
                 past_key_values=verifier_past_key_values,
             )
+            # KV-CACHE HANDLING END
             verifier_calls += 1
 
+            # KV-CACHE HANDLING START
             if verifier_input_start == 0:
                 verifier_reference_hidden_full = verifier.reference_hidden
             else:
@@ -176,12 +181,15 @@ class BridgeSelfSpeculator:
                     ],
                     dim=1,
                 )
+            # KV-CACHE HANDLING END
 
             # 4. Compare verifier predictions against the draft.
             #
             # The first drafted token is checked by the verifier logits at the
             # previous accepted token position.
+            # KV-CACHE HANDLING START
             verifier_logits_start = accepted_len_before_draft - 1 - verifier_input_start
+            # KV-CACHE HANDLING END
             verifier_draft_tokens = verifier.logits[
                 :,
                 verifier_logits_start : verifier_logits_start + draft_tokens.size(1),
@@ -239,11 +247,13 @@ class BridgeSelfSpeculator:
                     :,
                 ]
 
+                # KV-CACHE HANDLING START
                 verifier_past_key_values = crop_past_key_values(
                     verifier.past_key_values,
                     max_length=next_reference_len,
                 )
                 verifier_cache_len = next_reference_len
+                # KV-CACHE HANDLING END
             else:
                 verifier_token = verifier.logits[:, -1, :].argmax(
                     dim=-1,
@@ -252,8 +262,10 @@ class BridgeSelfSpeculator:
 
                 # The bonus token is predicted from the full candidate prefix.
                 verifier_reference_hidden = verifier_reference_hidden_full
+                # KV-CACHE HANDLING START
                 verifier_past_key_values = verifier.past_key_values
                 verifier_cache_len = candidate_ids.size(1)
+                # KV-CACHE HANDLING END
 
             token_trace.append(
                 TokenData(
@@ -460,6 +472,7 @@ def _one_token_id(token: torch.Tensor) -> int:
     return ids[0]
 
 
+# KV-CACHE HANDLING START
 def crop_past_key_values(
     past_key_values: Any | None,
     *,
@@ -479,6 +492,7 @@ def crop_past_key_values(
     )
 
 
+# KV-CACHE HANDLING END
 def save_token_trace_json(
     *,
     tokens: list[TokenData],
