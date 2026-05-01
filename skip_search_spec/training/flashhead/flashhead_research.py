@@ -1,20 +1,25 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any, cast
 
 from torch import Tensor
 from transformers import PreTrainedModel, PreTrainedTokenizerBase
 import matplotlib.pyplot as plt
-from skip_search_spec.helpers.tooling import load_model_and_tokenizer
-from sklearn.decomposition import PCA
+from skip_search_spec.helpers.tooling import (
+    get_preferred_device,
+    get_preferred_float_dtype,
+    load_model_and_tokenizer,
+)
 
 from skip_search_spec.helpers.shared_decoding_tools import build_fixed_window_dataloader
 from skip_search_spec.protocols.windows import DatasetSpec, ModelAndTokenizer
 from skip_search_spec.training.flashhead.building_clusters import build_clusters
-from skip_search_spec.training.flashhead.old.inference_testing import compare_dense_vs_routed_until_mismatch
-from skip_search_spec.training.flashhead.flashhead_inference_testing import evaluate_topk_containment_on_token_windows
-from skip_search_spec.training.flashhead.old.inspection import inspect_cluster_tokens, visualize_centroids_2d, visualize_cluster_sizes, visualize_sampled_token_vectors_2d
-from skip_search_spec.training.flashhead.storage import load_flashhead, save_flashhead
+from skip_search_spec.training.flashhead.flashhead_inference_testing import (
+    evaluate_topk_containment_on_token_windows,
+)
+from skip_search_spec.training.flashhead.next_token_adapter import FlashHeadModule
+from skip_search_spec.training.flashhead.storage import save_flashhead
 
 
 @dataclass(frozen=True, slots=True)
@@ -27,7 +32,9 @@ class LoadedFlashHeadBase:
 def extract_lm_head_vector_table(model: PreTrainedModel) -> Tensor:
     output_embeddings = model.get_output_embeddings()
     if output_embeddings is None:
-        raise ValueError("Model does not expose output embeddings via get_output_embeddings()")
+        raise ValueError(
+            "Model does not expose output embeddings via get_output_embeddings()"
+        )
 
     weight = getattr(output_embeddings, "weight", None)
     if not isinstance(weight, Tensor):
@@ -48,6 +55,7 @@ def load_flashhead_base(model_name: str) -> LoadedFlashHeadBase:
         tokenizer=tokenizer,
         lm_head_vector_table=lm_head_vector_table,
     )
+
 
 def build_flashhead_head(store_path: str, model_name: str) -> None:
     loaded = load_flashhead_base(model_name)
@@ -91,11 +99,22 @@ def build_flashhead_head(store_path: str, model_name: str) -> None:
         cluster_sizes=built_clusters.cluster_sizes,
     )
 
-   
 
 def evaluate_flashhead(stored_path: str, model_name: str) -> None:
     loaded = load_flashhead_base(model_name)
-    stored = load_flashhead(stored_path)
+    device = get_preferred_device()
+    compute_dtype = get_preferred_float_dtype(device)
+    model = cast(Any, loaded.model)
+
+    model.to(device=device, dtype=compute_dtype)
+    model.eval()
+
+    flashhead = FlashHeadModule.from_model(
+        model=model,
+        flashhead_path=stored_path,
+        top_k_clusters=500,
+        normalize_hidden_for_routing=True,
+    )
 
     dataset_spec = DatasetSpec(
         name="FineWeb-Edu-1B",
@@ -109,7 +128,6 @@ def evaluate_flashhead(stored_path: str, model_name: str) -> None:
     context_len = 200
     num_windows_to_use = 20
     batch_size = 8
-    model_device = next(loaded.model.parameters()).device
 
     dataloader = build_fixed_window_dataloader(
         dataset_spec=dataset_spec,
@@ -121,7 +139,7 @@ def evaluate_flashhead(stored_path: str, model_name: str) -> None:
         max_examples=max_examples,
         num_windows_to_use=num_windows_to_use,
         batch_size=batch_size,
-        device=model_device,
+        device=device,
         shuffle=False,
     )
 
@@ -132,13 +150,10 @@ def evaluate_flashhead(stored_path: str, model_name: str) -> None:
 
     metrics = evaluate_topk_containment_on_token_windows(
         model=loaded.model,
-        centroids=stored.centroids,
-        cluster_to_token_ids=stored.cluster_to_token_ids,
+        flashhead=flashhead,
         token_windows=iter_token_windows(),
-        top_k_clusters=500,
         max_windows=num_windows_to_use,
         max_positions_per_window=256,
-        normalize_hidden_for_routing=True,
         tokenizer=loaded.tokenizer,
     )
 

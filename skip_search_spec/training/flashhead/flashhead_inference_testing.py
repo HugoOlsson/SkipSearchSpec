@@ -1,25 +1,11 @@
 from dataclasses import dataclass
 from typing import Iterable
 
-from skip_search_spec.training.flashhead.building_clusters import l2_normalize
 import torch
 from torch import Tensor
 from transformers import PreTrainedModel, PreTrainedTokenizerBase
 
-
-@dataclass(frozen=True, slots=True)
-class RescoreResult:
-    candidate_token_ids: Tensor
-    candidate_scores: Tensor
-    best_token_id: Tensor  # scalar tensor on device
-
-
-@dataclass(frozen=True, slots=True)
-class RouteCandidatesResult:
-    top_cluster_ids: Tensor
-    top_cluster_scores: Tensor
-    candidate_token_ids: Tensor
-
+from skip_search_spec.training.flashhead.next_token_adapter import FlashHeadModule
 
 
 @dataclass(frozen=True, slots=True)
@@ -27,41 +13,33 @@ class TopKContainmentMetrics:
     num_positions: int
     top1_containment: float
     top3_containment: float
-    dense_winner_in_candidate_set_rate: float
-    mean_candidate_count: float
 
 
 @torch.inference_mode()
 def evaluate_topk_containment_on_token_windows(
     model: PreTrainedModel,
     tokenizer: PreTrainedTokenizerBase,
-    centroids: Tensor,
-    cluster_to_token_ids: Tensor,
+    flashhead: FlashHeadModule,
     token_windows: Iterable[Tensor],
     *,
-    top_k_clusters: int,
     max_windows: int | None = None,
     max_positions_per_window: int | None = None,
-    normalize_hidden_for_routing: bool = True,
     print_every_windows: int | None = 10,
     print_first_n_mismatches: int = 5,
 ) -> TopKContainmentMetrics:
     model_device = next(model.parameters()).device
     model_dtype = next(model.parameters()).dtype
 
-    centroids = centroids.to(device=model_device, dtype=model_dtype)
-    cluster_to_token_ids = cluster_to_token_ids.to(device=model_device)
+    flashhead = flashhead.to(device=model_device, dtype=model_dtype)
 
     num_windows_used = 0
     num_positions = 0
     top1_hits = 0
     top3_hits = 0
-    dense_winner_in_candidates = 0
-    total_candidate_count = 0
     num_printed_mismatches = 0
 
     print("Starting top-k containment evaluation...")
-    print(f"  top_k_clusters={top_k_clusters}")
+    print(f"  top_k_clusters={flashhead.top_k_clusters}")
     print(f"  max_windows={max_windows}")
     print(f"  max_positions_per_window={max_positions_per_window}")
     print()
@@ -85,8 +63,7 @@ def evaluate_topk_containment_on_token_windows(
                 f"Processed {num_windows_used} windows, "
                 f"{num_positions} positions, "
                 f"top1={top1_hits / num_positions:.6f}, "
-                f"top3={top3_hits / num_positions:.6f}, "
-                f"dense_in_candidates={dense_winner_in_candidates / num_positions:.6f}"
+                f"top3={top3_hits / num_positions:.6f}"
             )
 
         input_ids = window_input_ids.unsqueeze(0).to(model_device)
@@ -101,8 +78,10 @@ def evaluate_topk_containment_on_token_windows(
         )
 
         # Position t predicts token t+1
-        dense_logits_all = outputs.logits[0, :-1, :]              # [seq_len - 1, vocab]
-        hidden_states_all = outputs.hidden_states[-1][0, :-1, :]  # [seq_len - 1, hidden]
+        dense_logits_all = outputs.logits[0, :-1, :]  # [seq_len - 1, vocab]
+        hidden_states_all = outputs.hidden_states[-1][
+            0, :-1, :
+        ]  # [seq_len - 1, hidden]
 
         num_eval_positions = dense_logits_all.shape[0]
         if max_positions_per_window is not None:
@@ -112,38 +91,19 @@ def evaluate_topk_containment_on_token_windows(
             dense_logits = dense_logits_all[pos]
             hidden_vector = hidden_states_all[pos]
 
-            routed_candidates = route_one_hidden_vector(
-                hidden_vector=hidden_vector,
-                centroids=centroids,
-                cluster_to_token_ids=cluster_to_token_ids,
-                top_k_clusters=top_k_clusters,
-                normalize_hidden_for_routing=normalize_hidden_for_routing,
-            )
-
-            candidate_token_ids = routed_candidates.candidate_token_ids
-            total_candidate_count += int(candidate_token_ids.numel())
+            routed_top1_id = int(flashhead.find_token(hidden_vector).item())
 
             dense_top1_id = int(dense_logits.argmax().item())
             dense_top3_ids = torch.topk(dense_logits, k=3).indices
 
-            rescored = rescore_candidate_token_ids_with_dense_logits(
-                candidate_token_ids=candidate_token_ids,
-                dense_logits=dense_logits,
-            )
-            routed_top1_id = int(rescored.best_token_id.item())
-
             top1_match = routed_top1_id == dense_top1_id
             top3_match = bool((dense_top3_ids == routed_top1_id).any().item())
-            dense_in_candidates = bool((candidate_token_ids == dense_top1_id).any().item())
 
             if top1_match:
                 top1_hits += 1
 
             if top3_match:
                 top3_hits += 1
-
-            if dense_in_candidates:
-                dense_winner_in_candidates += 1
 
             if (not top1_match) and num_printed_mismatches < print_first_n_mismatches:
                 dense_top1_text = tokenizer.decode([dense_top1_id])
@@ -153,9 +113,7 @@ def evaluate_topk_containment_on_token_windows(
                     f"  mismatch #{num_printed_mismatches + 1}: "
                     f"window={num_windows_used}, pos={pos}, "
                     f"dense_top1_id={dense_top1_id}, dense_top1_text={dense_top1_text!r}, "
-                    f"routed_top1_id={routed_top1_id}, routed_top1_text={routed_top1_text!r}, "
-                    f"dense_in_candidates={dense_in_candidates}, "
-                    f"candidate_count={int(candidate_token_ids.numel())}"
+                    f"routed_top1_id={routed_top1_id}, routed_top1_text={routed_top1_text!r}"
                 )
                 num_printed_mismatches += 1
 
@@ -170,8 +128,6 @@ def evaluate_topk_containment_on_token_windows(
         num_positions=num_positions,
         top1_containment=top1_hits / num_positions,
         top3_containment=top3_hits / num_positions,
-        dense_winner_in_candidate_set_rate=dense_winner_in_candidates / num_positions,
-        mean_candidate_count=total_candidate_count / num_positions,
     )
 
     print()
@@ -180,75 +136,5 @@ def evaluate_topk_containment_on_token_windows(
     print(f"  num_positions={metrics.num_positions}")
     print(f"  top1_containment={metrics.top1_containment:.6f}")
     print(f"  top3_containment={metrics.top3_containment:.6f}")
-    print(f"  dense_winner_in_candidate_set_rate={metrics.dense_winner_in_candidate_set_rate:.6f}")
-    print(f"  mean_candidate_count={metrics.mean_candidate_count:.2f}")
 
     return metrics
-
-def rescore_candidate_token_ids_with_dense_logits(
-    candidate_token_ids: Tensor,
-    dense_logits: Tensor,
-) -> RescoreResult:
-    if candidate_token_ids.ndim != 1:
-        raise ValueError("candidate_token_ids must have shape [num_candidates]")
-
-    if dense_logits.ndim != 1:
-        raise ValueError("dense_logits must have shape [vocab_size]")
-
-    candidate_scores = dense_logits[candidate_token_ids]
-    max_score = candidate_scores.max()
-    tied_mask = candidate_scores == max_score
-    best_token_id = candidate_token_ids[tied_mask].min()
-
-    return RescoreResult(
-        candidate_token_ids=candidate_token_ids,
-        candidate_scores=candidate_scores,
-        best_token_id=best_token_id,
-    )
-
-
-
-def route_one_hidden_vector(
-    hidden_vector: Tensor,
-    centroids: Tensor,
-    cluster_to_token_ids: Tensor,
-    *,
-    top_k_clusters: int,
-    normalize_hidden_for_routing: bool = True,
-) -> RouteCandidatesResult:
-    if hidden_vector.ndim != 1:
-        raise ValueError("hidden_vector must have shape [hidden_size]")
-
-    if centroids.ndim != 2:
-        raise ValueError("centroids must have shape [num_clusters, hidden_size]")
-
-    if cluster_to_token_ids.ndim != 2:
-        raise ValueError("cluster_to_token_ids must have shape [num_clusters, max_cluster_size]")
-
-    if centroids.shape[0] != cluster_to_token_ids.shape[0]:
-        raise ValueError("centroids and cluster_to_token_ids must agree on num_clusters")
-
-    if normalize_hidden_for_routing:
-        route_hidden = l2_normalize(hidden_vector, dim=-1)
-    else:
-        route_hidden = hidden_vector
-
-    cluster_scores = route_hidden @ centroids.transpose(0, 1)
-    actual_top_k = min(top_k_clusters, int(centroids.shape[0]))
-    top_cluster_scores, top_cluster_ids = torch.topk(cluster_scores, k=actual_top_k)
-
-    selected_cluster_token_ids = cluster_to_token_ids[top_cluster_ids].reshape(-1)
-
-    # IMPORTANT:
-    # cluster_to_token_ids is padded with -1, and -1 is valid indexing in PyTorch,
-    # so we must remove padded entries before using these as token ids.
-    candidate_token_ids = selected_cluster_token_ids[selected_cluster_token_ids >= 0]
-
-    if candidate_token_ids.numel() == 0:
-        raise RuntimeError("Routing produced zero valid candidate token ids")
-
-    return RouteCandidatesResult(
-        top_cluster_ids=top_cluster_ids,
-        top_cluster_scores=top_cluster_scores,
-        candidate_token_ids=candidate_token_ids,
-    )
