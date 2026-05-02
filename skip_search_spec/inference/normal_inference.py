@@ -13,6 +13,8 @@ def generate_from_plain_prompt(
     *,
     max_new_tokens: int = 100,
     tokenizer_name_or_path: str | None = None,
+    use_chat_template: bool = True,
+    enable_thinking: bool = False,
 ) -> str:
     device = get_preferred_device()
     dtype = get_preferred_float_dtype(device)
@@ -32,19 +34,21 @@ def generate_from_plain_prompt(
     if tokenizer.pad_token_id is None:
         tokenizer.pad_token = tokenizer.eos_token
 
-    # Important: Qwen thinking control is in the chat template.
-    chat_prompt = cast(
-        str,
-        tokenizer.apply_chat_template(
-            [{"role": "user", "content": prompt}],
-            tokenize=False,
-            add_generation_prompt=True,
-            enable_thinking=False,
-        ),
-    )
+    model_prompt = prompt
+    if use_chat_template:
+        # Important: Qwen thinking control is in the chat template.
+        model_prompt = cast(
+            str,
+            tokenizer.apply_chat_template(
+                [{"role": "user", "content": prompt}],
+                tokenize=False,
+                add_generation_prompt=True,
+                enable_thinking=enable_thinking,
+            ),
+        )
 
     inputs = tokenizer(
-        chat_prompt,
+        model_prompt,
         return_tensors="pt",
         add_special_tokens=False,
     )

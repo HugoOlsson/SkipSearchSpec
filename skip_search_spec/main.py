@@ -30,11 +30,11 @@ def main() -> None:
         from skip_search_spec.experiments.dataset_mix import get_dataset_mix
         from skip_search_spec.training.train_skipping_layers import train_skipping_layers
 
-        number_of_windows = 10000
+        number_of_windows = 50000
         num_epochs = 1 # Ensure never get scores on data it has seen
 
-        models = ["meta-llama/Llama-2-7b"]
-        active_start_end_lengths = [(8, 8)]
+        models = ["meta-llama/Llama-3.2-3B"]
+        active_start_end_lengths = [(7, 7)]
 
         # SINGLE LAYER AT START
         print("Version: 1.6")
@@ -48,7 +48,7 @@ def main() -> None:
                     dataset_mix=get_dataset_mix(number_of_windows),
                     context_len=256,
                     num_windows_to_use=number_of_windows,
-                    batch_size=10,
+                    batch_size=30,
                     active_start_layers=active_start_layers, 
                     active_end_layers=active_end_layers,
                     num_epochs=num_epochs,
@@ -279,27 +279,15 @@ def main() -> None:
         test_prompts = [
             (
                 "Recent U.S. presidents list",
-                "Write a numbered list of recent U.S. presidents in reverse chronological order. Start with Donald Trump as number 1 and continue with number 2.",
+                "The 10 latest presidents of the USA is: 1. Donald Trump, ",
             ),
             (
-                "Count",
-                "Count from 1 to 100, writing the numbers in order separated by commas.",
+                "Talking about Paris",
+                "The capital of France is is quite large and its name is",
             ),
-            (
-                "Museum plaque",
-                "Write a concise museum plaque about Apollo 11. Mention that it was the first mission to land humans on the Moon and include what happened on July 20, 1969.",
-            ),
-            (
-                "Classroom explanation",
-                "Explain the water cycle in four short numbered steps for a middle-school science class.",
-            ),
-            (
-                "Historical quiz answer",
-                "Answer this history question in exactly three sentences: Why is the printing press often called one of the most important inventions in history?",
-            ),
-            (
-                "Travel guide",
-                "Write one practical travel-guide paragraph for a first-time visitor arriving in Stockholm on a cold winter morning.",
+             (
+                "Story about Bob",
+                "There once was a man named Bob that lived in the state Texas. He liked to drive his pickup truck",
             ),
         ]
 
@@ -316,7 +304,7 @@ def main() -> None:
                 prompt=prompt,
                 max_new_tokens=200,
                 draft_block_size=int(draft_block_size),
-                use_chat_template=True,
+                use_chat_template=False,
                 flashhead_path=flashhead_path,
             )
 
@@ -336,9 +324,10 @@ def main() -> None:
         from skip_search_spec.inference.normal_inference import generate_from_plain_prompt
 
         text = generate_from_plain_prompt(
-            model_name_or_path="Qwen/Qwen3.5-4B",
-            prompt="Tell me a story about a dog called Bob.",
+            model_name_or_path="Qwen/Qwen3-4B",
+            prompt="The capital of France is ",
             max_new_tokens=300,
+            use_chat_template=False
         )
 
 
