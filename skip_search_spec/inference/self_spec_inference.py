@@ -114,8 +114,12 @@ class BridgeSelfSpeculator:
             attention_mask=torch.ones_like(input_ids),
         )
         verifier_calls += 1
+
         # KV-CACHE HANDLING START
         verifier_past_key_values: Any | None = verifier.past_key_values
+        if verifier_past_key_values is None:
+            raise RuntimeError("Verifier did not return past_key_values.")
+
         verifier_cache_len = input_ids.size(1)
         # KV-CACHE HANDLING END
 
@@ -146,6 +150,8 @@ class BridgeSelfSpeculator:
             draft_tokens = self._draft_block(
                 accepted_ids=accepted_ids,
                 verifier_reference_hidden=verifier_reference_hidden,
+                verifier_past_key_values=verifier_past_key_values,
+                verifier_cache_len=verifier_cache_len,
                 block_size=block_size,
             )
 
@@ -156,11 +162,7 @@ class BridgeSelfSpeculator:
 
             # 3. Run verifier on the suffix after the cached prefix.
             # KV-CACHE HANDLING START
-            verifier_input_start = (
-                verifier_cache_len
-                if verifier_past_key_values is not None
-                else 0
-            )
+            verifier_input_start = verifier_cache_len
             verifier_input_ids = candidate_ids[:, verifier_input_start:]
             verifier = self.bridged.run_verifier(
                 input_ids=verifier_input_ids,
@@ -171,16 +173,13 @@ class BridgeSelfSpeculator:
             verifier_calls += 1
 
             # KV-CACHE HANDLING START
-            if verifier_input_start == 0:
-                verifier_reference_hidden_full = verifier.reference_hidden
-            else:
-                verifier_reference_hidden_full = torch.cat(
-                    [
-                        verifier_reference_hidden[:, :verifier_input_start, :],
-                        verifier.reference_hidden,
-                    ],
-                    dim=1,
-                )
+            verifier_reference_hidden_full = torch.cat(
+                [
+                    verifier_reference_hidden[:, :verifier_input_start, :],
+                    verifier.reference_hidden,
+                ],
+                dim=1,
+            )
             # KV-CACHE HANDLING END
 
             # 4. Compare verifier predictions against the draft.
@@ -321,6 +320,8 @@ class BridgeSelfSpeculator:
         *,
         accepted_ids: torch.Tensor,
         verifier_reference_hidden: torch.Tensor,
+        verifier_past_key_values: Any | None,
+        verifier_cache_len: int,
         block_size: int,
     ) -> torch.Tensor:
         """
@@ -364,8 +365,6 @@ class BridgeSelfSpeculator:
                 f"Got accepted_len={accepted_len}, verifier_len={verifier_len}."
             )
 
-        current_ids = accepted_ids
-
         prev_reference_hidden = verifier_reference_hidden.new_zeros(
             verifier_reference_hidden.size(0),
             accepted_len,
@@ -375,29 +374,62 @@ class BridgeSelfSpeculator:
 
         draft_tokens: list[torch.Tensor] = []
 
-        for _ in range(block_size):
-            drafter = self.bridged.run_drafter(
-                input_ids=current_ids,
-                attention_mask=torch.ones_like(current_ids),
-                prev_reference_hidden=prev_reference_hidden,
+        # KV-CACHE HANDLING START
+        if verifier_past_key_values is None:
+            raise RuntimeError("Verifier KV-cache is required for cached self-spec drafting.")
+
+        if verifier_cache_len != verifier_len:
+            raise ValueError(
+                f"Expected verifier cache to match verifier reference hidden length. "
+                f"Got verifier_cache_len={verifier_cache_len}, "
+                f"verifier_len={verifier_len}."
             )
 
-            next_token = drafter.logits[:, -1, :].argmax(
-                dim=-1,
-                keepdim=True,
+        current_ids = accepted_ids[:, verifier_cache_len:]
+        current_prev_reference_hidden = prev_reference_hidden[:, verifier_cache_len:, :]
+        current_cache_len = verifier_cache_len
+        # KV-CACHE HANDLING END
+
+        try:
+            for _ in range(block_size):
+                # KV-CACHE HANDLING START
+                drafter = self.bridged.run_drafter(
+                    input_ids=current_ids,
+                    attention_mask=torch.ones(
+                        current_ids.size(0),
+                        current_cache_len + current_ids.size(1),
+                        device=current_ids.device,
+                        dtype=current_ids.dtype,
+                    ),
+                    prev_reference_hidden=current_prev_reference_hidden,
+                    past_key_values=verifier_past_key_values,
+                    use_cache=True,
+                )
+                # KV-CACHE HANDLING END
+
+                next_token = drafter.logits[:, -1, :].argmax(
+                    dim=-1,
+                    keepdim=True,
+                )
+
+                draft_tokens.append(next_token)
+
+                # KV-CACHE HANDLING START
+                current_cache_len += current_ids.size(1)
+                # KV-CACHE HANDLING END
+                current_ids = next_token
+                current_prev_reference_hidden = drafter.reference_hidden[
+                    :,
+                    -1:,
+                    :,
+                ].detach()
+        finally:
+            # KV-CACHE HANDLING START
+            crop_past_key_values(
+                verifier_past_key_values,
+                max_length=verifier_cache_len,
             )
-
-            draft_tokens.append(next_token)
-
-            current_ids = torch.cat([current_ids, next_token], dim=1)
-
-            prev_reference_hidden = torch.cat(
-                [
-                    prev_reference_hidden,
-                    drafter.reference_hidden[:, -1:, :].detach(),
-                ],
-                dim=1,
-            )
+            # KV-CACHE HANDLING END
 
         return torch.cat(draft_tokens, dim=1)
     
@@ -490,9 +522,9 @@ def crop_past_key_values(
         f"Expected past_key_values to expose a callable crop(max_length), "
         f"got {type(past_key_values).__name__}."
     )
-
-
 # KV-CACHE HANDLING END
+
+
 def save_token_trace_json(
     *,
     tokens: list[TokenData],

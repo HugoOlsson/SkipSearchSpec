@@ -17,7 +17,6 @@ from skip_search_spec.protocols.windows import ModelAndTokenizer
 from skip_search_spec.helpers.shared_decoding_tools import (
     GapSpec,
     forward_model,
-    forward_model_logits,
     get_backbone,
     get_decoder_layers,
     get_first_hidden_from_inputs,
@@ -33,9 +32,6 @@ ReferenceHiddenSource = Literal["reentry", "final"]
 class NoOpDecoderLayer(nn.Module):
     """
     Cheap replacement for a HF decoder layer.
-
-    Returns a tuple, not a Tensor, because Qwen/LLaMA-style
-    decoder loops expect layer_outputs[0].
     """
 
     def forward(
@@ -43,21 +39,14 @@ class NoOpDecoderLayer(nn.Module):
         hidden_states: torch.Tensor,
         *args: Any,
         **kwargs: Any,
-    ) -> tuple[torch.Tensor, ...]:
-        if kwargs.get("use_cache", False):
-            raise RuntimeError(
-                "NoOpDecoderLayer currently assumes use_cache=False. "
-                "For cached decoding, skipped-layer cache handling needs special care."
-            )
-
+    ) -> torch.Tensor:
         if kwargs.get("output_attentions", False):
             raise RuntimeError(
                 "NoOpDecoderLayer does not support output_attentions=True. "
                 "A skipped layer has no attention weights to return."
             )
 
-
-        return (hidden_states,)
+        return hidden_states
 
 
 @dataclass(frozen=True, slots=True)
@@ -96,6 +85,7 @@ class VerifierBridgeOutput:
 @dataclass(slots=True)
 class DrafterBridgeOutput:
     logits: torch.Tensor
+    past_key_values: Any | None
 
     # Hidden entering the skipped gap.
     gap_input_hidden: torch.Tensor
@@ -286,7 +276,7 @@ class BridgedGapModel:
             f"{self.config.reference_hidden_source}"
         )
 
-    @torch.inference_mode()
+    @torch.no_grad()
     def run_verifier(
         self,
         *,
@@ -361,6 +351,8 @@ class BridgedGapModel:
         input_ids: torch.Tensor,
         attention_mask: torch.Tensor | None,
         prev_reference_hidden: torch.Tensor,
+        past_key_values: Any | None = None,
+        use_cache: bool = False,
     ) -> DrafterBridgeOutput:
         """
         Run the model with:
@@ -452,10 +444,12 @@ class BridgedGapModel:
             handle = backbone.norm.register_forward_pre_hook(final_norm_prehook)
             stack.callback(handle.remove)
 
-            logits = forward_model_logits(
+            drafter_forward = forward_model(
                 model=self.model,
                 input_ids=input_ids,
                 attention_mask=attention_mask,
+                use_cache=use_cache,
+                past_key_values=past_key_values,
             )
 
         if gap_input_hidden is None:
@@ -473,7 +467,8 @@ class BridgedGapModel:
         )
 
         return DrafterBridgeOutput(
-            logits=logits,
+            logits=drafter_forward.logits,
+            past_key_values=drafter_forward.past_key_values,
             gap_input_hidden=gap_input_hidden,
             bridged_reentry_hidden=bridged_reentry_hidden,
             final_lm_layer_hidden=final_lm_layer_hidden,

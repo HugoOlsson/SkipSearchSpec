@@ -45,12 +45,12 @@ def main() -> None:
             text_field="text",
         )
 
-        number_of_windows = 30_000
+        number_of_windows = 2000
         num_epochs = 1 # Ensure never get scores on data it has seen
         fraction_tiny = 0.3
         fraction_edu = 0.7
 
-        models = ["meta-llama/Llama-3.2-3B"]
+        models = ["meta-llama/Llama-3.2-1B"]
         active_start_end_lengths = [(3, 3)]
 
         # SINGLE LAYER AT START
@@ -63,12 +63,12 @@ def main() -> None:
                 train_skipping_layers(
                     model_name=model,
                     dataset_mix=[
-                        (DATASET_SPEC_STORIES, fraction_tiny, int(number_of_windows*fraction_tiny*7)),
+                        (DATASET_SPEC_STORIES, fraction_tiny, int(number_of_windows*fraction_tiny*9)),
                         (DATASET_SPEC_EDU, fraction_edu, int(number_of_windows*fraction_edu*1.5)),
                     ],
                     context_len=256,
                     num_windows_to_use=number_of_windows,
-                    batch_size=4,
+                    batch_size=5,
                     active_start_layers=active_start_layers, 
                     active_end_layers=active_end_layers,
                     num_epochs=num_epochs,
@@ -77,7 +77,9 @@ def main() -> None:
                     kl_loss_weight=1.0,
                     hidden_loss_weight=0,
                     ce_loss_weight=1.0,
-                    checkpoint_every_steps=2000
+                    checkpoint_every_steps=2000,
+                    log_every=1,
+                    num_draft_sections=4
                 )
 
        
