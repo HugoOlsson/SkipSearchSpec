@@ -45,12 +45,12 @@ def main() -> None:
             text_field="text",
         )
 
-        number_of_windows = 10000
+        number_of_windows = 5000
         num_epochs = 1 # Ensure never get scores on data it has seen
         fraction_tiny = 0.3
         fraction_edu = 0.7
 
-        models = ["meta-llama/Llama-3.2-1B"]
+        models = ["meta-llama/Llama-3.2-3B"]
         active_start_end_lengths = [(3, 3)]
 
         # SINGLE LAYER AT START
