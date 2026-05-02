@@ -61,7 +61,7 @@ def train_skipping_layers(
     ce_loss_weight: float = 1.0,
     hidden_loss_weight: float = 0.0,
     teacher_temperature: float = 1.0,
-    reference_hidden_source: ReferenceHiddenSource = "reentry",
+    reference_hidden_source: ReferenceHiddenSource = "final",
     model_kwargs: dict[str, Any] | None = None,
     checkpoint_every_steps: int | None = None,
     log_every: int = 100,
