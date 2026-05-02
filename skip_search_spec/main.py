@@ -45,7 +45,7 @@ def main() -> None:
             text_field="text",
         )
 
-        number_of_windows = 10000
+        number_of_windows = 5000
         num_epochs = 1 # Ensure never get scores on data it has seen
         fraction_tiny = 0.3
         fraction_edu = 0.7
@@ -79,7 +79,8 @@ def main() -> None:
                     ce_loss_weight=1.0,
                     checkpoint_every_steps=2000,
                     log_every=1,
-                    num_draft_sections=6
+                    num_draft_sections=6,
+                    reference_hidden_source="final"
                 )
 
        
