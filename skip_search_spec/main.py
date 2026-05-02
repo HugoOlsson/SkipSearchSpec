@@ -30,7 +30,7 @@ def main() -> None:
         from skip_search_spec.experiments.dataset_mix import get_dataset_mix
         from skip_search_spec.training.train_skipping_layers import train_skipping_layers
 
-        number_of_windows = 20000
+        number_of_windows = 50000
         num_epochs = 1 # Ensure never get scores on data it has seen
 
         models = ["Qwen/Qwen3-4B"]
@@ -276,25 +276,61 @@ def main() -> None:
         bridge_checkpoint_path = sys.argv[3]
         flashhead_path = sys.argv[4] if len(sys.argv) > 4 else None
 
+        test_prompts = [
+            (
+                "Recent U.S. presidents list",
+                "Here is a list of the 40 last presidents of the USA:\n1. Donald Trump\n2.",
+            ),
+             (
+                "Count",
+                "Count to 100.",
+            ),
+            (
+                "Museum plaque",
+                "Museum plaque text: Apollo 11 was the first mission to land humans on the Moon. On July 20, 1969,",
+            ),
+            (
+                "Classroom explanation",
+                "Explain the water cycle in four short steps for a middle-school science class. Step 1: The Sun heats water in oceans, lakes, and rivers, causing",
+            ),
+            (
+                "Historical quiz answer",
+                "Question: Why is the printing press often called one of the most important inventions in history?\nAnswer in 3 sentences: The printing press",
+            ),
+            (
+                "Travel guide",
+                "Travel guide paragraph: A first-time visitor arriving in Stockholm on a cold winter morning should expect",
+            ),
+        ]
 
-        result = self_spec_inference_test(
-            bridge_checkpoint_path=bridge_checkpoint_path,
-            prompt="Here is a list of the 40 last presidents of the USA: 1. Donald Trump",
-            max_new_tokens=200,
-            draft_block_size=int(draft_block_size),
-            use_chat_template=False,
-            flashhead_path=flashhead_path,
-        )
+        for test_idx, (test_name, prompt) in enumerate(test_prompts, start=1):
+            print()
+            print(f"Test {test_idx}: {test_name}")
+            print()
+            print("Prompt:")
+            print(prompt)
+            print()
 
-        print(result.text)
-        print(
-            {
-                "verifier_calls": result.verifier_calls,
-                "drafted_tokens": result.drafted_tokens,
-                "accepted_draft_tokens": result.accepted_draft_tokens,
-                "accept_rate": result.accepted_draft_tokens / max(result.drafted_tokens, 1),
-            }
-        )
+            result = self_spec_inference_test(
+                bridge_checkpoint_path=bridge_checkpoint_path,
+                prompt=prompt,
+                max_new_tokens=200,
+                draft_block_size=int(draft_block_size),
+                use_chat_template=False,
+                flashhead_path=flashhead_path,
+            )
+
+            print(result.text)
+            print(
+                {
+                    "verifier_calls": result.verifier_calls,
+                    "drafted_tokens": result.drafted_tokens,
+                    "accepted_draft_tokens": result.accepted_draft_tokens,
+                    "accept_rate": result.accepted_draft_tokens / max(result.drafted_tokens, 1),
+                }
+            )
+
+
 
     elif mode == "test_normal_inference":
         from skip_search_spec.inference.normal_inference import generate_from_plain_prompt
