@@ -279,27 +279,27 @@ def main() -> None:
         test_prompts = [
             (
                 "Recent U.S. presidents list",
-                "Here is a list of the 40 last presidents of the USA:\n1. Donald Trump\n2.",
+                "Write a numbered list of recent U.S. presidents in reverse chronological order. Start with Donald Trump as number 1 and continue with number 2.",
             ),
-             (
+            (
                 "Count",
-                "Count to 100.",
+                "Count from 1 to 100, writing the numbers in order separated by commas.",
             ),
             (
                 "Museum plaque",
-                "Museum plaque text: Apollo 11 was the first mission to land humans on the Moon. On July 20, 1969,",
+                "Write a concise museum plaque about Apollo 11. Mention that it was the first mission to land humans on the Moon and include what happened on July 20, 1969.",
             ),
             (
                 "Classroom explanation",
-                "Explain the water cycle in four short steps for a middle-school science class. Step 1: The Sun heats water in oceans, lakes, and rivers, causing",
+                "Explain the water cycle in four short numbered steps for a middle-school science class.",
             ),
             (
                 "Historical quiz answer",
-                "Question: Why is the printing press often called one of the most important inventions in history?\nAnswer in 3 sentences: The printing press",
+                "Answer this history question in exactly three sentences: Why is the printing press often called one of the most important inventions in history?",
             ),
             (
                 "Travel guide",
-                "Travel guide paragraph: A first-time visitor arriving in Stockholm on a cold winter morning should expect",
+                "Write one practical travel-guide paragraph for a first-time visitor arriving in Stockholm on a cold winter morning.",
             ),
         ]
 
@@ -316,7 +316,7 @@ def main() -> None:
                 prompt=prompt,
                 max_new_tokens=200,
                 draft_block_size=int(draft_block_size),
-                use_chat_template=False,
+                use_chat_template=True,
                 flashhead_path=flashhead_path,
             )
 
