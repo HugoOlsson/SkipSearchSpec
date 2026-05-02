@@ -24,7 +24,6 @@ class FlashHeadModule(nn.Module):
     lm_head_vector_table: Tensor
     lm_head_bias: Tensor | None
     top_k_clusters: int
-    normalize_hidden_for_routing: bool
 
     def __init__(
         self,
@@ -33,7 +32,6 @@ class FlashHeadModule(nn.Module):
         cluster_to_token_ids: Tensor,
         lm_head_vector_table: Tensor,
         top_k_clusters: int,
-        normalize_hidden_for_routing: bool = True,
         lm_head_bias: Tensor | None = None,
     ) -> None:
         super().__init__()
@@ -42,7 +40,6 @@ class FlashHeadModule(nn.Module):
             raise ValueError("top_k_clusters must be >= 1")
 
         self.top_k_clusters = top_k_clusters
-        self.normalize_hidden_for_routing = normalize_hidden_for_routing
 
         self.register_buffer(
             "centroids_t", centroids.detach().transpose(0, 1).contiguous()
@@ -64,7 +61,6 @@ class FlashHeadModule(nn.Module):
         model: Any,
         flashhead_path: str | Path,
         top_k_clusters: int,
-        normalize_hidden_for_routing: bool = True,
     ) -> FlashHeadModule:
         stored = load_flashhead(flashhead_path)
         lm_head_vector_table, lm_head_bias = extract_lm_head(model)
@@ -74,26 +70,20 @@ class FlashHeadModule(nn.Module):
             lm_head_vector_table=lm_head_vector_table,
             lm_head_bias=lm_head_bias,
             top_k_clusters=top_k_clusters,
-            normalize_hidden_for_routing=normalize_hidden_for_routing,
         ).to(device=lm_head_vector_table.device, dtype=lm_head_vector_table.dtype)
 
     @torch.inference_mode()
-    def find_token(self, hidden_vector: Tensor) -> Tensor:
-        route_hidden = (
-            l2_normalize(hidden_vector, dim=-1)
-            if self.normalize_hidden_for_routing
-            else hidden_vector
-        )
+    def find_token(self, normalized_hidden_vector: Tensor) -> Tensor:
 
         actual_top_k = min(self.top_k_clusters, int(self.centroids_t.shape[1]))
-        cluster_scores = route_hidden @ self.centroids_t
+        cluster_scores = normalized_hidden_vector @ self.centroids_t
         top_cluster_ids = torch.topk(cluster_scores, k=actual_top_k).indices
 
         candidate_token_ids = self.cluster_to_token_ids[top_cluster_ids].reshape(-1)
         candidate_token_ids = candidate_token_ids[candidate_token_ids >= 0].long()
 
         candidate_token_vectors = self.lm_head_vector_table[candidate_token_ids]
-        candidate_scores = candidate_token_vectors @ hidden_vector
+        candidate_scores = candidate_token_vectors @ normalized_hidden_vector
 
         if self.lm_head_bias is not None:
             candidate_scores = candidate_scores + self.lm_head_bias[candidate_token_ids]

@@ -483,7 +483,7 @@ def self_spec_inference_test(
     use_chat_template: bool = True,
     enable_thinking: bool = False,
     flashhead_path: str | Path | None = None,
-    flashhead_top_k_clusters: int = 500,
+    flashhead_top_k_clusters: int = 50,
 ) -> SelfSpecResult:
     speculator = load_bridge_self_speculator(
         bridge_checkpoint_path=bridge_checkpoint_path,
