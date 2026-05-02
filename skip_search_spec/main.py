@@ -79,7 +79,7 @@ def main() -> None:
                     ce_loss_weight=1.0,
                     checkpoint_every_steps=2000,
                     log_every=1,
-                    num_draft_sections=6,
+                    #num_draft_sections=6,
                     reference_hidden_source="final"
                 )
 
@@ -294,6 +294,7 @@ def main() -> None:
         draft_block_size = sys.argv[2]
 
         bridge_checkpoint_path = sys.argv[3]
+        flashhead_path = sys.argv[4] if len(sys.argv) > 4 else None
 
 
         result = self_spec_inference_test(
@@ -302,6 +303,7 @@ def main() -> None:
             max_new_tokens=200,
             draft_block_size=int(draft_block_size),
             use_chat_template=False,
+            flashhead_path=flashhead_path,
         )
 
         print(result.text)
@@ -364,4 +366,3 @@ if __name__ == "__main__":
     #         ce_loss_weight=1.0,
     #         num_input_states=3,
     #     )
-
