@@ -281,35 +281,69 @@ def main() -> None:
 
 
     elif mode == "test_self_spec":
-        if len(sys.argv) <= 3:
-            raise ValueError(
-                "Must provide 3 arguments"
-            )
-        
-        from skip_search_spec.inference.self_spec_inference import self_spec_inference_test
-        
-        draft_block_size = sys.argv[2]
+            if len(sys.argv) <= 3:
+                raise ValueError(
+                    "Must provide 3 arguments"
+                )
+            
+            from skip_search_spec.inference.self_spec_inference import self_spec_inference_test
+            
+            draft_block_size = sys.argv[2]
 
-        bridge_checkpoint_path = sys.argv[3]
+            bridge_checkpoint_path = sys.argv[3]
 
+            test_prompts = [
+                (
+                    "Recent U.S. presidents list",
+                    "Write a numbered list of recent U.S. presidents in reverse chronological order. Start with Donald Trump as number 1 and continue with number 2.",
+                ),
+                (
+                    "Count",
+                    "Count from 1 to 100, writing the numbers in order separated by commas.",
+                ),
+                (
+                    "Museum plaque",
+                    "Write a concise museum plaque about Apollo 11. Mention that it was the first mission to land humans on the Moon and include what happened on July 20, 1969.",
+                ),
+                (
+                    "Classroom explanation",
+                    "Explain the water cycle in four short numbered steps for a middle-school science class.",
+                ),
+                (
+                    "Historical quiz answer",
+                    "Answer this history question in exactly three sentences: Why is the printing press often called one of the most important inventions in history?",
+                ),
+                (
+                    "Travel guide",
+                    "Write one practical travel-guide paragraph for a first-time visitor arriving in Stockholm on a cold winter morning.",
+                ),
+            ]
 
-        result = self_spec_inference_test(
-            bridge_checkpoint_path=bridge_checkpoint_path,
-            prompt="Here is a list of the 40 last presidents of the USA: 1. Donald Trump",
-            max_new_tokens=200,
-            draft_block_size=int(draft_block_size),
-            use_chat_template=False,
-        )
+            for test_idx, (test_name, prompt) in enumerate(test_prompts, start=1):
+                print()
+                print(f"Test {test_idx}: {test_name}")
+                print()
+                print("Prompt:")
+                print(prompt)
+                print()
 
-        print(result.text)
-        print(
-            {
-                "verifier_calls": result.verifier_calls,
-                "drafted_tokens": result.drafted_tokens,
-                "accepted_draft_tokens": result.accepted_draft_tokens,
-                "accept_rate": result.accepted_draft_tokens / max(result.drafted_tokens, 1),
-            }
-        )
+                result = self_spec_inference_test(
+                    bridge_checkpoint_path=bridge_checkpoint_path,
+                    prompt=prompt,
+                    max_new_tokens=200,
+                    draft_block_size=int(draft_block_size),
+                    use_chat_template=True,
+                )
+
+                print(result.text)
+                print(
+                    {
+                        "verifier_calls": result.verifier_calls,
+                        "drafted_tokens": result.drafted_tokens,
+                        "accepted_draft_tokens": result.accepted_draft_tokens,
+                        "accept_rate": result.accepted_draft_tokens / max(result.drafted_tokens, 1),
+                    }
+                )
 
     elif mode == "test_normal_inference":
         from skip_search_spec.inference.normal_inference import generate_from_plain_prompt
