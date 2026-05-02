@@ -271,6 +271,7 @@ def train_skipping_layers(
             student_logits_parts: list[torch.Tensor] = []
             teacher_logits_parts: list[torch.Tensor] = []
             train_mask_parts: list[torch.Tensor] = []
+            section_offset_parts: list[torch.Tensor] = []
             student_hidden_parts: list[torch.Tensor] = []
             teacher_hidden_parts: list[torch.Tensor] = []
             teacher_target_hidden = (
@@ -305,6 +306,12 @@ def train_skipping_layers(
                 train_mask_parts.append(
                     attention_mask[:, section_start:section_end].bool()
                 )
+                section_offset_parts.append(
+                    torch.arange(
+                        section_end - section_start,
+                        device=input_ids.device,
+                    ).unsqueeze(0).expand(input_ids.size(0), -1)
+                )
 
                 if hidden_loss_weight > 0.0:
                     assert teacher_target_hidden is not None
@@ -318,6 +325,7 @@ def train_skipping_layers(
             student_train_logits = torch.cat(student_logits_parts, dim=1)
             teacher_train_logits = torch.cat(teacher_logits_parts, dim=1)
             train_mask = torch.cat(train_mask_parts, dim=1)
+            section_offsets = torch.cat(section_offset_parts, dim=1)
 
             teacher_log_probs = F.log_softmax(
                 teacher_train_logits.float() / teacher_temperature,
@@ -401,6 +409,20 @@ def train_skipping_layers(
                     MetricEvent.create(phase="train", name="p_drafter_on_verifier_top1", value=sim["p_drafter_on_verifier_top1"].item(), step=step),
                 ]
 
+                top1_matches = (
+                    student_train_logits.argmax(dim=-1)
+                    == teacher_train_logits.argmax(dim=-1)
+                ).float()
+
+                top1_by_offset = []
+                for offset in range(6):
+                    offset_mask = train_mask & (section_offsets == offset)
+                    if offset_mask.any():
+                        value = masked_mean(top1_matches, offset_mask).item()
+                        top1_by_offset.append(round(value, 4))
+                    else:
+                        top1_by_offset.append(None)
+
                 metric_events.extend(batch_metrics)
 
                 row = {
@@ -419,6 +441,7 @@ def train_skipping_layers(
                     end="",
                 )
                 print_metric_events_line(batch_metrics, decimals=4)
+                print(f"top1_by_draft_offset={top1_by_offset}", flush=True)
 
                 run = MeasurementRun(
                     context=run_context,

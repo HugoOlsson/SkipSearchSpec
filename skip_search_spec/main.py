@@ -75,7 +75,7 @@ def main() -> None:
                     lr=1e-4,
                     max_steps=1000000, #just something big
                     kl_loss_weight=1.0,
-                    hidden_loss_weight=0.1,
+                    hidden_loss_weight=0.01,
                     ce_loss_weight=1.0,
                     checkpoint_every_steps=2000,
                     log_every=1,
