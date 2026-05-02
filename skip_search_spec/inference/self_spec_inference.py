@@ -9,6 +9,7 @@ from typing import Any, cast
 import torch
 
 from skip_search_spec.training.bridged_gap_model import BridgedGapModel
+from skip_search_spec.training.flashhead.next_token_adapter import FlashHeadModule
 
 
 @dataclass(slots=True)
@@ -48,13 +49,26 @@ class BridgeSelfSpeculator:
         self,
         *,
         bridged_model: BridgedGapModel,
+        flashhead_path: str | Path | None = None,
+        flashhead_top_k_clusters: int = 500,
     ) -> None:
         self.bridged = bridged_model
         self.model = bridged_model.model
         self.tokenizer = bridged_model.tokenizer
         self.device = bridged_model.device
+        self.flashhead = (
+            None
+            if flashhead_path is None
+            else FlashHeadModule.from_model(
+                model=self.model,
+                flashhead_path=flashhead_path,
+                top_k_clusters=flashhead_top_k_clusters,
+            )
+        )
 
         self.bridged.eval_all()
+        if self.flashhead is not None:
+            self.flashhead.eval()
 
     @torch.inference_mode()
     def generate(
@@ -404,13 +418,21 @@ class BridgeSelfSpeculator:
                     prev_reference_hidden=current_prev_reference_hidden,
                     past_key_values=verifier_past_key_values,
                     use_cache=True,
+                    compute_logits=self.flashhead is None,
                 )
                 # KV-CACHE HANDLING END
 
-                next_token = drafter.logits[:, -1, :].argmax(
-                    dim=-1,
-                    keepdim=True,
-                )
+                if self.flashhead is None:
+                    if drafter.logits is None:
+                        raise RuntimeError("Drafter logits were not computed.")
+                    next_token = drafter.logits[:, -1, :].argmax(
+                        dim=-1,
+                        keepdim=True,
+                    )
+                else:
+                    next_token = self.flashhead.find_token(
+                        drafter.lm_head_input_hidden[0, -1, :]
+                    ).view(1, 1)
 
                 draft_tokens.append(next_token)
 
@@ -437,6 +459,8 @@ class BridgeSelfSpeculator:
 def load_bridge_self_speculator(
     *,
     bridge_checkpoint_path: str | Path,
+    flashhead_path: str | Path | None = None,
+    flashhead_top_k_clusters: int = 500,
 ) -> BridgeSelfSpeculator:
     bridged = BridgedGapModel.load_from_checkpoint(
         bridge_checkpoint_path=bridge_checkpoint_path,
@@ -444,6 +468,8 @@ def load_bridge_self_speculator(
 
     return BridgeSelfSpeculator(
         bridged_model=bridged,
+        flashhead_path=flashhead_path,
+        flashhead_top_k_clusters=flashhead_top_k_clusters,
     )
 
 
@@ -455,9 +481,13 @@ def self_spec_inference_test(
     draft_block_size: int = 4,
     use_chat_template: bool = True,
     enable_thinking: bool = False,
+    flashhead_path: str | Path | None = None,
+    flashhead_top_k_clusters: int = 500,
 ) -> SelfSpecResult:
     speculator = load_bridge_self_speculator(
         bridge_checkpoint_path=bridge_checkpoint_path,
+        flashhead_path=flashhead_path,
+        flashhead_top_k_clusters=flashhead_top_k_clusters,
     )
 
     trace_json_path = make_trace_json_path(

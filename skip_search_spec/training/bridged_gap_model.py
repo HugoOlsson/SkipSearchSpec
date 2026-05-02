@@ -84,7 +84,7 @@ class VerifierBridgeOutput:
 
 @dataclass(slots=True)
 class DrafterBridgeOutput:
-    logits: torch.Tensor
+    logits: torch.Tensor | None
     past_key_values: Any | None
 
     # Hidden entering the skipped gap.
@@ -95,6 +95,9 @@ class DrafterBridgeOutput:
 
     # Hidden after the last decoder layer, before final norm / lm_head.
     final_lm_layer_hidden: torch.Tensor
+
+    # Hidden after final norm, immediately before lm_head.
+    lm_head_input_hidden: torch.Tensor
 
     # The hidden source to use for future drafted positions.
     reference_hidden: torch.Tensor
@@ -353,6 +356,7 @@ class BridgedGapModel:
         prev_reference_hidden: torch.Tensor,
         past_key_values: Any | None = None,
         use_cache: bool = False,
+        compute_logits: bool = True,
     ) -> DrafterBridgeOutput:
         """
         Run the model with:
@@ -373,6 +377,7 @@ class BridgedGapModel:
         gap_input_hidden: torch.Tensor | None = None
         bridged_reentry_hidden: torch.Tensor | None = None
         final_lm_layer_hidden: torch.Tensor | None = None
+        lm_head_input_hidden: torch.Tensor | None = None
 
         def capture_gap_input_prehook(
             module: Any,
@@ -416,6 +421,18 @@ class BridgedGapModel:
             nonlocal final_lm_layer_hidden
             final_lm_layer_hidden = get_first_hidden_from_inputs(inputs)
 
+        def final_norm_hook(
+            module: Any,
+            inputs: tuple[Any, ...],
+            output: Any,
+        ) -> None:
+            nonlocal lm_head_input_hidden
+            if not isinstance(output, torch.Tensor):
+                raise TypeError(
+                    f"Expected final norm output to be a Tensor, got {type(output)}"
+                )
+            lm_head_input_hidden = output
+
         with ExitStack() as stack:
             original_layers: list[tuple[int, nn.Module]] = []
 
@@ -444,13 +461,34 @@ class BridgedGapModel:
             handle = backbone.norm.register_forward_pre_hook(final_norm_prehook)
             stack.callback(handle.remove)
 
-            drafter_forward = forward_model(
-                model=self.model,
-                input_ids=input_ids,
-                attention_mask=attention_mask,
-                use_cache=use_cache,
-                past_key_values=past_key_values,
-            )
+            handle = backbone.norm.register_forward_hook(final_norm_hook)
+            stack.callback(handle.remove)
+
+            if compute_logits:
+                drafter_forward = forward_model(
+                    model=self.model,
+                    input_ids=input_ids,
+                    attention_mask=attention_mask,
+                    use_cache=use_cache,
+                    past_key_values=past_key_values,
+                )
+                logits = drafter_forward.logits
+                output_past_key_values = drafter_forward.past_key_values
+            else:
+                backbone_forward = backbone(
+                    input_ids=input_ids,
+                    attention_mask=attention_mask,
+                    output_hidden_states=False,
+                    use_cache=use_cache,
+                    past_key_values=past_key_values,
+                    return_dict=True,
+                )
+                logits = None
+                output_past_key_values = getattr(
+                    backbone_forward,
+                    "past_key_values",
+                    None,
+                )
 
         if gap_input_hidden is None:
             raise RuntimeError("Failed to capture gap input hidden.")
@@ -461,17 +499,21 @@ class BridgedGapModel:
         if final_lm_layer_hidden is None:
             raise RuntimeError("Failed to capture drafter final hidden.")
 
+        if lm_head_input_hidden is None:
+            raise RuntimeError("Failed to capture drafter lm-head input hidden.")
+
         reference_hidden = self.select_reference_hidden(
             reentry_hidden=bridged_reentry_hidden,
             final_lm_layer_hidden=final_lm_layer_hidden,
         )
 
         return DrafterBridgeOutput(
-            logits=drafter_forward.logits,
-            past_key_values=drafter_forward.past_key_values,
+            logits=logits,
+            past_key_values=output_past_key_values,
             gap_input_hidden=gap_input_hidden,
             bridged_reentry_hidden=bridged_reentry_hidden,
             final_lm_layer_hidden=final_lm_layer_hidden,
+            lm_head_input_hidden=lm_head_input_hidden,
             reference_hidden=reference_hidden,
         )
 
