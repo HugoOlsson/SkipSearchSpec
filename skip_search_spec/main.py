@@ -45,13 +45,13 @@ def main() -> None:
             text_field="text",
         )
 
-        number_of_windows = 5000
+        number_of_windows = 10000
         num_epochs = 1 # Ensure never get scores on data it has seen
         fraction_tiny = 0.3
         fraction_edu = 0.7
 
-        models = ["meta-llama/Llama-3.1-8B"]
-        active_start_end_lengths = [(8, 8)]
+        models = ["meta-llama/Llama-3.2-4B"]
+        active_start_end_lengths = [(2, 2)]
 
         # SINGLE LAYER AT START
         print("Version: 1.4")
@@ -68,7 +68,7 @@ def main() -> None:
                     ],
                     context_len=256,
                     num_windows_to_use=number_of_windows,
-                    batch_size=4,
+                    batch_size=8,
                     active_start_layers=active_start_layers, 
                     active_end_layers=active_end_layers,
                     num_epochs=num_epochs,
@@ -78,7 +78,7 @@ def main() -> None:
                     hidden_loss_weight=0.0,
                     ce_loss_weight=1.0,
                     checkpoint_every_steps=2000,
-                    log_every=1,
+                    log_every=50,
                     num_draft_sections=6,
                     reference_hidden_source="final"
                 )
