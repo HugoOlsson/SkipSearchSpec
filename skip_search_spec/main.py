@@ -27,34 +27,17 @@ def main() -> None:
 
 
     if mode == "train_skipping_layers":
+        from skip_search_spec.experiments.dataset_mix import get_dataset_mix
         from skip_search_spec.training.train_skipping_layers import train_skipping_layers
-
-        DATASET_SPEC_STORIES= DatasetSpec(
-            name="TinyStories",
-            huggingface_path="roneneldan/TinyStories",
-            config_name="default",
-            split="train",
-            text_field="text",
-        )
-
-        DATASET_SPEC_EDU = DatasetSpec(
-            name="FineWeb-Edu-1B",
-            huggingface_path="codelion/fineweb-edu-1B",
-            config_name="default",
-            split="train",
-            text_field="text",
-        )
 
         number_of_windows = 20000
         num_epochs = 1 # Ensure never get scores on data it has seen
-        fraction_tiny = 0.3
-        fraction_edu = 0.7
 
         models = ["Qwen/Qwen3-4B"]
         active_start_end_lengths = [(4, 4)]
 
         # SINGLE LAYER AT START
-        print("Version: 1.4")
+        print("Version: 1.5")
 
         for active_start_layers, active_end_layers in active_start_end_lengths: 
 
@@ -62,10 +45,7 @@ def main() -> None:
 
                 train_skipping_layers(
                     model_name=model,
-                    dataset_mix=[
-                        (DATASET_SPEC_STORIES, fraction_tiny, int(number_of_windows*fraction_tiny*9)),
-                        (DATASET_SPEC_EDU, fraction_edu, int(number_of_windows*fraction_edu*1.5)),
-                    ],
+                    dataset_mix=get_dataset_mix(number_of_windows),
                     context_len=256,
                     num_windows_to_use=number_of_windows,
                     batch_size=8,

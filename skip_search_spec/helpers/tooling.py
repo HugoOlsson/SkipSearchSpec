@@ -1,4 +1,5 @@
 from typing import Any, Mapping
+import os
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedTokenizerBase
 from pathlib import Path
@@ -58,6 +59,10 @@ def load_model_and_tokenizer(
     resolved_model_kwargs = dict(model_kwargs or {})
     resolved_tokenizer_kwargs = dict(tokenizer_kwargs or {})
     resolved_tokenizer_kwargs.setdefault("use_fast", True)
+
+    attn_implementation = os.environ.get("SKIP_SEARCH_ATTN_IMPLEMENTATION")
+    if attn_implementation:
+        resolved_model_kwargs.setdefault("attn_implementation", attn_implementation)
 
     tokenizer = AutoTokenizer.from_pretrained(
         tokenizer_name_or_path or model_name_or_path,
