@@ -45,7 +45,7 @@ def main() -> None:
             text_field="text",
         )
 
-        number_of_windows = 2000
+        number_of_windows = 20000
         num_epochs = 1 # Ensure never get scores on data it has seen
         fraction_tiny = 0.3
         fraction_edu = 0.7
@@ -68,7 +68,7 @@ def main() -> None:
                     ],
                     context_len=256,
                     num_windows_to_use=number_of_windows,
-                    batch_size=5,
+                    batch_size=10,
                     active_start_layers=active_start_layers, 
                     active_end_layers=active_end_layers,
                     num_epochs=num_epochs,
@@ -79,7 +79,7 @@ def main() -> None:
                     ce_loss_weight=1.0,
                     checkpoint_every_steps=2000,
                     log_every=1,
-                    num_draft_sections=4
+                    num_draft_sections=6
                 )
 
        
