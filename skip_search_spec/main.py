@@ -15,8 +15,8 @@ from skip_search_spec.protocols.windows import DatasetSpec
 
 
 
-STORE_PATH_FLASH_HEAD = "checkpoints/flashhead_qwen3_4b.pt"
-MODEL_NAME_FLASH_HEAD = "Qwen/Qwen3-4B"
+STORE_PATH_FLASH_HEAD = "checkpoints/flashhead_llama32_3b.pt"
+MODEL_NAME_FLASH_HEAD = "meta-llama/Llama-3.2-3B"
 
 
 def main() -> None:
@@ -283,7 +283,7 @@ def main() -> None:
             ),
             (
                 "Talking about Paris",
-                "The capital of France is is quite large and its name is",
+                "The capital of France is quite large and its name is",
             ),
              (
                 "Story about Bob",
