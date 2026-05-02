@@ -50,7 +50,7 @@ def main() -> None:
         fraction_tiny = 0.0
         fraction_edu = 1.0
 
-        models = ["Qwen/Qwen3-4B"]
+        models = ["Qwen/Qwen3.5-4B"]
         active_start_end_lengths = [(4, 4)]
 
         # SINGLE LAYER AT START
