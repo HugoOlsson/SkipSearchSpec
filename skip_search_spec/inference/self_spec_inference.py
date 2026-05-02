@@ -19,6 +19,7 @@ class SelfSpecResult:
     verifier_calls: int
     drafted_tokens: int
     accepted_draft_tokens: int
+    inference_seconds: float = 0.0
     trace_json_path: Path | None = None
 
 
@@ -496,7 +497,8 @@ def self_spec_inference_test(
         max_new_tokens=max_new_tokens,
     )
 
-    return speculator.generate(
+    start_time = time.perf_counter()
+    result = speculator.generate(
         prompt=prompt,
         max_new_tokens=max_new_tokens,
         draft_block_size=draft_block_size,
@@ -504,6 +506,9 @@ def self_spec_inference_test(
         enable_thinking=enable_thinking,
         trace_json_path=trace_json_path
     )
+    result.inference_seconds = time.perf_counter() - start_time
+
+    return result
 
 
 def format_user_chat_prompt(

@@ -1,10 +1,19 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
+import time
+
 import torch
 
 from skip_search_spec.helpers.tooling import get_preferred_device, get_preferred_float_dtype, load_model_and_tokenizer
 
 from typing import Any, cast
+
+
+@dataclass(frozen=True, slots=True)
+class NormalInferenceResult:
+    text: str
+    inference_seconds: float
 
 
 def generate_from_plain_prompt(
@@ -15,7 +24,8 @@ def generate_from_plain_prompt(
     tokenizer_name_or_path: str | None = None,
     use_chat_template: bool = True,
     enable_thinking: bool = False,
-) -> str:
+    use_cache: bool = True,
+) -> NormalInferenceResult:
     device = get_preferred_device()
     dtype = get_preferred_float_dtype(device)
 
@@ -33,6 +43,8 @@ def generate_from_plain_prompt(
 
     if tokenizer.pad_token_id is None:
         tokenizer.pad_token = tokenizer.eos_token
+
+    start_time = time.perf_counter()
 
     model_prompt = prompt
     if use_chat_template:
@@ -59,8 +71,15 @@ def generate_from_plain_prompt(
             **inputs,
             max_new_tokens=max_new_tokens,
             do_sample=False,
+            use_cache=use_cache,
             pad_token_id=tokenizer.pad_token_id,
             eos_token_id=tokenizer.eos_token_id,
         )
 
-    return cast(str, tokenizer.decode(output_ids[0], skip_special_tokens=True))
+    text = cast(str, tokenizer.decode(output_ids[0], skip_special_tokens=True))
+    inference_seconds = time.perf_counter() - start_time
+
+    return NormalInferenceResult(
+        text=text,
+        inference_seconds=inference_seconds,
+    )

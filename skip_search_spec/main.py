@@ -17,6 +17,24 @@ from skip_search_spec.protocols.windows import DatasetSpec
 
 STORE_PATH_FLASH_HEAD = "checkpoints/flashhead_llama32_3b.pt"
 MODEL_NAME_FLASH_HEAD = "meta-llama/Llama-3.2-3B"
+INFERENCE_TEST_MAX_NEW_TOKENS = 200
+INFERENCE_TEST_PROMPTS = [
+    (
+        "Recent U.S. presidents list",
+        "The 10 latest presidents of the USA is: 1. Donald Trump, ",
+    ),
+    (
+        "Talking about Paris",
+        "The capital of France is quite large and its name is",
+    ),
+    (
+        "Story about Bob",
+        (
+            "There once was a man named Bob that lived in the state Texas. "
+            "He liked to drive his pickup truck"
+        ),
+    ),
+]
 
 
 def main() -> None:
@@ -276,22 +294,9 @@ def main() -> None:
         bridge_checkpoint_path = sys.argv[3]
         flashhead_path = sys.argv[4] if len(sys.argv) > 4 else None
 
-        test_prompts = [
-            (
-                "Recent U.S. presidents list",
-                "The 10 latest presidents of the USA is: 1. Donald Trump, ",
-            ),
-            (
-                "Talking about Paris",
-                "The capital of France is quite large and its name is",
-            ),
-             (
-                "Story about Bob",
-                "There once was a man named Bob that lived in the state Texas. He liked to drive his pickup truck",
-            ),
-        ]
+        total_inference_seconds = 0.0
 
-        for test_idx, (test_name, prompt) in enumerate(test_prompts, start=1):
+        for test_idx, (test_name, prompt) in enumerate(INFERENCE_TEST_PROMPTS, start=1):
             print()
             print(f"Test {test_idx}: {test_name}")
             print()
@@ -302,11 +307,12 @@ def main() -> None:
             result = self_spec_inference_test(
                 bridge_checkpoint_path=bridge_checkpoint_path,
                 prompt=prompt,
-                max_new_tokens=200,
+                max_new_tokens=INFERENCE_TEST_MAX_NEW_TOKENS,
                 draft_block_size=int(draft_block_size),
                 use_chat_template=False,
                 flashhead_path=flashhead_path,
             )
+            total_inference_seconds += result.inference_seconds
 
             print(result.text)
             print(
@@ -315,23 +321,42 @@ def main() -> None:
                     "drafted_tokens": result.drafted_tokens,
                     "accepted_draft_tokens": result.accepted_draft_tokens,
                     "accept_rate": result.accepted_draft_tokens / max(result.drafted_tokens, 1),
+                    "inference_seconds": result.inference_seconds,
                 }
             )
+
+        print()
+        print({"total_inference_seconds": total_inference_seconds})
 
 
 
     elif mode == "test_normal_inference":
         from skip_search_spec.inference.normal_inference import generate_from_plain_prompt
 
-        text = generate_from_plain_prompt(
-            model_name_or_path="Qwen/Qwen3-4B",
-            prompt="The capital of France is ",
-            max_new_tokens=300,
-            use_chat_template=False
-        )
+        total_inference_seconds = 0.0
 
+        for test_idx, (test_name, prompt) in enumerate(INFERENCE_TEST_PROMPTS, start=1):
+            print()
+            print(f"Test {test_idx}: {test_name}")
+            print()
+            print("Prompt:")
+            print(prompt)
+            print()
 
-        print(text)
+            result = generate_from_plain_prompt(
+                model_name_or_path="Qwen/Qwen3-4B",
+                prompt=prompt,
+                max_new_tokens=INFERENCE_TEST_MAX_NEW_TOKENS,
+                use_chat_template=False,
+                use_cache=True,
+            )
+            total_inference_seconds += result.inference_seconds
+
+            print(result.text)
+            print({"inference_seconds": result.inference_seconds})
+
+        print()
+        print({"total_inference_seconds": total_inference_seconds})
 
 
     else:
