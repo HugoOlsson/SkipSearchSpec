@@ -15,8 +15,8 @@ from skip_search_spec.protocols.windows import DatasetSpec
 
 
 
-STORE_PATH_FLASH_HEAD = "checkpoints/flashhead_qwen_0_5b.pt"
-MODEL_NAME_FLASH_HEAD = "Qwen/Qwen3.5-4B"
+STORE_PATH_FLASH_HEAD = "checkpoints/flashhead_qwen3_4b.pt"
+MODEL_NAME_FLASH_HEAD = "Qwen/Qwen3-4B"
 
 
 def main() -> None:
