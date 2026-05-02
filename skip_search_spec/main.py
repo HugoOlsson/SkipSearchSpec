@@ -79,7 +79,7 @@ def main() -> None:
                     ce_loss_weight=1.0,
                     checkpoint_every_steps=2000,
                     log_every=1,
-                    #num_draft_sections=6,
+                    num_draft_sections=6,
                     reference_hidden_source="final"
                 )
 

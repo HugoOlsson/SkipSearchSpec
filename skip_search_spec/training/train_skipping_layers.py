@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
@@ -7,6 +8,7 @@ import time
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch.nn.utils import clip_grad_norm_
 
 from skip_search_spec.helpers.tooling import distribution_similarity_metrics
@@ -20,12 +22,9 @@ from skip_search_spec.protocols.windows import (
 from skip_search_spec.helpers.shared_decoding_tools import (
     build_mixed_fixed_window_dataloader,
     get_effective_gap_mode,
-    kl_teacher_to_student_next_token,
     make_layer_pattern,
     masked_cross_entropy_from_logits,
-    masked_hidden_mse_with_first_token_dropped,
-    shift_next_token_logits,
-    shift_next_token_mask,
+    masked_mean,
     stage,
 )
 
@@ -47,7 +46,7 @@ def train_skipping_layers(
     *,
     model_name: str,
     dataset_mix: list[tuple[DatasetSpec, float, int]],
-    context_len: int = 256, # Always use 256 token windows to get a good balance between context and compute
+    context_len: int = 256,
     num_windows_to_use: int,
     batch_size: int = 2,
     active_start_layers: int,
@@ -66,6 +65,7 @@ def train_skipping_layers(
     checkpoint_every_steps: int | None = None,
     log_every: int = 100,
     measurement_save_interval_seconds: float = 60.0,
+    num_draft_sections: int = 4,
 ) -> TrainGapBridgeOutput:
     stage("train_gap_bridge: start")
 
@@ -81,6 +81,13 @@ def train_skipping_layers(
 
     device = bridged.device
     bridge = bridged.bridge
+
+    for norm_name in ("gap_norm", "prev_norm"):
+        norm = getattr(bridge, norm_name, None)
+        if isinstance(norm, nn.Module):
+            for param in norm.parameters():
+                param.requires_grad_(False)
+
     gap = bridged.gap
     num_layers = bridged.num_layers
     hidden_size = bridged.hidden_size
@@ -96,7 +103,7 @@ def train_skipping_layers(
     )
 
     optimizer = torch.optim.AdamW(
-        bridge.parameters(),
+        (p for p in bridge.parameters() if p.requires_grad),
         lr=lr,
         weight_decay=weight_decay,
     )
@@ -164,6 +171,7 @@ def train_skipping_layers(
             "model_kwargs": json_safe(model_kwargs or {}),
             "checkpoint_every_steps": checkpoint_every_steps,
             "log_every": log_every,
+            "num_draft_sections": num_draft_sections,
         },
     )
 
@@ -206,6 +214,7 @@ def train_skipping_layers(
                     "ce_loss_weight": ce_loss_weight,
                     "teacher_temperature": teacher_temperature,
                     "reference_hidden_source": reference_hidden_source,
+                    "num_draft_sections": num_draft_sections,
                 },
             },
         )
@@ -237,37 +246,125 @@ def train_skipping_layers(
                 teacher.reference_hidden,
             )
 
-            student = bridged.run_drafter(
-                input_ids=input_ids,
-                attention_mask=attention_mask,
-                prev_reference_hidden=prev_reference_hidden,
+            if teacher.past_key_values is None:
+                raise RuntimeError("Verifier did not return past_key_values.")
+
+            seq_len = input_ids.size(1)
+            if num_draft_sections < 2:
+                raise ValueError(
+                    f"num_draft_sections must be at least 2, got {num_draft_sections}."
+                )
+            if seq_len < num_draft_sections:
+                raise ValueError(
+                    f"Sequence length {seq_len} is too short for "
+                    f"num_draft_sections={num_draft_sections}."
+                )
+
+            section_boundaries = [
+                i * seq_len // num_draft_sections
+                for i in range(num_draft_sections + 1)
+            ]
+            train_sections = list(
+                zip(section_boundaries[1:-1], section_boundaries[2:])
             )
 
-            loss_kl = kl_teacher_to_student_next_token(
-                logits_teacher=teacher.logits,
-                logits_student=student.logits,
-                teacher_temperature=teacher_temperature,
-                attention_mask=attention_mask,
+            student_logits_parts: list[torch.Tensor] = []
+            teacher_logits_parts: list[torch.Tensor] = []
+            train_mask_parts: list[torch.Tensor] = []
+            section_offset_parts: list[torch.Tensor] = []
+            student_hidden_parts: list[torch.Tensor] = []
+            teacher_hidden_parts: list[torch.Tensor] = []
+            teacher_target_hidden = (
+                bridged.bridge_target_hidden(teacher)
+                if hidden_loss_weight > 0.0
+                else None
             )
 
-            loss_hidden = masked_hidden_mse_with_first_token_dropped(
-                predicted=bridged.bridge_prediction_hidden(student),
-                target=bridged.bridge_target_hidden(teacher),
-                attention_mask=attention_mask,
+            for section_start, section_end in train_sections:
+                teacher_cache_at_start = copy.deepcopy(teacher.past_key_values)
+                crop_past_key_values(
+                    teacher_cache_at_start,
+                    max_length=section_start,
+                )
+
+                student_section = bridged.run_drafter(
+                    input_ids=input_ids[:, section_start:section_end],
+                    attention_mask=attention_mask[:, :section_end],
+                    prev_reference_hidden=prev_reference_hidden[
+                        :,
+                        section_start:section_end,
+                        :,
+                    ],
+                    past_key_values=teacher_cache_at_start,
+                    use_cache=True,
+                )
+
+                student_logits_parts.append(student_section.logits)
+                teacher_logits_parts.append(
+                    teacher.logits[:, section_start:section_end, :].detach()
+                )
+                train_mask_parts.append(
+                    attention_mask[:, section_start:section_end].bool()
+                )
+                section_offset_parts.append(
+                    torch.arange(
+                        section_end - section_start,
+                        device=input_ids.device,
+                    ).unsqueeze(0).expand(input_ids.size(0), -1)
+                )
+
+                if hidden_loss_weight > 0.0:
+                    assert teacher_target_hidden is not None
+                    student_hidden_parts.append(
+                        bridged.bridge_prediction_hidden(student_section)
+                    )
+                    teacher_hidden_parts.append(
+                        teacher_target_hidden[:, section_start:section_end, :].detach()
+                    )
+
+            student_train_logits = torch.cat(student_logits_parts, dim=1)
+            teacher_train_logits = torch.cat(teacher_logits_parts, dim=1)
+            train_mask = torch.cat(train_mask_parts, dim=1)
+            section_offsets = torch.cat(section_offset_parts, dim=1)
+
+            teacher_log_probs = F.log_softmax(
+                teacher_train_logits.float() / teacher_temperature,
+                dim=-1,
             )
+            student_log_probs = F.log_softmax(
+                student_train_logits.float(),
+                dim=-1,
+            )
+            kl_per_token = F.kl_div(
+                student_log_probs,
+                teacher_log_probs,
+                reduction="none",
+                log_target=True,
+            ).sum(dim=-1)
+
+            loss_kl = masked_mean(kl_per_token, train_mask)
+
+            if hidden_loss_weight > 0.0:
+                student_train_hidden = torch.cat(student_hidden_parts, dim=1)
+                teacher_train_hidden = torch.cat(teacher_hidden_parts, dim=1)
+                hidden_diff_sq = (
+                    student_train_hidden.float()
+                    - teacher_train_hidden.float()
+                ).pow(2).mean(dim=-1)
+                loss_hidden = masked_mean(hidden_diff_sq, train_mask)
+            else:
+                loss_hidden = student_train_logits.new_zeros(())
 
             if ce_loss_weight > 0.0:
-                teacher_targets = shift_next_token_logits(teacher.logits).argmax(dim=-1)
-                student_next_logits = shift_next_token_logits(student.logits)
-                ce_mask = shift_next_token_mask(attention_mask)
+                teacher_targets = teacher_train_logits.argmax(dim=-1)
 
                 loss_ce_teacher = masked_cross_entropy_from_logits(
-                    logits=student_next_logits,
+                    logits=student_train_logits,
                     targets=teacher_targets,
-                    mask=ce_mask,
+                    mask=train_mask,
                 )
             else:
-                loss_ce_teacher = student.logits.new_zeros(())
+                loss_ce_teacher = student_train_logits.new_zeros(())
 
             loss = (
                 kl_loss_weight * loss_kl
@@ -295,8 +392,8 @@ def train_skipping_layers(
             if step == 1 or step % log_every == 0:
                 with torch.no_grad():
                     sim = distribution_similarity_metrics(
-                        shift_logits_drafter=shift_next_token_logits(student.logits),
-                        shift_logits_verifier=shift_next_token_logits(teacher.logits),
+                        shift_logits_drafter=student_train_logits,
+                        shift_logits_verifier=teacher_train_logits,
                     )
 
                 batch_metrics = [
@@ -311,6 +408,20 @@ def train_skipping_layers(
                     MetricEvent.create(phase="train", name="prob_mass_overlap_verifier_drafter", value=sim["prob_mass_overlap_verifier_drafter"].item(), step=step),
                     MetricEvent.create(phase="train", name="p_drafter_on_verifier_top1", value=sim["p_drafter_on_verifier_top1"].item(), step=step),
                 ]
+
+                top1_matches = (
+                    student_train_logits.argmax(dim=-1)
+                    == teacher_train_logits.argmax(dim=-1)
+                ).float()
+
+                top1_by_offset = []
+                for offset in range(6):
+                    offset_mask = train_mask & (section_offsets == offset)
+                    if offset_mask.any():
+                        value = masked_mean(top1_matches, offset_mask).item()
+                        top1_by_offset.append(round(value, 4))
+                    else:
+                        top1_by_offset.append(None)
 
                 metric_events.extend(batch_metrics)
 
@@ -330,6 +441,7 @@ def train_skipping_layers(
                     end="",
                 )
                 print_metric_events_line(batch_metrics, decimals=4)
+                print(f"top1_by_draft_offset={top1_by_offset}", flush=True)
 
                 run = MeasurementRun(
                     context=run_context,
@@ -364,4 +476,23 @@ def train_skipping_layers(
         bridged_model=bridged,
         bridge=bridge,
         checkpoint_path=checkpoint_path,
+    )
+
+
+def crop_past_key_values(
+    past_key_values: Any | None,
+    *,
+    max_length: int,
+) -> Any | None:
+    if past_key_values is None:
+        return None
+
+    crop = getattr(past_key_values, "crop", None)
+    if callable(crop):
+        crop(max_length)
+        return past_key_values
+
+    raise TypeError(
+        f"Expected past_key_values to expose a callable crop(max_length), "
+        f"got {type(past_key_values).__name__}."
     )
