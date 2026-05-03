@@ -45,7 +45,7 @@ class BridgeSelfSpeculator:
         *,
         bridged_model: BridgedGapModel,
         flashhead_path: str | Path | None = None,
-        flashhead_top_k_clusters: int = 500,
+        flashhead_top_k_clusters: int,
     ) -> None:
         self.bridged = bridged_model
         self.model = bridged_model.model
@@ -95,18 +95,20 @@ class BridgeSelfSpeculator:
         input_ids = cast(torch.Tensor, encoded_prompt["input_ids"]).to(self.device)
         prompt_len = input_ids.size(1)
 
-        token_trace: list[TokenData] | None = [] if build_token_trace else None
-        add_tokens_to_trace(token_trace, input_ids, token_type="prompt")
-        draft_block_index = 0
-
         if input_ids.size(0) != 1:
             raise ValueError("This minimal self-spec test only supports batch size 1.")
 
-
+        # Persistent generation state.
+        accepted_ids = input_ids
         verifier_calls = 0
         drafted_tokens = 0
         accepted_draft_tokens = 0
         generated_tokens = 0
+        draft_block_index = 0
+        token_trace: list[TokenData] | None = [] if build_token_trace else None
+        saved_trace_json_path: Path | None = None
+
+        add_tokens_to_trace(token_trace, input_ids, token_type="prompt")
 
         # 1. Verify the prompt once to create the base.
         verifier = self.bridged.run_verifier(
@@ -128,7 +130,7 @@ class BridgeSelfSpeculator:
             keepdim=True,
         )
 
-        accepted_ids = torch.cat([input_ids, bonus_token], dim=1)
+        accepted_ids = torch.cat([accepted_ids, bonus_token], dim=1)
         verifier_reference_hidden = verifier.reference_hidden
         generated_tokens += 1
 
@@ -280,8 +282,6 @@ class BridgeSelfSpeculator:
             skip_special_tokens=True,
         )
 
-        saved_trace_json_path: Path | None = None
-
         if trace_json_path is not None and token_trace is not None:
             saved_trace_json_path = save_token_trace_json(
                 tokens=token_trace,
@@ -431,7 +431,7 @@ def load_bridge_self_speculator(
     *,
     bridge_checkpoint_path: str | Path,
     flashhead_path: str | Path | None = None,
-    flashhead_top_k_clusters: int = 500,
+    flashhead_top_k_clusters: int,
 ) -> BridgeSelfSpeculator:
     bridged = BridgedGapModel.load_from_checkpoint(
         bridge_checkpoint_path=bridge_checkpoint_path,
