@@ -75,7 +75,7 @@ def main() -> None:
                     kl_loss_weight=1.0,
                     hidden_loss_weight=0.0,
                     ce_loss_weight=1.0,
-                    checkpoint_every_steps=2000,
+                    checkpoint_every_steps=1000,
                     log_every=100,
                     num_draft_sections=4,
                     reference_hidden_source="final"
