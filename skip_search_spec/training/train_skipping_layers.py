@@ -54,6 +54,14 @@ class TrainingSectionsBatch:
     teacher_hidden: torch.Tensor | None
 
 
+@dataclass(slots=True)
+class BridgeTrainingLosses:
+    total: torch.Tensor
+    kl: torch.Tensor
+    hidden: torch.Tensor
+    ce_teacher: torch.Tensor
+
+
 def make_train_sections(
     *,
     seq_len: int,
@@ -169,6 +177,67 @@ def run_drafter_on_training_sections(
         section_offsets=torch.cat(section_offset_parts, dim=1),
         student_hidden=student_hidden,
         teacher_hidden=teacher_hidden,
+    )
+
+
+def compute_bridge_training_losses(
+    *,
+    section_batch: TrainingSectionsBatch,
+    teacher_temperature: float,
+    kl_loss_weight: float,
+    hidden_loss_weight: float,
+    ce_loss_weight: float,
+) -> BridgeTrainingLosses:
+    teacher_log_probs = F.log_softmax(
+        section_batch.teacher_logits.float() / teacher_temperature,
+        dim=-1,
+    )
+    student_log_probs = F.log_softmax(
+        section_batch.student_logits.float(),
+        dim=-1,
+    )
+    kl_per_token = F.kl_div(
+        student_log_probs,
+        teacher_log_probs,
+        reduction="none",
+        log_target=True,
+    ).sum(dim=-1)
+
+    loss_kl = masked_mean(kl_per_token, section_batch.train_mask)
+
+    if hidden_loss_weight > 0.0:
+        if section_batch.student_hidden is None or section_batch.teacher_hidden is None:
+            raise RuntimeError("Hidden loss requested without hidden targets.")
+
+        hidden_diff_sq = (
+            section_batch.student_hidden.float()
+            - section_batch.teacher_hidden.float()
+        ).pow(2).mean(dim=-1)
+        loss_hidden = masked_mean(hidden_diff_sq, section_batch.train_mask)
+    else:
+        loss_hidden = section_batch.student_logits.new_zeros(())
+
+    if ce_loss_weight > 0.0:
+        teacher_targets = section_batch.teacher_logits.argmax(dim=-1)
+        loss_ce_teacher = masked_cross_entropy_from_logits(
+            logits=section_batch.student_logits,
+            targets=teacher_targets,
+            mask=section_batch.train_mask,
+        )
+    else:
+        loss_ce_teacher = section_batch.student_logits.new_zeros(())
+
+    total_loss = (
+        kl_loss_weight * loss_kl
+        + hidden_loss_weight * loss_hidden
+        + ce_loss_weight * loss_ce_teacher
+    )
+
+    return BridgeTrainingLosses(
+        total=total_loss,
+        kl=loss_kl,
+        hidden=loss_hidden,
+        ce_teacher=loss_ce_teacher,
     )
 
 
@@ -391,52 +460,17 @@ def train_skipping_layers(
             train_mask = section_batch.train_mask
             section_offsets = section_batch.section_offsets
 
-            teacher_log_probs = F.log_softmax(
-                teacher_train_logits.float() / teacher_temperature,
-                dim=-1,
+            losses = compute_bridge_training_losses(
+                section_batch=section_batch,
+                teacher_temperature=teacher_temperature,
+                kl_loss_weight=kl_loss_weight,
+                hidden_loss_weight=hidden_loss_weight,
+                ce_loss_weight=ce_loss_weight,
             )
-            student_log_probs = F.log_softmax(
-                student_train_logits.float(),
-                dim=-1,
-            )
-            kl_per_token = F.kl_div(
-                student_log_probs,
-                teacher_log_probs,
-                reduction="none",
-                log_target=True,
-            ).sum(dim=-1)
-
-            loss_kl = masked_mean(kl_per_token, train_mask)
-
-            if hidden_loss_weight > 0.0:
-                student_train_hidden = section_batch.student_hidden
-                teacher_train_hidden = section_batch.teacher_hidden
-                assert student_train_hidden is not None
-                assert teacher_train_hidden is not None
-                hidden_diff_sq = (
-                    student_train_hidden.float()
-                    - teacher_train_hidden.float()
-                ).pow(2).mean(dim=-1)
-                loss_hidden = masked_mean(hidden_diff_sq, train_mask)
-            else:
-                loss_hidden = student_train_logits.new_zeros(())
-
-            if ce_loss_weight > 0.0:
-                teacher_targets = teacher_train_logits.argmax(dim=-1)
-
-                loss_ce_teacher = masked_cross_entropy_from_logits(
-                    logits=student_train_logits,
-                    targets=teacher_targets,
-                    mask=train_mask,
-                )
-            else:
-                loss_ce_teacher = student_train_logits.new_zeros(())
-
-            loss = (
-                kl_loss_weight * loss_kl
-                + hidden_loss_weight * loss_hidden
-                + ce_loss_weight * loss_ce_teacher
-            )
+            loss = losses.total
+            loss_kl = losses.kl
+            loss_hidden = losses.hidden
+            loss_ce_teacher = losses.ce_teacher
 
             loss.backward()
 
