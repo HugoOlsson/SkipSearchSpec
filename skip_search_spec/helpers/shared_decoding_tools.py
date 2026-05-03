@@ -287,23 +287,6 @@ def forward_with_layer_mask(
     return logits
 
 
-# =============================================================================
-# Hidden-state helpers
-# =============================================================================
-
-
-def build_prev_hidden(hidden: torch.Tensor) -> torch.Tensor:
-    """
-    For hidden [B, T, H], return previous-position hidden [B, T, H].
-
-    Position 0 receives zeros.
-    Position t receives hidden from t - 1.
-    """
-    prev = torch.zeros_like(hidden)
-    prev[:, 1:, :] = hidden[:, :-1, :]
-    return prev
-
-
 def masked_hidden_mse_with_first_token_dropped(
     *,
     predicted: torch.Tensor,
