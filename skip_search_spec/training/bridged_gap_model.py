@@ -123,8 +123,6 @@ class LinearPrevHiddenGapBridge(nn.Module):
         super().__init__()
         self.hidden_size = hidden_size
 
-        self.gap_norm = nn.LayerNorm(hidden_size)
-        self.prev_norm = nn.LayerNorm(hidden_size)
         self.proj = nn.Linear(hidden_size * 2, hidden_size, bias=bias)
 
         with torch.no_grad():
@@ -146,10 +144,7 @@ class LinearPrevHiddenGapBridge(nn.Module):
         x = gap_hidden.float()
         p = prev_reference_hidden.float()
 
-        x_n = self.gap_norm(x)
-        p_n = self.prev_norm(p)
-
-        delta = self.proj(torch.cat([x_n, p_n], dim=-1))
+        delta = self.proj(torch.cat([x, p], dim=-1))
         return x + delta
 
 
