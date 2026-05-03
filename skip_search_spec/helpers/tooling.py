@@ -1,4 +1,5 @@
-from typing import Any, Mapping
+from dataclasses import dataclass
+from typing import Any, Literal, Mapping
 import os
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedTokenizerBase
@@ -6,6 +7,51 @@ from pathlib import Path
 from datasets import Dataset, load_dataset as hf_load_dataset
 from skip_search_spec.protocols.windows import DatasetSpec, ModelAndTokenizer
 import torch.nn.functional as F
+
+
+TokenTraceType = Literal["prompt", "draft", "bonus"]
+TokenTraceStatus = Literal["accepted", "rejected"]
+
+
+@dataclass(frozen=True, slots=True)
+class TokenData:
+    token_id: int
+    type: TokenTraceType
+    status: TokenTraceStatus | None = None
+    draft_block_index: int | None = None
+
+
+def add_tokens_to_trace(
+    token_trace: list[TokenData] | None,
+    tokens: torch.Tensor,
+    *,
+    token_type: TokenTraceType,
+    status: TokenTraceStatus | None = None,
+    num_accepted: int | None = None,
+    draft_block_index: int | None = None,
+) -> None:
+    if token_trace is None:
+        return
+
+    token_ids = [int(x) for x in tokens.detach().cpu().reshape(-1).tolist()]
+
+    for token_offset, token_id in enumerate(token_ids):
+        token_status = status
+        if num_accepted is not None:
+            token_status = (
+                "accepted"
+                if token_offset < num_accepted
+                else "rejected"
+            )
+
+        token_trace.append(
+            TokenData(
+                token_id=token_id,
+                type=token_type,
+                status=token_status,
+                draft_block_index=draft_block_index,
+            )
+        )
 
 
 def get_preferred_device() -> torch.device:
