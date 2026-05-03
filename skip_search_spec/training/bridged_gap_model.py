@@ -575,6 +575,9 @@ class BridgedGapModel:
         device = get_preferred_device()
         compute_dtype = get_preferred_float_dtype(device)
 
+        print("DEVICE:", device)
+        print("COMPUTE_DTYPE:", compute_dtype)
+
         checkpoint = torch.load(
             bridge_checkpoint_path,
             map_location="cpu",
