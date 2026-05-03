@@ -280,12 +280,6 @@ def train_skipping_layers(
     device = bridged.device
     bridge = bridged.bridge
 
-    for norm_name in ("gap_norm", "prev_norm"):
-        norm = getattr(bridge, norm_name, None)
-        if isinstance(norm, nn.Module):
-            for param in norm.parameters():
-                param.requires_grad_(False)
-
     gap = bridged.gap
     num_layers = bridged.num_layers
     hidden_size = bridged.hidden_size
