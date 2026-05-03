@@ -28,7 +28,7 @@ class SelfSpecResult:
 @dataclass(slots=True)
 class KVCacheHandler:
     past_key_values: Any
-    cached_prefix_len: int
+    verifier_cache_len: int
 
     @classmethod
     def from_verifier_output_after_prompt(
@@ -43,7 +43,7 @@ class KVCacheHandler:
 
         return cls(
             past_key_values=past_key_values,
-            cached_prefix_len=prompt_len,
+            verifier_cache_len=prompt_len,
         )
 
     def verifier_logits_start_for_draft_check(
@@ -51,17 +51,17 @@ class KVCacheHandler:
         *,
         accepted_len_before_draft: int,
     ) -> int:
-        return accepted_len_before_draft - 1 - self.cached_prefix_len
+        return accepted_len_before_draft - 1 - self.verifier_cache_len
 
-    def require_cache_len_to_match_reference_hidden(
+    def require_verifier_cache_len_to_match_reference_hidden(
         self,
         reference_hidden: torch.Tensor,
     ) -> None:
         verifier_len = reference_hidden.size(1)
-        if self.cached_prefix_len != verifier_len:
+        if self.verifier_cache_len != verifier_len:
             raise ValueError(
                 f"Expected verifier cache to match verifier reference hidden length. "
-                f"Got cached_prefix_len={self.cached_prefix_len}, "
+                f"Got verifier_cache_len={self.verifier_cache_len}, "
                 f"verifier_len={verifier_len}."
             )
 
@@ -78,25 +78,25 @@ class KVCacheHandler:
             verifier_output.past_key_values,
             max_length=accepted_prefix_len,
         )
-        self.cached_prefix_len = accepted_prefix_len
+        self.verifier_cache_len = accepted_prefix_len
 
     def adopt_full_verifier_cache(
         self,
         *,
         verifier_output: Any,
-        cached_prefix_len: int,
+        new_verifier_cache_len: int,
     ) -> None:
         past_key_values = verifier_output.past_key_values
         if past_key_values is None:
             raise RuntimeError("Verifier did not return past_key_values.")
 
         self.past_key_values = past_key_values
-        self.cached_prefix_len = cached_prefix_len
+        self.verifier_cache_len = new_verifier_cache_len
 
-    def crop_back_to_cached_prefix_after_temporary_drafting(self) -> None:
+    def crop_back_to_verifier_cache_after_temporary_drafting(self) -> None:
         crop_past_key_values(
             self.past_key_values,
-            max_length=self.cached_prefix_len,
+            max_length=self.verifier_cache_len,
         )
 
 
@@ -225,9 +225,9 @@ class BridgeSelfSpeculator:
             accepted_len_before_draft = accepted_ids.size(1)
             candidate_ids = torch.cat([accepted_ids, draft_tokens], dim=1)
 
-            # 3. Run verifier on the suffix after the cached prefix.
-            cached_prefix_len_before_verifier_call = kv_cache.cached_prefix_len
-            verifier_input_ids = candidate_ids[:, kv_cache.cached_prefix_len:]
+            # 3. Run verifier on the suffix after the verifier-cached prefix.
+            verifier_cache_len_before_verifier_call = kv_cache.verifier_cache_len
+            verifier_input_ids = candidate_ids[:, kv_cache.verifier_cache_len:]
             verifier = self.bridged.run_verifier(
                 input_ids=verifier_input_ids,
                 attention_mask=torch.ones_like(candidate_ids),
@@ -236,14 +236,7 @@ class BridgeSelfSpeculator:
             verifier_calls += 1
 
             verifier_reference_hidden_full = torch.cat(
-                [
-                    verifier_reference_hidden[
-                        :,
-                        :cached_prefix_len_before_verifier_call,
-                        :,
-                    ],
-                    verifier.reference_hidden,
-                ],
+                [verifier_reference_hidden[:, :verifier_cache_len_before_verifier_call, :], verifier.reference_hidden],
                 dim=1,
             )
 
@@ -324,7 +317,7 @@ class BridgeSelfSpeculator:
                 verifier_reference_hidden = verifier_reference_hidden_full
                 kv_cache.adopt_full_verifier_cache(
                     verifier_output=verifier,
-                    cached_prefix_len=candidate_ids.size(1),
+                    new_verifier_cache_len=candidate_ids.size(1),
                 )
 
             add_tokens_to_trace(token_trace, verifier_token, token_type="bonus")
@@ -425,16 +418,16 @@ class BridgeSelfSpeculator:
 
         draft_tokens: list[torch.Tensor] = []
 
-        kv_cache.require_cache_len_to_match_reference_hidden(
+        kv_cache.require_verifier_cache_len_to_match_reference_hidden(
             verifier_reference_hidden,
         )
-        current_ids = accepted_ids[:, kv_cache.cached_prefix_len:]
+        current_ids = accepted_ids[:, kv_cache.verifier_cache_len:]
         current_prev_reference_hidden = prev_reference_hidden[
             :,
-            kv_cache.cached_prefix_len:,
+            kv_cache.verifier_cache_len:,
             :,
         ]
-        current_cache_len = kv_cache.cached_prefix_len
+        current_cache_len = kv_cache.verifier_cache_len
 
         try:
             for _ in range(block_size):
@@ -474,7 +467,7 @@ class BridgeSelfSpeculator:
                     :,
                 ].detach()
         finally:
-            kv_cache.crop_back_to_cached_prefix_after_temporary_drafting()
+            kv_cache.crop_back_to_verifier_cache_after_temporary_drafting()
 
         return torch.cat(draft_tokens, dim=1)
 
