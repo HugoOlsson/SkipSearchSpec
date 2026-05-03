@@ -113,7 +113,6 @@ def evaluate_flashhead(stored_path: str, model_name: str) -> None:
         model=model,
         flashhead_path=stored_path,
         top_k_clusters=500,
-        normalize_hidden_for_routing=True,
     )
 
     dataset_spec = DatasetSpec(
