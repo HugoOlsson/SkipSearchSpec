@@ -51,11 +51,11 @@ def main() -> None:
         number_of_windows = 100_000
         num_epochs = 1 # Ensure never get scores on data it has seen
 
-        models = ["meta-llama/Llama-3.2-1B"]
-        active_start_end_lengths = [(4, 4)]
+        models = ["meta-llama/Llama-3.1-8B"]
+        active_start_end_lengths = [(8, 8)]
 
         # SINGLE LAYER AT START
-        print("Version: 1.7")
+        print("Version: 1.8")
 
         for active_start_layers, active_end_layers in active_start_end_lengths: 
 
@@ -66,7 +66,7 @@ def main() -> None:
                     dataset_mix=get_dataset_mix(number_of_windows),
                     context_len=256,
                     num_windows_to_use=number_of_windows,
-                    batch_size=30,
+                    batch_size=20,
                     active_start_layers=active_start_layers, 
                     active_end_layers=active_end_layers,
                     num_epochs=num_epochs,
@@ -311,7 +311,8 @@ def main() -> None:
                 draft_block_size=int(draft_block_size),
                 use_chat_template=False,
                 flashhead_path=flashhead_path,
-                measure_internal_timings=True
+                build_token_trace=False,
+                measure_internal_timings=False
             )
             timings = result.timings
             total_inference_seconds += timings.total_seconds
@@ -348,7 +349,7 @@ def main() -> None:
             print()
 
             result = generate_from_plain_prompt(
-                model_name_or_path="Qwen/Qwen3-4B",
+                model_name_or_path="meta-llama/Llama-3.2-3B",
                 prompt=prompt,
                 max_new_tokens=INFERENCE_TEST_MAX_NEW_TOKENS,
                 use_chat_template=False,
