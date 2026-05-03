@@ -425,23 +425,6 @@ class BridgeSelfSpeculator:
             # KV-CACHE HANDLING END
 
         return torch.cat(draft_tokens, dim=1)
-    
-    
-def load_bridge_self_speculator(
-    *,
-    bridge_checkpoint_path: str | Path,
-    flashhead_path: str | Path | None = None,
-    flashhead_top_k_clusters: int,
-) -> BridgeSelfSpeculator:
-    bridged = BridgedGapModel.load_from_checkpoint(
-        bridge_checkpoint_path=bridge_checkpoint_path,
-    )
-
-    return BridgeSelfSpeculator(
-        bridged_model=bridged,
-        flashhead_path=flashhead_path,
-        flashhead_top_k_clusters=flashhead_top_k_clusters,
-    )
 
 
 def self_spec_inference_test(
@@ -456,8 +439,13 @@ def self_spec_inference_test(
     flashhead_top_k_clusters: int = 50,
     build_token_trace: bool = True,
 ) -> SelfSpecResult:
-    speculator = load_bridge_self_speculator(
+
+    bridged = BridgedGapModel.load_from_checkpoint(
         bridge_checkpoint_path=bridge_checkpoint_path,
+    )
+
+    speculator = BridgeSelfSpeculator(
+        bridged_model=bridged,
         flashhead_path=flashhead_path,
         flashhead_top_k_clusters=flashhead_top_k_clusters,
     )
