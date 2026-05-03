@@ -4,7 +4,6 @@ import copy
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
-import time
 
 import torch
 import torch.nn as nn
@@ -13,7 +12,7 @@ from torch.nn.utils import clip_grad_norm_
 
 from skip_search_spec.helpers.tooling import distribution_similarity_metrics
 
-from skip_search_spec.protocols.measurements import MeasurementRun, MetricEvent, RunContext, dataset_mix_config, dataset_mix_name, json_safe, print_metric_events_line, safe_path_part, save_at_interval
+from skip_search_spec.protocols.measurements import MeasurementRun, MetricEvent, RunContext, dataset_mix_config, dataset_mix_name, json_safe, print_metric_events_line, save_at_interval
 from skip_search_spec.protocols.windows import (
     DatasetSpec,
     ModelAndTokenizer,
@@ -524,13 +523,6 @@ def train_skipping_layers(
                         top1_by_offset.append(None)
 
                 metric_events.extend(batch_metrics)
-
-                row = {
-                    "step": float(step),
-                    "epoch": float(epoch_idx + 1),
-                    "batch": float(batch_idx),
-                }
-                row.update({event.name: event.value for event in batch_metrics})
 
                 print(
                     f"[step {step:>5}] "

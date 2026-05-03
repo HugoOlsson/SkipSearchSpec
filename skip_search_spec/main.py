@@ -48,7 +48,7 @@ def main() -> None:
         from skip_search_spec.experiments.dataset_mix import get_dataset_mix
         from skip_search_spec.training.train_skipping_layers import train_skipping_layers
 
-        number_of_windows = 50000
+        number_of_windows = 100_000
         num_epochs = 1 # Ensure never get scores on data it has seen
 
         models = ["meta-llama/Llama-3.2-3B"]
@@ -76,7 +76,7 @@ def main() -> None:
                     hidden_loss_weight=0.0,
                     ce_loss_weight=1.0,
                     checkpoint_every_steps=2000,
-                    log_every=50,
+                    log_every=100,
                     num_draft_sections=4,
                     reference_hidden_source="final"
                 )
