@@ -21,6 +21,7 @@ from skip_search_spec.protocols.windows import (
 
 from skip_search_spec.helpers.shared_decoding_tools import (
     build_mixed_fixed_window_dataloader,
+    crop_past_key_values,
     get_effective_gap_mode,
     make_layer_pattern,
     masked_cross_entropy_from_logits,
@@ -476,23 +477,4 @@ def train_skipping_layers(
         bridged_model=bridged,
         bridge=bridge,
         checkpoint_path=checkpoint_path,
-    )
-
-
-def crop_past_key_values(
-    past_key_values: Any | None,
-    *,
-    max_length: int,
-) -> Any | None:
-    if past_key_values is None:
-        return None
-
-    crop = getattr(past_key_values, "crop", None)
-    if callable(crop):
-        crop(max_length)
-        return past_key_values
-
-    raise TypeError(
-        f"Expected past_key_values to expose a callable crop(max_length), "
-        f"got {type(past_key_values).__name__}."
     )

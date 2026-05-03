@@ -8,6 +8,7 @@ from typing import Any, cast
 
 import torch
 
+from skip_search_spec.helpers.shared_decoding_tools import crop_past_key_values
 from skip_search_spec.training.bridged_gap_model import BridgedGapModel
 from skip_search_spec.training.flashhead.next_token_adapter import FlashHeadModule
 
@@ -537,27 +538,6 @@ def _one_token_id(token: torch.Tensor) -> int:
     if len(ids) != 1:
         raise ValueError(f"Expected one token, got {len(ids)}.")
     return ids[0]
-
-
-# KV-CACHE HANDLING START
-def crop_past_key_values(
-    past_key_values: Any | None,
-    *,
-    max_length: int,
-) -> Any | None:
-    if past_key_values is None:
-        return None
-
-    crop = getattr(past_key_values, "crop", None)
-    if callable(crop):
-        crop(max_length)
-        return past_key_values
-
-    raise TypeError(
-        f"Expected past_key_values to expose a callable crop(max_length), "
-        f"got {type(past_key_values).__name__}."
-    )
-# KV-CACHE HANDLING END
 
 
 def save_token_trace_json(
