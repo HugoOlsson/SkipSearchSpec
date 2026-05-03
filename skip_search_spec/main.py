@@ -55,7 +55,7 @@ def main() -> None:
         active_start_end_lengths = [(7, 7)]
 
         # SINGLE LAYER AT START
-        print("Version: 1.6")
+        print("Version: 1.7")
 
         for active_start_layers, active_end_layers in active_start_end_lengths: 
 
