@@ -65,8 +65,8 @@ def get_preferred_device() -> torch.device:
 
 
 def get_preferred_float_dtype(device: torch.device) -> torch.dtype:
-    if device.type in {"cuda", "mps"}:
-        return torch.bfloat16
+    # if device.type in {"cuda", "mps"}:
+    #     return torch.bfloat16
 
     return torch.float32
 
