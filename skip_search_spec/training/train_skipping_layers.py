@@ -32,6 +32,7 @@ from skip_search_spec.helpers.shared_decoding_tools import (
 from skip_search_spec.training.bridged_gap_model import (
     BridgedGapModel,
     ReferenceHiddenSource,
+    VerifierBridgeOutput,
     build_bridged_gap_model,
 )
 
@@ -41,6 +42,16 @@ class TrainGapBridgeOutput:
     bridged_model: BridgedGapModel
     bridge: nn.Module
     checkpoint_path: Path | None
+
+
+@dataclass(slots=True)
+class TrainingSectionsBatch:
+    student_logits: torch.Tensor
+    teacher_logits: torch.Tensor
+    train_mask: torch.Tensor
+    section_offsets: torch.Tensor
+    student_hidden: torch.Tensor | None
+    teacher_hidden: torch.Tensor | None
 
 
 def make_train_sections(
@@ -65,6 +76,100 @@ def make_train_sections(
     ]
 
     return list(zip(section_boundaries[1:-1], section_boundaries[2:]))
+
+
+def run_drafter_on_training_sections(
+    *,
+    bridged: BridgedGapModel,
+    teacher: VerifierBridgeOutput,
+    input_ids: torch.Tensor,
+    attention_mask: torch.Tensor,
+    train_sections: list[tuple[int, int]],
+    include_hidden_targets: bool,
+) -> TrainingSectionsBatch:
+    if teacher.past_key_values is None:
+        raise RuntimeError("Verifier did not return past_key_values.")
+
+    prev_reference_hidden = bridged.build_prev_reference(
+        teacher.reference_hidden,
+    )
+    teacher_target_hidden = (
+        bridged.bridge_target_hidden(teacher)
+        if include_hidden_targets
+        else None
+    )
+
+    student_logits_parts: list[torch.Tensor] = []
+    teacher_logits_parts: list[torch.Tensor] = []
+    train_mask_parts: list[torch.Tensor] = []
+    section_offset_parts: list[torch.Tensor] = []
+    student_hidden_parts: list[torch.Tensor] = []
+    teacher_hidden_parts: list[torch.Tensor] = []
+
+    for section_start, section_end in train_sections:
+        teacher_cache_at_start = copy.deepcopy(teacher.past_key_values)
+        crop_past_key_values(
+            teacher_cache_at_start,
+            max_length=section_start,
+        )
+
+        student_section = bridged.run_drafter(
+            input_ids=input_ids[:, section_start:section_end],
+            attention_mask=attention_mask[:, :section_end],
+            prev_reference_hidden=prev_reference_hidden[
+                :,
+                section_start:section_end,
+                :,
+            ],
+            past_key_values=teacher_cache_at_start,
+            use_cache=True,
+        )
+
+        if student_section.logits is None:
+            raise RuntimeError("Drafter logits were not computed.")
+
+        student_logits_parts.append(student_section.logits)
+        teacher_logits_parts.append(
+            teacher.logits[:, section_start:section_end, :].detach()
+        )
+        train_mask_parts.append(
+            attention_mask[:, section_start:section_end].bool()
+        )
+        section_offset_parts.append(
+            torch.arange(
+                section_end - section_start,
+                device=input_ids.device,
+            ).unsqueeze(0).expand(input_ids.size(0), -1)
+        )
+
+        if include_hidden_targets:
+            assert teacher_target_hidden is not None
+            student_hidden_parts.append(
+                bridged.bridge_prediction_hidden(student_section)
+            )
+            teacher_hidden_parts.append(
+                teacher_target_hidden[:, section_start:section_end, :].detach()
+            )
+
+    student_hidden = (
+        torch.cat(student_hidden_parts, dim=1)
+        if include_hidden_targets
+        else None
+    )
+    teacher_hidden = (
+        torch.cat(teacher_hidden_parts, dim=1)
+        if include_hidden_targets
+        else None
+    )
+
+    return TrainingSectionsBatch(
+        student_logits=torch.cat(student_logits_parts, dim=1),
+        teacher_logits=torch.cat(teacher_logits_parts, dim=1),
+        train_mask=torch.cat(train_mask_parts, dim=1),
+        section_offsets=torch.cat(section_offset_parts, dim=1),
+        student_hidden=student_hidden,
+        teacher_hidden=teacher_hidden,
+    )
 
 
 def train_skipping_layers(
@@ -267,76 +372,24 @@ def train_skipping_layers(
                 attention_mask=attention_mask,
             )
 
-            prev_reference_hidden = bridged.build_prev_reference(
-                teacher.reference_hidden,
-            )
-
-            if teacher.past_key_values is None:
-                raise RuntimeError("Verifier did not return past_key_values.")
-
             train_sections = make_train_sections(
                 seq_len=input_ids.size(1),
                 num_draft_sections=num_draft_sections,
             )
 
-            student_logits_parts: list[torch.Tensor] = []
-            teacher_logits_parts: list[torch.Tensor] = []
-            train_mask_parts: list[torch.Tensor] = []
-            section_offset_parts: list[torch.Tensor] = []
-            student_hidden_parts: list[torch.Tensor] = []
-            teacher_hidden_parts: list[torch.Tensor] = []
-            teacher_target_hidden = (
-                bridged.bridge_target_hidden(teacher)
-                if hidden_loss_weight > 0.0
-                else None
+            section_batch = run_drafter_on_training_sections(
+                bridged=bridged,
+                teacher=teacher,
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                train_sections=train_sections,
+                include_hidden_targets=hidden_loss_weight > 0.0,
             )
 
-            for section_start, section_end in train_sections:
-                teacher_cache_at_start = copy.deepcopy(teacher.past_key_values)
-                crop_past_key_values(
-                    teacher_cache_at_start,
-                    max_length=section_start,
-                )
-
-                student_section = bridged.run_drafter(
-                    input_ids=input_ids[:, section_start:section_end],
-                    attention_mask=attention_mask[:, :section_end],
-                    prev_reference_hidden=prev_reference_hidden[
-                        :,
-                        section_start:section_end,
-                        :,
-                    ],
-                    past_key_values=teacher_cache_at_start,
-                    use_cache=True,
-                )
-
-                student_logits_parts.append(student_section.logits)
-                teacher_logits_parts.append(
-                    teacher.logits[:, section_start:section_end, :].detach()
-                )
-                train_mask_parts.append(
-                    attention_mask[:, section_start:section_end].bool()
-                )
-                section_offset_parts.append(
-                    torch.arange(
-                        section_end - section_start,
-                        device=input_ids.device,
-                    ).unsqueeze(0).expand(input_ids.size(0), -1)
-                )
-
-                if hidden_loss_weight > 0.0:
-                    assert teacher_target_hidden is not None
-                    student_hidden_parts.append(
-                        bridged.bridge_prediction_hidden(student_section)
-                    )
-                    teacher_hidden_parts.append(
-                        teacher_target_hidden[:, section_start:section_end, :].detach()
-                    )
-
-            student_train_logits = torch.cat(student_logits_parts, dim=1)
-            teacher_train_logits = torch.cat(teacher_logits_parts, dim=1)
-            train_mask = torch.cat(train_mask_parts, dim=1)
-            section_offsets = torch.cat(section_offset_parts, dim=1)
+            student_train_logits = section_batch.student_logits
+            teacher_train_logits = section_batch.teacher_logits
+            train_mask = section_batch.train_mask
+            section_offsets = section_batch.section_offsets
 
             teacher_log_probs = F.log_softmax(
                 teacher_train_logits.float() / teacher_temperature,
@@ -356,8 +409,10 @@ def train_skipping_layers(
             loss_kl = masked_mean(kl_per_token, train_mask)
 
             if hidden_loss_weight > 0.0:
-                student_train_hidden = torch.cat(student_hidden_parts, dim=1)
-                teacher_train_hidden = torch.cat(teacher_hidden_parts, dim=1)
+                student_train_hidden = section_batch.student_hidden
+                teacher_train_hidden = section_batch.teacher_hidden
+                assert student_train_hidden is not None
+                assert teacher_train_hidden is not None
                 hidden_diff_sq = (
                     student_train_hidden.float()
                     - teacher_train_hidden.float()
