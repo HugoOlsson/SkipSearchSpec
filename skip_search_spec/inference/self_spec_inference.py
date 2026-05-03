@@ -15,14 +15,39 @@ from skip_search_spec.training.flashhead.next_token_adapter import FlashHeadModu
 
 
 @dataclass(slots=True)
+class SelfSpecTimings:
+    total_seconds: float = 0.0
+    dense_head_seconds: float = 0.0
+    flashhead_seconds: float = 0.0
+
+
+@dataclass(slots=True)
 class SelfSpecResult:
     text: str
     output_ids: torch.Tensor
     verifier_calls: int
     drafted_tokens: int
     accepted_draft_tokens: int
-    inference_seconds: float = 0.0
+    timings: SelfSpecTimings
     trace_json_path: Path | None = None
+
+
+def sync_device_for_timing(device: torch.device) -> None:
+    if device.type == "cuda":
+        torch.cuda.synchronize(device)
+        return
+
+    if device.type == "mps" and hasattr(torch, "mps"):
+        torch.mps.synchronize()
+
+
+def elapsed_seconds_since(
+    start_time: float,
+    *,
+    device: torch.device,
+) -> float:
+    sync_device_for_timing(device)
+    return time.perf_counter() - start_time
 
 
 @dataclass(slots=True)
@@ -152,7 +177,12 @@ class BridgeSelfSpeculator:
         enable_thinking: bool = False,
         trace_json_path: str | Path | None = None,
         build_token_trace: bool = True,
+        measure_internal_timings: bool = True,
     ) -> SelfSpecResult:
+        timings = SelfSpecTimings()
+        sync_device_for_timing(self.device)
+        total_start_time = time.perf_counter()
+
         model_prompt = prompt
         if use_chat_template:
             model_prompt = format_user_chat_prompt(
@@ -218,6 +248,8 @@ class BridgeSelfSpeculator:
                 verifier_reference_hidden=verifier_reference_hidden,
                 kv_cache=kv_cache,
                 block_size=block_size,
+                timings=timings,
+                measure_internal_timings=measure_internal_timings,
             )
 
             drafted_tokens += draft_tokens.size(1)
@@ -349,12 +381,18 @@ class BridgeSelfSpeculator:
                 tokenizer_name=self.bridged.config.model_name,
             )
 
+        timings.total_seconds = elapsed_seconds_since(
+            total_start_time,
+            device=self.device,
+        )
+
         return SelfSpecResult(
             text=text,
             output_ids=accepted_ids.detach().cpu(),
             verifier_calls=verifier_calls,
             drafted_tokens=drafted_tokens,
             accepted_draft_tokens=accepted_draft_tokens,
+            timings=timings,
             trace_json_path=saved_trace_json_path
         )
     
@@ -367,6 +405,8 @@ class BridgeSelfSpeculator:
         verifier_reference_hidden: torch.Tensor,
         kv_cache: KVCacheHandler,
         block_size: int,
+        timings: SelfSpecTimings,
+        measure_internal_timings: bool,
     ) -> torch.Tensor:
         """
         Design B drafter block.
@@ -442,20 +482,41 @@ class BridgeSelfSpeculator:
                     prev_reference_hidden=current_prev_reference_hidden,
                     past_key_values=kv_cache.past_key_values,
                     use_cache=True,
-                    compute_logits=self.flashhead is None,
+                    compute_logits=False,
                 )
 
                 if self.flashhead is None:
-                    if drafter.logits is None:
-                        raise RuntimeError("Drafter logits were not computed.")
-                    next_token = drafter.logits[:, -1, :].argmax(
+                    if measure_internal_timings:
+                        sync_device_for_timing(self.device)
+                        head_start_time = time.perf_counter()
+
+                    dense_logits = self.model.lm_head(
+                        drafter.lm_head_input_hidden[:, -1:, :]
+                    )
+                    next_token = dense_logits[:, -1, :].argmax(
                         dim=-1,
                         keepdim=True,
                     )
+
+                    if measure_internal_timings:
+                        timings.dense_head_seconds += elapsed_seconds_since(
+                            head_start_time,
+                            device=self.device,
+                        )
                 else:
+                    if measure_internal_timings:
+                        sync_device_for_timing(self.device)
+                        head_start_time = time.perf_counter()
+
                     next_token = self.flashhead.find_token(
                         drafter.lm_head_input_hidden[0, -1, :]
                     ).view(1, 1)
+
+                    if measure_internal_timings:
+                        timings.flashhead_seconds += elapsed_seconds_since(
+                            head_start_time,
+                            device=self.device,
+                        )
 
                 draft_tokens.append(next_token)
 
@@ -483,6 +544,7 @@ def self_spec_inference_test(
     flashhead_path: str | Path | None = None,
     flashhead_top_k_clusters: int = 50,
     build_token_trace: bool = True,
+    measure_internal_timings: bool = True,
 ) -> SelfSpecResult:
 
     bridged = BridgedGapModel.load_from_checkpoint(
@@ -505,7 +567,6 @@ def self_spec_inference_test(
         else None
     )
 
-    start_time = time.perf_counter()
     result = speculator.generate(
         prompt=prompt,
         max_new_tokens=max_new_tokens,
@@ -514,8 +575,8 @@ def self_spec_inference_test(
         enable_thinking=enable_thinking,
         trace_json_path=trace_json_path,
         build_token_trace=build_token_trace,
+        measure_internal_timings=measure_internal_timings,
     )
-    result.inference_seconds = time.perf_counter() - start_time
 
     return result
 

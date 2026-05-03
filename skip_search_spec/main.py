@@ -311,8 +311,10 @@ def main() -> None:
                 draft_block_size=int(draft_block_size),
                 use_chat_template=False,
                 flashhead_path=flashhead_path,
+                measure_internal_timings=True
             )
-            total_inference_seconds += result.inference_seconds
+            timings = result.timings
+            total_inference_seconds += timings.total_seconds
 
             print(result.text)
             print(
@@ -321,7 +323,9 @@ def main() -> None:
                     "drafted_tokens": result.drafted_tokens,
                     "accepted_draft_tokens": result.accepted_draft_tokens,
                     "accept_rate": result.accepted_draft_tokens / max(result.drafted_tokens, 1),
-                    "inference_seconds": result.inference_seconds,
+                    "total_seconds": timings.total_seconds,
+                    "dense_head_seconds": timings.dense_head_seconds,
+                    "flashhead_seconds": timings.flashhead_seconds,
                 }
             )
 
