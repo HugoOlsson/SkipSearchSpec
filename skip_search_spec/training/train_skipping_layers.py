@@ -43,6 +43,30 @@ class TrainGapBridgeOutput:
     checkpoint_path: Path | None
 
 
+def make_train_sections(
+    *,
+    seq_len: int,
+    num_draft_sections: int,
+) -> list[tuple[int, int]]:
+    if num_draft_sections < 2:
+        raise ValueError(
+            f"num_draft_sections must be at least 2, got {num_draft_sections}."
+        )
+
+    if seq_len < num_draft_sections:
+        raise ValueError(
+            f"Sequence length {seq_len} is too short for "
+            f"num_draft_sections={num_draft_sections}."
+        )
+
+    section_boundaries = [
+        i * seq_len // num_draft_sections
+        for i in range(num_draft_sections + 1)
+    ]
+
+    return list(zip(section_boundaries[1:-1], section_boundaries[2:]))
+
+
 def train_skipping_layers(
     *,
     model_name: str,
@@ -250,23 +274,9 @@ def train_skipping_layers(
             if teacher.past_key_values is None:
                 raise RuntimeError("Verifier did not return past_key_values.")
 
-            seq_len = input_ids.size(1)
-            if num_draft_sections < 2:
-                raise ValueError(
-                    f"num_draft_sections must be at least 2, got {num_draft_sections}."
-                )
-            if seq_len < num_draft_sections:
-                raise ValueError(
-                    f"Sequence length {seq_len} is too short for "
-                    f"num_draft_sections={num_draft_sections}."
-                )
-
-            section_boundaries = [
-                i * seq_len // num_draft_sections
-                for i in range(num_draft_sections + 1)
-            ]
-            train_sections = list(
-                zip(section_boundaries[1:-1], section_boundaries[2:])
+            train_sections = make_train_sections(
+                seq_len=input_ids.size(1),
+                num_draft_sections=num_draft_sections,
             )
 
             student_logits_parts: list[torch.Tensor] = []
