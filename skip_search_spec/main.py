@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import os
 
+from skip_search_spec.experiments.inference_prompts import INFERENCE_TEST_PROMPTS_HARD
+
 
 
 os.environ.setdefault("FLA_TILELANG", "0")
@@ -19,51 +21,6 @@ STORE_PATH_FLASH_HEAD = "checkpoints/flashhead_llama32_3b_v2.pt"
 MODEL_NAME_FLASH_HEAD = "meta-llama/Llama-3.2-3B"
 
 INFERENCE_TEST_MAX_NEW_TOKENS = 200
-INFERENCE_TEST_PROMPTS = [
-    (
-        "Recent U.S. presidents list",
-        "The 10 latest presidents of the USA is: 1. Donald Trump, ",
-    ),
-    (
-        "Talking about Paris",
-        "The capital of France is quite large and its name is",
-    ),
-     (
-        "Counting to 100",
-        "Count to 100. 1, 2, 3, 4",
-    ),
-    (
-        "Story about Bob",
-        "There once was a man named Bob that lived in the state Texas. He liked to drive his pickup truck"
-    ),
-    (
-        "",
-        "There once was a man named Bob that lived in the state Texas. He liked to drive his pickup truck"
-    ),
-]
-# [
-#     (
-#         "Recent U.S. presidents list",
-#         "What are the 10 last presidents of the USA?",
-#     ),
-#     (
-#         "Talking about Paris",
-#         "What is the capital of France?",
-#     ),
-#      (
-#         "Counting to 100",
-#         "Count to 100, like 1, 2, 3, 4, etc.",
-#     ),
-#     (
-#         "Story about Bob",
-#         "Tell me a story about a man named Bob that lived in Texas and liked to drive his pickup truck."
-#     ),
-# ]
-
-
-
-
-
 
 
 def main() -> None:
@@ -319,6 +276,7 @@ def main() -> None:
         from skip_search_spec.inference.self_spec_inference import self_spec_inference_test
         from skip_search_spec.inference.normal_inference import generate_from_plain_prompt
         import argparse
+        import matplotlib.pyplot as plt
 
         parser = argparse.ArgumentParser(add_help=False)
         parser.add_argument(
@@ -334,8 +292,15 @@ def main() -> None:
         flashhead_path = remaining_argv[2] if len(remaining_argv) > 2 else None
 
         total_inference_seconds = 0.0
+        total_accept_rate = 0.0
+        total_speedup_per_token = 0.0
+        total_number_of_examples_ran = 0
+        total_tokens_produced_self_spec = 0
+        total_tokens_produced_normal = 0
+        speedups_per_token = []
+        number_exact_matches_between_self_spec_and_normal = 0
 
-        for test_idx, (test_name, prompt) in enumerate(INFERENCE_TEST_PROMPTS, start=1):
+        for test_idx, (test_name, prompt) in enumerate(INFERENCE_TEST_PROMPTS_HARD, start=1):
             print()
             print(f"Test {test_idx}: {test_name}")
             print()
@@ -353,8 +318,12 @@ def main() -> None:
                 build_token_trace=False,
                 measure_internal_timings=False
             )
+            total_number_of_examples_ran += 1
             timings = result.timings
             total_inference_seconds += timings.total_seconds
+            accept_rate = result.accepted_draft_tokens / max(result.drafted_tokens, 1)
+            total_accept_rate += accept_rate
+            total_tokens_produced_self_spec += result.num_generated_tokens
 
             print(result.text)
             print(
@@ -362,7 +331,7 @@ def main() -> None:
                     "verifier_calls": result.verifier_calls,
                     "drafted_tokens": result.drafted_tokens,
                     "accepted_draft_tokens": result.accepted_draft_tokens,
-                    "accept_rate": result.accepted_draft_tokens / max(result.drafted_tokens, 1),
+                    "accept_rate": accept_rate,
                     "total_seconds": timings.total_seconds,
                     "dense_head_seconds": timings.dense_head_seconds,
                     "flashhead_seconds": timings.flashhead_seconds,
@@ -374,13 +343,16 @@ def main() -> None:
             if args.compare_to_normal:
                 print("Runs normal inference")
                 normal_run_result = generate_from_plain_prompt(
-                    model_name_or_path="HuggingFaceTB/SmolLM2-1.7B",
+                    model_name_or_path=result.model_name,
                     prompt=prompt,
                     max_new_tokens=INFERENCE_TEST_MAX_NEW_TOKENS,
                     use_chat_template=False,
                     use_cache=True,
                 )
+                total_tokens_produced_normal += normal_run_result.num_generated_tokens
                 did_match = result.text == normal_run_result.text
+                if did_match:
+                    number_exact_matches_between_self_spec_and_normal += 1
                 print("Did match normal:", did_match)
 
                 if not did_match:
@@ -410,9 +382,29 @@ def main() -> None:
 
                 print("Normal tokens/sec:", normal_tps)
                 print("Self-spec tokens/sec:", self_spec_tps)
-                print("Speedup per generated token:", self_spec_tps / normal_tps)
+
+                speedup_per_gen_token = self_spec_tps / normal_tps
+                total_speedup_per_token += speedup_per_gen_token
+                speedups_per_token.append(speedup_per_gen_token)
+                print("Speedup per generated token:", speedup_per_gen_token)
+               
         print()
         print({"total_inference_seconds": total_inference_seconds})
+        print("Per example average acceptance rate:", total_accept_rate/total_number_of_examples_ran)
+        print("Per example average speedup per token:", total_speedup_per_token/total_number_of_examples_ran)
+        print("Total tokens produced by self-spec:", total_tokens_produced_self_spec)
+        print("Total tokens produced by normal:", total_tokens_produced_normal)
+        print("Ratio exact matches:", number_exact_matches_between_self_spec_and_normal/total_number_of_examples_ran)
+        if speedups_per_token:
+            plt.figure()
+            plt.hist(speedups_per_token, bins=min(10, len(speedups_per_token)))
+            plt.xlabel("Speedup per generated token")
+            plt.ylabel("Number of prompts")
+            plt.title("Distribution of self-spec speedups")
+            plt.savefig("speedups_per_token_histogram.png", dpi=200, bbox_inches="tight")
+            plt.close()
+
+            print("Saved speedup histogram to speedups_per_token_histogram.png")
 
 
 
@@ -421,7 +413,7 @@ def main() -> None:
 
         total_inference_seconds = 0.0
 
-        for test_idx, (test_name, prompt) in enumerate(INFERENCE_TEST_PROMPTS, start=1):
+        for test_idx, (test_name, prompt) in enumerate(INFERENCE_TEST_PROMPTS_HARD, start=1):
             print()
             print(f"Test {test_idx}: {test_name}")
             print()
