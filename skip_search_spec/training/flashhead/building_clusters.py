@@ -3,13 +3,8 @@ from torch import Tensor, nn
 import torch
 import os
 
-
-try:
-    torch.set_num_threads(os.cpu_count() or 1)
-    torch.set_num_interop_threads(1)
-except RuntimeError:
-    # PyTorch only allows set_num_interop_threads before parallel work starts.
-    pass
+torch.set_num_threads(os.cpu_count() or 1)
+torch.set_num_interop_threads(1)
 
 
 @dataclass(frozen=True, slots=True)

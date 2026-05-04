@@ -628,3 +628,61 @@ EASY_INFERENCE_TEST_PROMPTS_EASY = [
         ),
     ),
 ]
+
+
+# INFERENCE_TEST_PROMPTS = [
+#     (
+#         "Recent U.S. presidents list",
+#         (
+#             "The 10 most recent U.S. presidents, listed once each in reverse chronological order, are:\n"
+#             "1. Donald Trump\n"
+#             "2."
+#         ),
+#     ),
+#     (
+#         "Talking about Paris",
+#         (
+#             "Short factual paragraph, no repeated sentences:\n"
+#             "Paris is the capital of France. It is"
+#         ),
+#     ),
+#     (
+#         "Counting to 100",
+#         (
+#             "Count from 1 to 100, without restarting or repeating any number:\n"
+#             "1, 2, 3, 4,"
+#         ),
+#     ),
+#     (
+#         "Story about Bob",
+#         (
+#             "A short five-sentence story with a clear ending:\n"
+#             "Bob lived in Texas and liked to drive his pickup truck."
+#         ),
+#     ),
+#     (
+#         "Story about Bob, alternate",
+#         (
+#             "One paragraph story. Each sentence adds a new event. No repeated phrases:\n"
+#             "Bob lived in Texas and liked to drive his pickup truck."
+#         ),
+#     ),
+# ]
+# # [
+# #     (
+# #         "Recent U.S. presidents list",
+# #         "What are the 10 last presidents of the USA?",
+# #     ),
+# #     (
+# #         "Talking about Paris",
+# #         "What is the capital of France?",
+# #     ),
+# #      (
+# #         "Counting to 100",
+# #         "Count to 100, like 1, 2, 3, 4, etc.",
+# #     ),
+# #     (
+# #         "Story about Bob",
+# #         "Tell me a story about a man named Bob that lived in Texas and liked to drive his pickup truck."
+# #     ),
+# # ]
