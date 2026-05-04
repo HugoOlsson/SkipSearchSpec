@@ -28,10 +28,12 @@ class SelfSpecTimings:
 class SelfSpecResult:
     text: str
     output_ids: torch.Tensor
+    num_generated_tokens: int
     verifier_calls: int
     drafted_tokens: int
     accepted_draft_tokens: int
     timings: SelfSpecTimings
+    model_name: str
     trace_json_path: Path | None = None
 
 
@@ -389,6 +391,8 @@ class BridgeSelfSpeculator:
             device=self.device,
         )
 
+        num_generated_tokens = int(accepted_ids.size(1) - prompt_len)
+
         return SelfSpecResult(
             text=text,
             output_ids=accepted_ids.detach().cpu(),
@@ -396,7 +400,9 @@ class BridgeSelfSpeculator:
             drafted_tokens=drafted_tokens,
             accepted_draft_tokens=accepted_draft_tokens,
             timings=timings,
-            trace_json_path=saved_trace_json_path
+            trace_json_path=saved_trace_json_path,
+            model_name=self.bridged.config.model_name,
+            num_generated_tokens=num_generated_tokens
         )
     
 

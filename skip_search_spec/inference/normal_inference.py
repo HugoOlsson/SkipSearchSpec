@@ -14,6 +14,7 @@ from typing import Any, cast
 class NormalInferenceResult:
     text: str
     inference_seconds: float
+    num_generated_tokens: int
 
 
 def generate_from_plain_prompt(
@@ -76,10 +77,15 @@ def generate_from_plain_prompt(
             eos_token_id=tokenizer.eos_token_id,
         )
 
+    prompt_token_count = int(inputs["input_ids"].shape[-1])
+    output_token_count = int(output_ids.shape[-1])
+    num_generated_tokens = output_token_count - prompt_token_count
+
     text = cast(str, tokenizer.decode(output_ids[0], skip_special_tokens=True))
     inference_seconds = time.perf_counter() - start_time
 
     return NormalInferenceResult(
         text=text,
         inference_seconds=inference_seconds,
+        num_generated_tokens=num_generated_tokens
     )
