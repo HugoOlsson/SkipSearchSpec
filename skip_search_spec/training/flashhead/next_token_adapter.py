@@ -6,24 +6,26 @@ from typing import Any
 import torch
 from torch import Tensor, nn
 
-from skip_search_spec.training.flashhead.building_clusters import l2_normalize
 from skip_search_spec.training.flashhead.storage import load_flashhead
 
 
 class FlashHeadModule(nn.Module):
     """
-    Minimal FlashHead module for greedy next-token lookup from one hidden vector.
+    FlashHead module for greedy next-token lookup.
 
-    The hidden vector is expected to be the vector that would normally be passed
-    to the LM head: shape [hidden_size], already final-normalized if the model
-    architecture applies a final norm before lm_head.
+    Assumes strictly equal-sized clusters:
+
+        cluster_to_token_ids: [num_clusters, cluster_size]
+
+    No padding. No -1 values.
     """
 
     centroids_t: Tensor
     cluster_to_token_ids: Tensor
-    lm_head_vector_table: Tensor
-    lm_head_bias: Tensor | None
+    clustered_lm_head: Tensor
+    clustered_lm_head_bias: Tensor | None
     top_k_clusters: int
+    cluster_size: int
 
     def __init__(
         self,
@@ -39,20 +41,74 @@ class FlashHeadModule(nn.Module):
         if top_k_clusters < 1:
             raise ValueError("top_k_clusters must be >= 1")
 
-        self.top_k_clusters = top_k_clusters
+        if centroids.ndim != 2:
+            raise ValueError("centroids must have shape [num_clusters, hidden_size]")
+
+        if cluster_to_token_ids.ndim != 2:
+            raise ValueError(
+                "cluster_to_token_ids must have shape [num_clusters, cluster_size]"
+            )
+
+        if lm_head_vector_table.ndim != 2:
+            raise ValueError(
+                "lm_head_vector_table must have shape [vocab_size, hidden_size]"
+            )
+
+        if (cluster_to_token_ids < 0).any():
+            raise ValueError(
+                "cluster_to_token_ids must not contain padding for this fast path"
+            )
+
+        num_clusters, cluster_size = cluster_to_token_ids.shape
+        vocab_size, hidden_size = lm_head_vector_table.shape
+
+        if centroids.shape != (num_clusters, hidden_size):
+            raise ValueError("centroids shape does not match cluster/lm_head shape")
+
+        if vocab_size != num_clusters * cluster_size:
+            raise ValueError(
+                "Strict equal clusters require "
+                "vocab_size == num_clusters * cluster_size"
+            )
+
+        if lm_head_bias is not None and lm_head_bias.shape != (vocab_size,):
+            raise ValueError("lm_head_bias must have shape [vocab_size]")
+
+        cluster_to_token_ids = cluster_to_token_ids.detach().long().contiguous()
+        flat_token_ids = cluster_to_token_ids.reshape(-1).to(lm_head_vector_table.device)
+
+        clustered_lm_head = lm_head_vector_table.detach().index_select(
+            0,
+            flat_token_ids,
+        ).reshape(num_clusters, cluster_size, hidden_size).contiguous()
+
+        if lm_head_bias is None:
+            clustered_lm_head_bias = None
+        else:
+            clustered_lm_head_bias = lm_head_bias.detach().index_select(
+                0,
+                flat_token_ids.to(lm_head_bias.device),
+            ).reshape(num_clusters, cluster_size).contiguous()
+
+        self.top_k_clusters = int(top_k_clusters)
+        self.cluster_size = int(cluster_size)
 
         self.register_buffer(
-            "centroids_t", centroids.detach().transpose(0, 1).contiguous()
+            "centroids_t",
+            centroids.detach().transpose(0, 1).contiguous(),
         )
         self.register_buffer(
-            "cluster_to_token_ids", cluster_to_token_ids.detach().long()
+            "cluster_to_token_ids",
+            cluster_to_token_ids,
         )
-        self.register_buffer("lm_head_vector_table", lm_head_vector_table.detach())
         self.register_buffer(
-            "lm_head_bias", None if lm_head_bias is None else lm_head_bias.detach()
+            "clustered_lm_head",
+            clustered_lm_head,
         )
-
-        self._validate_buffers()
+        self.register_buffer(
+            "clustered_lm_head_bias",
+            clustered_lm_head_bias,
+        )
 
     @classmethod
     def from_model(
@@ -64,6 +120,7 @@ class FlashHeadModule(nn.Module):
     ) -> FlashHeadModule:
         stored = load_flashhead(flashhead_path)
         lm_head_vector_table, lm_head_bias = extract_lm_head(model)
+
         return cls(
             centroids=stored.centroids,
             cluster_to_token_ids=stored.cluster_to_token_ids,
@@ -73,47 +130,36 @@ class FlashHeadModule(nn.Module):
         ).to(device=lm_head_vector_table.device, dtype=lm_head_vector_table.dtype)
 
     @torch.inference_mode()
-    def find_token(self, normalized_hidden_vector: Tensor) -> Tensor:
+    def find_token(self, hidden_vector: Tensor) -> Tensor:
+        actual_top_k = min(self.top_k_clusters, self.centroids_t.shape[1])
 
-        actual_top_k = min(self.top_k_clusters, int(self.centroids_t.shape[1]))
-        cluster_scores = normalized_hidden_vector @ self.centroids_t
-        top_cluster_ids = torch.topk(cluster_scores, k=actual_top_k).indices
+        cluster_scores = hidden_vector @ self.centroids_t
 
+        top_cluster_ids = torch.topk(
+            cluster_scores,
+            k=actual_top_k,
+            sorted=False,
+        ).indices
+
+        candidate_vectors = self.clustered_lm_head[top_cluster_ids]
+        candidate_scores = candidate_vectors @ hidden_vector
+
+        if self.clustered_lm_head_bias is not None:
+            candidate_scores = (
+                candidate_scores
+                + self.clustered_lm_head_bias[top_cluster_ids]
+            )
+
+        candidate_scores_flat = candidate_scores.reshape(-1)
         candidate_token_ids = self.cluster_to_token_ids[top_cluster_ids].reshape(-1)
-        candidate_token_ids = candidate_token_ids[candidate_token_ids >= 0].long()
 
-        candidate_token_vectors = self.lm_head_vector_table[candidate_token_ids]
-        candidate_scores = candidate_token_vectors @ normalized_hidden_vector
-
-        if self.lm_head_bias is not None:
-            candidate_scores = candidate_scores + self.lm_head_bias[candidate_token_ids]
-
-        max_score = candidate_scores.max()
-        return candidate_token_ids[candidate_scores == max_score].min()
-
-    def _validate_buffers(self) -> None:
-        if self.centroids_t.ndim != 2:
-            raise ValueError("centroids_t must have shape [hidden_size, num_clusters]")
-        if self.cluster_to_token_ids.ndim != 2:
-            raise ValueError(
-                "cluster_to_token_ids must have shape [num_clusters, max_cluster_size]"
-            )
-        if self.lm_head_vector_table.ndim != 2:
-            raise ValueError(
-                "lm_head_vector_table must have shape [vocab_size, hidden_size]"
-            )
-        if self.cluster_to_token_ids.shape[0] != self.centroids_t.shape[1]:
-            raise ValueError(
-                "cluster_to_token_ids and centroids must agree on num_clusters"
-            )
-        if self.lm_head_vector_table.shape[1] != self.centroids_t.shape[0]:
-            raise ValueError("lm_head and centroids must agree on hidden_size")
-        if self.lm_head_bias is not None and self.lm_head_bias.ndim != 1:
-            raise ValueError("lm_head_bias must have shape [vocab_size]")
+        max_score = candidate_scores_flat.max()
+        return candidate_token_ids[candidate_scores_flat == max_score].min()
 
 
 def extract_lm_head(model: Any) -> tuple[Tensor, Tensor | None]:
     output_embeddings = model.get_output_embeddings()
+
     if output_embeddings is None:
         raise ValueError(
             "Model does not expose output embeddings via get_output_embeddings()"
