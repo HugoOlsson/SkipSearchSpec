@@ -22,44 +22,46 @@ INFERENCE_TEST_MAX_NEW_TOKENS = 200
 INFERENCE_TEST_PROMPTS = [
     (
         "Recent U.S. presidents list",
-        "What are the 10 last presidents of the USA?",
+        "The 10 latest presidents of the USA is: 1. Donald Trump, ",
     ),
     (
         "Talking about Paris",
-        "What is the capital of France?",
+        "The capital of France is quite large and its name is",
     ),
      (
         "Counting to 100",
-        "Count to 100, like 1, 2, 3, 4, etc.",
+        "Count to 100. 1, 2, 3, 4",
     ),
     (
         "Story about Bob",
-        "Tell me a story about a man named Bob that lived in Texas and liked to drive his pickup truck."
+        "There once was a man named Bob that lived in the state Texas. He liked to drive his pickup truck"
+    ),
+    (
+        "",
+        "There once was a man named Bob that lived in the state Texas. He liked to drive his pickup truck"
     ),
 ]
-
-
 # [
 #     (
 #         "Recent U.S. presidents list",
-#         "The 10 latest presidents of the USA is: 1. Donald Trump, ",
+#         "What are the 10 last presidents of the USA?",
 #     ),
 #     (
 #         "Talking about Paris",
-#         "The capital of France is quite large and its name is",
+#         "What is the capital of France?",
 #     ),
 #      (
 #         "Counting to 100",
-#         "Count to 100. 1, 2, 3, 4",
+#         "Count to 100, like 1, 2, 3, 4, etc.",
 #     ),
 #     (
-#     "Story about Bob",
-#     (
-#         "There once was a man named Bob that lived in the state Texas. "
-#         "He liked to drive his pickup truck"
-#     ),
+#         "Story about Bob",
+#         "Tell me a story about a man named Bob that lived in Texas and liked to drive his pickup truck."
 #     ),
 # ]
+
+
+
 
 
 
@@ -78,7 +80,7 @@ def main() -> None:
         number_of_windows = 100_000
         num_epochs = 1 # Ensure never get scores on data it has seen
 
-        models = ["HuggingFaceTB/SmolLM2-1.7B"]
+        models = ["mistralai/Mistral-7B-v0.3"]
         active_start_end_lengths = [(5, 5)]
 
         # SINGLE LAYER AT START
@@ -346,7 +348,7 @@ def main() -> None:
                 prompt=prompt,
                 max_new_tokens=INFERENCE_TEST_MAX_NEW_TOKENS,
                 draft_block_size=int(draft_block_size),
-                use_chat_template=True,
+                use_chat_template=False,
                 flashhead_path=flashhead_path,
                 build_token_trace=False,
                 measure_internal_timings=False
@@ -372,10 +374,10 @@ def main() -> None:
             if args.compare_to_normal:
                 print("Runs normal inference")
                 normal_run_result = generate_from_plain_prompt(
-                    model_name_or_path="Qwen/Qwen2.5-3B",
+                    model_name_or_path="HuggingFaceTB/SmolLM2-1.7B",
                     prompt=prompt,
                     max_new_tokens=INFERENCE_TEST_MAX_NEW_TOKENS,
-                    use_chat_template=True,
+                    use_chat_template=False,
                     use_cache=True,
                 )
                 did_match = result.text == normal_run_result.text
@@ -395,7 +397,20 @@ def main() -> None:
                     print("Self-spec from mismatch:", repr(result.text[first_mismatch_idx:first_mismatch_idx + 120]))
                     print("Normal from mismatch:", repr(normal_run_result.text[first_mismatch_idx:first_mismatch_idx + 120]))
                 print("Speedup with self-spec:", normal_run_result.inference_seconds/timings.total_seconds)
+               
+                normal_tps = (
+                    normal_run_result.num_generated_tokens
+                    / normal_run_result.inference_seconds
+                )
 
+                self_spec_tps = (
+                    result.num_generated_tokens
+                    / result.timings.total_seconds
+                )
+
+                print("Normal tokens/sec:", normal_tps)
+                print("Self-spec tokens/sec:", self_spec_tps)
+                print("Speedup per generated token:", self_spec_tps / normal_tps)
         print()
         print({"total_inference_seconds": total_inference_seconds})
 
