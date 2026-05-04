@@ -53,14 +53,14 @@ def main() -> None:
         from skip_search_spec.experiments.dataset_mix import get_dataset_mix
         from skip_search_spec.training.train_skipping_layers import train_skipping_layers
 
-        number_of_windows = 200_000
+        number_of_windows = 100_000
         num_epochs = 1 # Ensure never get scores on data it has seen
 
-        models = ["google/gemma-3-270m"]
-        active_start_end_lengths = [(5, 5)]
+        models = ["Qwen/Qwen2.5-3B"]
+        active_start_end_lengths = [(4, 4)]
 
         # SINGLE LAYER AT START
-        print("Version: 2.10")
+        print("Version: 2.11")
 
         for active_start_layers, active_end_layers in active_start_end_lengths: 
 
@@ -71,7 +71,7 @@ def main() -> None:
                     dataset_mix=get_dataset_mix(number_of_windows),
                     context_len=256,
                     num_windows_to_use=number_of_windows,
-                    batch_size=20,
+                    batch_size=30,
                     active_start_layers=active_start_layers, 
                     active_end_layers=active_end_layers,
                     num_epochs=num_epochs,
@@ -350,7 +350,7 @@ def main() -> None:
             if args.compare_to_normal:
                 print("Runs normal inference")
                 normal_run_result = generate_from_plain_prompt(
-                    model_name_or_path="meta-llama/Llama-3.2-3B",
+                    model_name_or_path="google/gemma-3-270m",
                     prompt=prompt,
                     max_new_tokens=INFERENCE_TEST_MAX_NEW_TOKENS,
                     use_chat_template=False,
