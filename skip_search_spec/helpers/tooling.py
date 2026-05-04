@@ -65,8 +65,28 @@ def get_preferred_device() -> torch.device:
 
 
 def get_preferred_float_dtype(device: torch.device) -> torch.dtype:
-    # if device.type in {"cuda", "mps"}:
-    #     return torch.bfloat16
+    dtype_name = os.environ.get("SKIP_SEARCH_TORCH_DTYPE")
+
+    if dtype_name:
+        dtype_name = dtype_name.lower().strip()
+
+        dtype_map = {
+            "float32": torch.float32,
+            "float16": torch.float16,
+            "bfloat16": torch.bfloat16,
+        }
+
+        if dtype_name not in dtype_map:
+            raise ValueError(
+                f"Unsupported SKIP_SEARCH_TORCH_DTYPE={dtype_name!r}. "
+                f"Expected one of: {', '.join(dtype_map)}"
+            )
+        
+        print("Did manually set dtype:", str(dtype_map[dtype_name]))
+        return dtype_map[dtype_name]
+
+    if device.type in {"cuda", "mps"}:
+        return torch.bfloat16
 
     return torch.float32
 

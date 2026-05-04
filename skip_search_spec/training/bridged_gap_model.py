@@ -3,6 +3,7 @@ from __future__ import annotations
 from contextlib import ExitStack
 from dataclasses import dataclass
 from pathlib import Path
+import time
 from typing import Any, Callable, Literal, cast
 
 import torch
@@ -357,6 +358,8 @@ class BridgedGapModel:
         past_key_values: Any | None = None,
         use_cache: bool = False,
         compute_logits: bool = True,
+        timings: Any | None = None,
+        measure_internal_timings: bool = False,
     ) -> DrafterBridgeOutput:
         """
         Run the model with:
@@ -434,6 +437,9 @@ class BridgedGapModel:
             lm_head_input_hidden = output
 
         with ExitStack() as stack:
+            registration_start_time = (
+                time.perf_counter() if measure_internal_timings else None
+            )
             original_layers: list[tuple[int, nn.Module]] = []
 
             for layer_idx in range(self.gap.start, self.gap.end):
@@ -443,8 +449,19 @@ class BridgedGapModel:
                 layers[layer_idx] = NoOpDecoderLayer()
 
             def restore_original_layers() -> None:
+                teardown_start_time = (
+                    time.perf_counter() if measure_internal_timings else None
+                )
                 for layer_idx, original_layer in reversed(original_layers):
                     layers[layer_idx] = original_layer
+                if (
+                    measure_internal_timings
+                    and timings is not None
+                    and teardown_start_time is not None
+                ):
+                    timings.drafter_teardown_seconds += (
+                        time.perf_counter() - teardown_start_time
+                    )
 
             stack.callback(restore_original_layers)
 
@@ -463,6 +480,15 @@ class BridgedGapModel:
 
             handle = backbone.norm.register_forward_hook(final_norm_hook)
             stack.callback(handle.remove)
+
+            if (
+                measure_internal_timings
+                and timings is not None
+                and registration_start_time is not None
+            ):
+                timings.drafter_registration_seconds += (
+                    time.perf_counter() - registration_start_time
+                )
 
             if compute_logits:
                 drafter_forward = forward_model(

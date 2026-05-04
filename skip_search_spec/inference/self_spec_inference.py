@@ -20,6 +20,9 @@ class SelfSpecTimings:
     dense_head_seconds: float = 0.0
     flashhead_seconds: float = 0.0
 
+    drafter_registration_seconds: float = 0.0
+    drafter_teardown_seconds: float = 0.0
+
 
 @dataclass(slots=True)
 class SelfSpecResult:
@@ -483,6 +486,8 @@ class BridgeSelfSpeculator:
                     past_key_values=kv_cache.past_key_values,
                     use_cache=True,
                     compute_logits=False,
+                    timings=timings,
+                    measure_internal_timings=measure_internal_timings,
                 )
 
                 if self.flashhead is None:

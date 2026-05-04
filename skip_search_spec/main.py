@@ -224,7 +224,7 @@ def main() -> None:
 
         plot_ablation_json(
             file_path,
-            metric="mean_top1_agreement",
+            metric="mean_kl_full_to_masked",
             top_k=None,   # or e.g. 50
         )
 
@@ -288,11 +288,21 @@ def main() -> None:
             )
         
         from skip_search_spec.inference.self_spec_inference import self_spec_inference_test
-        
-        draft_block_size = sys.argv[2]
+        from skip_search_spec.inference.normal_inference import generate_from_plain_prompt
+        import argparse
 
-        bridge_checkpoint_path = sys.argv[3]
-        flashhead_path = sys.argv[4] if len(sys.argv) > 4 else None
+        parser = argparse.ArgumentParser(add_help=False)
+        parser.add_argument(
+            "--compare-to-normal",
+            action="store_true",
+            help="Compare self-spec output to normal generation.",
+        )
+
+        args, remaining_argv = parser.parse_known_args(sys.argv[2:])
+
+        draft_block_size = remaining_argv[0]
+        bridge_checkpoint_path = remaining_argv[1]
+        flashhead_path = remaining_argv[2] if len(remaining_argv) > 2 else None
 
         total_inference_seconds = 0.0
 
@@ -327,8 +337,37 @@ def main() -> None:
                     "total_seconds": timings.total_seconds,
                     "dense_head_seconds": timings.dense_head_seconds,
                     "flashhead_seconds": timings.flashhead_seconds,
+                    "drafter_registration_seconds": timings.drafter_registration_seconds,
+                    "drafter_teardown_seconds": timings.drafter_teardown_seconds
                 }
             )
+
+            if args.compare_to_normal:
+                print("Runs normal inference")
+                normal_run_result = generate_from_plain_prompt(
+                    model_name_or_path="meta-llama/Llama-3.2-3B",
+                    prompt=prompt,
+                    max_new_tokens=INFERENCE_TEST_MAX_NEW_TOKENS,
+                    use_chat_template=False,
+                    use_cache=True,
+                )
+                did_match = result.text == normal_run_result.text
+                print("Did match normal:", did_match)
+
+                if not did_match:
+                    first_mismatch_idx = next(
+                        (
+                            i
+                            for i, (a, b) in enumerate(zip(result.text, normal_run_result.text))
+                            if a != b
+                        ),
+                        min(len(result.text), len(normal_run_result.text)),
+                    )
+
+                    print("First text mismatch index:", first_mismatch_idx)
+                    print("Self-spec from mismatch:", repr(result.text[first_mismatch_idx:first_mismatch_idx + 120]))
+                    print("Normal from mismatch:", repr(normal_run_result.text[first_mismatch_idx:first_mismatch_idx + 120]))
+                print("Speedup with self-spec:", normal_run_result.inference_seconds/timings.total_seconds)
 
         print()
         print({"total_inference_seconds": total_inference_seconds})
