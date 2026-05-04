@@ -53,14 +53,14 @@ def main() -> None:
         from skip_search_spec.experiments.dataset_mix import get_dataset_mix
         from skip_search_spec.training.train_skipping_layers import train_skipping_layers
 
-        number_of_windows = 200_000
+        number_of_windows = 2_000
         num_epochs = 1 # Ensure never get scores on data it has seen
 
-        models = ["meta-llama/Llama-3.2-3B"]
-        active_start_end_lengths = [(4, 4)]
+        models = ["google/gemma-3-270m"]
+        active_start_end_lengths = [(3, 3)]
 
         # SINGLE LAYER AT START
-        print("Version: 2.0")
+        print("Version: 2.10")
 
         for active_start_layers, active_end_layers in active_start_end_lengths: 
 
