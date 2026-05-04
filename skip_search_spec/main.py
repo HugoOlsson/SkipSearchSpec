@@ -22,24 +22,46 @@ INFERENCE_TEST_MAX_NEW_TOKENS = 200
 INFERENCE_TEST_PROMPTS = [
     (
         "Recent U.S. presidents list",
-        "The 10 latest presidents of the USA is: 1. Donald Trump, ",
+        "What are the 10 last presidents of the USA?",
     ),
     (
         "Talking about Paris",
-        "The capital of France is quite large and its name is",
+        "What is the capital of France?",
     ),
      (
         "Counting to 100",
-        "Count to 100. 1, 2, 3, 4",
+        "Count to 100, like 1, 2, 3, 4, etc.",
     ),
     (
         "Story about Bob",
-        (
-            "There once was a man named Bob that lived in the state Texas. "
-            "He liked to drive his pickup truck"
-        ),
+        "Tell me a story about a man named Bob that lived in Texas and liked to drive his pickup truck."
     ),
 ]
+
+
+# [
+#     (
+#         "Recent U.S. presidents list",
+#         "The 10 latest presidents of the USA is: 1. Donald Trump, ",
+#     ),
+#     (
+#         "Talking about Paris",
+#         "The capital of France is quite large and its name is",
+#     ),
+#      (
+#         "Counting to 100",
+#         "Count to 100. 1, 2, 3, 4",
+#     ),
+#     (
+#     "Story about Bob",
+#     (
+#         "There once was a man named Bob that lived in the state Texas. "
+#         "He liked to drive his pickup truck"
+#     ),
+#     ),
+# ]
+
+
 
 
 def main() -> None:
@@ -56,8 +78,8 @@ def main() -> None:
         number_of_windows = 100_000
         num_epochs = 1 # Ensure never get scores on data it has seen
 
-        models = ["Qwen/Qwen2.5-3B"]
-        active_start_end_lengths = [(4, 4)]
+        models = ["HuggingFaceTB/SmolLM2-1.7B"]
+        active_start_end_lengths = [(5, 5)]
 
         # SINGLE LAYER AT START
         print("Version: 2.11")
@@ -324,7 +346,7 @@ def main() -> None:
                 prompt=prompt,
                 max_new_tokens=INFERENCE_TEST_MAX_NEW_TOKENS,
                 draft_block_size=int(draft_block_size),
-                use_chat_template=False,
+                use_chat_template=True,
                 flashhead_path=flashhead_path,
                 build_token_trace=False,
                 measure_internal_timings=False
@@ -350,10 +372,10 @@ def main() -> None:
             if args.compare_to_normal:
                 print("Runs normal inference")
                 normal_run_result = generate_from_plain_prompt(
-                    model_name_or_path="google/gemma-3-270m",
+                    model_name_or_path="Qwen/Qwen2.5-3B",
                     prompt=prompt,
                     max_new_tokens=INFERENCE_TEST_MAX_NEW_TOKENS,
-                    use_chat_template=False,
+                    use_chat_template=True,
                     use_cache=True,
                 )
                 did_match = result.text == normal_run_result.text
