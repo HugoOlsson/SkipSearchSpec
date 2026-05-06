@@ -39,8 +39,8 @@ def main() -> None:
         number_of_windows = 50_000
         num_epochs = 1 # Ensure never get scores on data it has seen
 
-        models = ["Qwen/Qwen3-0.6B"]
-        active_start_end_lengths = [(5, 5)]
+        models = ["meta-llama/Llama-3.2-1B"]
+        active_start_end_lengths = [(2, 2)]
 
         # SINGLE LAYER AT START
         print("Version: 2.12")
@@ -396,6 +396,152 @@ def main() -> None:
 
         print()
         print({"total_inference_seconds": total_inference_seconds})
+
+    elif mode == "test_flashhead_inference":
+        import argparse
+
+        from skip_search_spec.inference.flashhead_inference import generate_with_flashhead
+        from skip_search_spec.inference.normal_inference import generate_normal
+        from skip_search_spec.helpers.tooling import get_preferred_device, get_preferred_float_dtype, load_model_and_tokenizer
+        from skip_search_spec.training.flashhead.next_token_adapter import FlashHeadModule
+
+        parser = argparse.ArgumentParser(add_help=False)
+        parser.add_argument(
+            "--compare-to-normal",
+            action="store_true",
+            help="Compare flashhead output to normal generation.",
+        )
+
+        args, remaining_argv = parser.parse_known_args(sys.argv[2:])
+
+        model_name = remaining_argv[0] if len(remaining_argv) > 0 else MODEL_NAME_FLASH_HEAD
+        flashhead_path = remaining_argv[1] if len(remaining_argv) > 1 else STORE_PATH_FLASH_HEAD
+        flashhead_top_k_clusters = int(remaining_argv[2]) if len(remaining_argv) > 2 else 50
+
+        device = get_preferred_device()
+        dtype = get_preferred_float_dtype(device)
+        mt = load_model_and_tokenizer(
+            model_name,
+            model_kwargs={"torch_dtype": dtype},
+        )
+        model = mt.model
+        tokenizer = mt.tokenizer
+        model.to(device)
+        model.eval()
+
+        if tokenizer.pad_token_id is None:
+            tokenizer.pad_token = tokenizer.eos_token
+
+        flashhead = FlashHeadModule.from_model(
+            model=model,
+            flashhead_path=flashhead_path,
+            top_k_clusters=flashhead_top_k_clusters,
+        )
+        flashhead.eval()
+
+        total_inference_seconds = 0.0
+        total_flashhead_seconds = 0.0
+        total_speedup_per_token = 0.0
+        total_number_of_examples_ran = 0
+        total_tokens_produced_flashhead = 0
+        total_tokens_produced_normal = 0
+        number_exact_matches_between_flashhead_and_normal = 0
+
+        for test_idx, (test_name, prompt) in enumerate(INFERENCE_TEST_PROMPTS_HARD, start=1):
+            print()
+            print(f"Test {test_idx}: {test_name}")
+            print()
+            print("Prompt:")
+            print(prompt)
+            print()
+
+            result = generate_with_flashhead(
+                prompt=prompt,
+                flashhead=flashhead,
+                flashhead_top_k_clusters=flashhead_top_k_clusters,
+                max_new_tokens=INFERENCE_TEST_MAX_NEW_TOKENS,
+                use_chat_template=False,
+                use_cache=True,
+                measure_internal_timings=False,
+                model=model,
+                tokenizer=tokenizer,
+                device=device,
+            )
+            total_inference_seconds += result.inference_seconds
+            total_flashhead_seconds += result.flashhead_seconds
+            total_number_of_examples_ran += 1
+            total_tokens_produced_flashhead += result.num_generated_tokens
+
+            print(result.text)
+            print(
+                {
+                    "inference_seconds": result.inference_seconds,
+                    "flashhead_seconds": result.flashhead_seconds,
+                    "num_generated_tokens": result.num_generated_tokens,
+                }
+            )
+
+            if args.compare_to_normal:
+                print("Runs normal inference")
+                normal_run_result = generate_normal(
+                    prompt=prompt,
+                    max_new_tokens=INFERENCE_TEST_MAX_NEW_TOKENS,
+                    use_chat_template=False,
+                    use_cache=True,
+                    model=model,
+                    tokenizer=tokenizer,
+                    device=device,
+                )
+                total_tokens_produced_normal += normal_run_result.num_generated_tokens
+                did_match = result.text == normal_run_result.text
+                if did_match:
+                    number_exact_matches_between_flashhead_and_normal += 1
+                print("Did match normal:", did_match)
+
+                if not did_match:
+                    first_mismatch_idx = next(
+                        (
+                            i
+                            for i, (a, b) in enumerate(zip(result.text, normal_run_result.text))
+                            if a != b
+                        ),
+                        min(len(result.text), len(normal_run_result.text)),
+                    )
+
+                    print("First text mismatch index:", first_mismatch_idx)
+                    print("Flashhead from mismatch:", repr(result.text[first_mismatch_idx:first_mismatch_idx + 120]))
+                    print("Normal from mismatch:", repr(normal_run_result.text[first_mismatch_idx:first_mismatch_idx + 120]))
+                print("Speedup with flashhead:", normal_run_result.inference_seconds/result.inference_seconds)
+
+                normal_tps = (
+                    normal_run_result.num_generated_tokens
+                    / normal_run_result.inference_seconds
+                )
+
+                flashhead_tps = (
+                    result.num_generated_tokens
+                    / result.inference_seconds
+                )
+
+                print("Normal tokens/sec:", normal_tps)
+                print("Flashhead tokens/sec:", flashhead_tps)
+
+                speedup_per_gen_token = flashhead_tps / normal_tps
+                total_speedup_per_token += speedup_per_gen_token
+                print("Speedup per generated token:", speedup_per_gen_token)
+
+        print()
+        print(
+            {
+                "total_inference_seconds": total_inference_seconds,
+                "total_flashhead_seconds": total_flashhead_seconds,
+            }
+        )
+        print("Total tokens produced by flashhead:", total_tokens_produced_flashhead)
+        print("Total tokens produced by normal:", total_tokens_produced_normal)
+        if args.compare_to_normal:
+            print("Per example average speedup per token:", total_speedup_per_token/total_number_of_examples_ran)
+            print("Ratio exact matches:", number_exact_matches_between_flashhead_and_normal/total_number_of_examples_ran)
 
 
     else:
