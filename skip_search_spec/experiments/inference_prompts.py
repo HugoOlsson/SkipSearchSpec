@@ -630,6 +630,54 @@ INFERENCE_TEST_PROMPTS_EASY = [
 ]
 
 
+CHAT_TEST_PROMPTS = [
+    # Factual / encyclopedic
+    ("fact_photosynthesis",      "How does photosynthesis work?"),
+    ("fact_moon",                "Why does the Moon have craters on its surface?"),
+    ("fact_printing_press",      "How did the printing press change society in Europe?"),
+    ("fact_volcanoes",           "Why do volcanoes often form near tectonic plate boundaries?"),
+    ("fact_water_cycle",         "Can you explain the main stages of the water cycle?"),
+
+    # Reasoning / explanation
+    ("reason_supply_demand",     "How do supply and demand affect the price of a product?"),
+    ("reason_democracy",         "Why do democratic systems hold regular elections?"),
+    ("reason_greenhouse",        "Why does the greenhouse effect cause the Earth to warm up?"),
+    ("reason_antibiotics",       "Why is it important to finish a full course of antibiotics?"),
+
+    # Math word problems
+    ("math_apples",              "Maya has 18 apples. She gives 5 to her neighbor and then buys 12 more. How many does she have now?"),
+    ("math_tickets",             "A train ticket costs 7 dollars. A family buys 4 tickets and also pays 6 dollars for parking. What is the total cost?"),
+    ("math_recipe",              "A recipe needs 3 cups of flour per cake. Lena wants to bake 5 cakes but already has 4 cups at home. How many more cups does she need?"),
+
+    # Code generation
+    ("code_reverse_words",       "Write a Python function that takes a string and returns it with the words in reverse order."),
+    ("code_count_vowels",        "Write a Python function that counts the number of vowels in a string, ignoring case."),
+    ("code_merge_dicts",         "Write a Python function that merges two dictionaries of integer counts, summing values for shared keys."),
+    ("code_palindrome",          "Write a Python function that returns True if a string is a palindrome, ignoring spaces and case."),
+
+    # Summarization
+    ("summary_renewable",        "Summarize this in one or two sentences: Many cities are investing in solar panels, wind power, and LED streetlights to cut fossil fuel use. Officials say upfront costs will pay off through lower energy bills and cleaner air."),
+    ("summary_school_lunch",     "Summarize this briefly: A school district redesigned its lunch menu after parent and teacher complaints about nutrition, adding more fresh produce and whole grains while reducing processed food."),
+
+    # Transformation / rewriting
+    ("transform_formal",         "Rewrite this message in a formal tone: hey, i can't make it to the meeting today. can we move it to tomorrow?"),
+    ("transform_active",         "Rewrite this sentence in active voice: The report was reviewed by the committee before the announcement was made."),
+    ("transform_simple",         "Explain this in simple terms for a ten-year-old: Evaporation occurs when molecules at the surface of a liquid gain enough energy to enter the gas phase."),
+
+    # Comparison
+    ("compare_city_rural",       "What are the main differences between living in a big city and living in the countryside?"),
+    ("compare_solar_wind",       "What are the differences between solar power and wind power as energy sources?"),
+    ("compare_books_movies",     "How does reading a book differ from watching a movie adaptation of the same story?"),
+
+    # Creative / open-ended
+    ("story_lighthouse",         "Write the opening paragraph of a short story about a lighthouse keeper who discovers something unusual in the fog."),
+    ("story_robot",              "Write the opening paragraph of a short story about a small garden robot that finds a mysterious seed."),
+
+    # Procedural
+    ("procedure_seedlings",      "What are the basic steps for starting vegetable seedlings indoors?"),
+    ("procedure_flat_tire",      "How do you fix a flat bicycle tire?"),
+]
+
 # INFERENCE_TEST_PROMPTS = [
 #     (
 #         "Recent U.S. presidents list",
