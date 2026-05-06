@@ -144,8 +144,9 @@ class LinearPrevHiddenGapBridge(nn.Module):
                 f"!= prev_reference_hidden.shape {prev_reference_hidden.shape}"
             )
 
-        x = gap_hidden.float()
-        p = prev_reference_hidden.float()
+        bridge_dtype = self.proj.weight.dtype
+        x = gap_hidden.to(dtype=bridge_dtype)
+        p = prev_reference_hidden.to(dtype=bridge_dtype)
 
         x_n = self.gap_norm(x)
         p_n = self.prev_norm(p)
@@ -588,12 +589,17 @@ class BridgedGapModel:
         bridge_checkpoint_path: str | Path,
         bridge_factory: Callable[[int, dict[str, Any]], nn.Module] | None = None,
         model_kwargs: dict[str, Any] | None = None,
+        bridge_dtype: torch.dtype | Literal["model"] = torch.float32,
     ) -> "BridgedGapModel":
         """
         Load model + tokenizer + bridge from checkpoint.
 
         bridge_factory lets you change bridge architectures without changing
         training/inference code.
+
+        bridge_dtype defaults to float32 for training/evaluation stability.
+        Use "model" for inference when the bridge should follow the loaded
+        model dtype.
 
         Signature:
             bridge_factory(hidden_size, checkpoint) -> nn.Module
@@ -649,7 +655,9 @@ class BridgedGapModel:
             bridge = bridge_factory(hidden_size, checkpoint)
 
         bridge.load_state_dict(checkpoint["bridge_state_dict"])
-        bridge.to(device=device, dtype=torch.float32)
+        if bridge_dtype == "model":
+            bridge_dtype = next(model.parameters()).dtype
+        bridge.to(device=device, dtype=bridge_dtype)
         bridge.eval()
 
         return cls(

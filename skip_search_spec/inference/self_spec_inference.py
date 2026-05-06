@@ -560,6 +560,7 @@ def self_spec_inference_test(
 
     bridged = BridgedGapModel.load_from_checkpoint(
         bridge_checkpoint_path=bridge_checkpoint_path,
+        bridge_dtype="model",
     )
 
     speculator = BridgeSelfSpeculator(

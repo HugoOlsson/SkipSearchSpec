@@ -217,6 +217,7 @@ def main() -> None:
 
         bridged = BridgedGapModel.load_from_checkpoint(
             bridge_checkpoint_path=bridge_checkpoint_path,
+            bridge_dtype="model",
         )
         speculator = BridgeSelfSpeculator(
             bridged_model=bridged,
