@@ -203,8 +203,6 @@ def tokenize_dataset_to_examples(
     tokenized_examples: list[TokenizedChatExample] = []
     row_start = 0
     next_print = print_every
-    debug_short_printed = 0
-    debug_late_loss_printed = 0
 
     while row_start < num_rows:
         if max_examples is not None and len(tokenized_examples) >= max_examples:
@@ -243,73 +241,6 @@ def tokenize_dataset_to_examples(
             assistant_mask_tensor = torch.tensor(assistant_mask, dtype=torch.bool)
             loss_mask = torch.zeros_like(assistant_mask_tensor)
             loss_mask[:-1] = assistant_mask_tensor[1:]
-
-            if debug_short_printed < 5 and len(input_ids) < 256:
-                debug_short_printed += 1
-
-                positions = torch.nonzero(loss_mask, as_tuple=False).flatten()
-                first_loss = int(positions[0]) if positions.numel() else None
-
-                raw_text = "\n".join(
-                    message["content"]
-                    for message in messages
-                    if message["role"] in {"user", "assistant"}
-                )
-                raw_ids = tokenizer(raw_text, add_special_tokens=False)["input_ids"]
-
-                print("\nDEBUG SHORT TOKENIZED EXAMPLE")
-                print("token_length:", len(input_ids))
-                print("raw_text_token_length:", len(raw_ids))
-                print("first_loss_position:", first_loss)
-                print("num_messages:", len(messages))
-                print("roles:", [message["role"] for message in messages])
-                print("message_char_lengths:", [len(message["content"]) for message in messages])
-
-                print("RAW NORMALIZED MESSAGES:")
-                for message in messages:
-                    print("ROLE:", message["role"])
-                    print(message["content"][:1200])
-                    print("---")
-
-                decoded = tokenizer.decode(input_ids, skip_special_tokens=False)
-                print("DECODED TOKENIZED CHAT:")
-                print(decoded[:3000])
-                print("END DEBUG SHORT TOKENIZED EXAMPLE\n")
-
-            if debug_late_loss_printed < 5 and len(input_ids) >= 256 and not loss_mask[:256].any():
-                debug_late_loss_printed += 1
-
-                positions = torch.nonzero(loss_mask, as_tuple=False).flatten()
-                first_loss = int(positions[0]) if positions.numel() else None
-
-                raw_text = "\n".join(
-                    message["content"]
-                    for message in messages
-                    if message["role"] in {"user", "assistant"}
-                )
-                raw_ids = tokenizer(raw_text, add_special_tokens=False)["input_ids"]
-
-                print("\nDEBUG LONG EXAMPLE WITH LATE ASSISTANT LOSS")
-                print("token_length:", len(input_ids))
-                print("raw_text_token_length:", len(raw_ids))
-                print("first_loss_position:", first_loss)
-                print("num_messages:", len(messages))
-                print("roles:", [message["role"] for message in messages])
-                print("message_char_lengths:", [len(message["content"]) for message in messages])
-
-                print("RAW NORMALIZED MESSAGES:")
-                for message in messages:
-                    print("ROLE:", message["role"])
-                    print(message["content"][:1200])
-                    print("---")
-
-                decoded = tokenizer.decode(input_ids[:512], skip_special_tokens=False)
-                print("DECODED FIRST 512 TOKENS:")
-                print(decoded)
-                print("END DEBUG LONG EXAMPLE WITH LATE ASSISTANT LOSS\n")
-
-            if not loss_mask.any():
-                continue
 
             if not loss_mask.any():
                 continue
