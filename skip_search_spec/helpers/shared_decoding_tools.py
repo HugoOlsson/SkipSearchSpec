@@ -515,44 +515,54 @@ def build_fixed_window_dataloader_chat(
     )
 
 
-    # DEBUG: inspect tokenized example lengths and assistant-loss positions.
+    num_examples = len(tokenized_examples)
+    c1 = window_settings.C1
+
+    num_len_ge_c1 = 0
+    num_first_window_loss = 0
+    num_loss_anywhere = 0
     lengths = []
     first_loss_positions = []
-    no_loss = 0
 
-    for ex in tokenized_examples[:1000]:
-        lengths.append(int(ex.input_ids.numel()))
+    for ex in tokenized_examples:
+        n = int(ex.input_ids.numel())
+        lengths.append(n)
+
         positions = torch.nonzero(ex.loss_mask, as_tuple=False).flatten()
-        if positions.numel() == 0:
-            no_loss += 1
-        else:
+        if positions.numel() > 0:
+            num_loss_anywhere += 1
             first_loss_positions.append(int(positions[0]))
 
-    print("DEBUG C1:", window_settings.C1)
-    print("DEBUG num sampled:", len(lengths))
-    print("DEBUG no loss:", no_loss)
-    print(
-        "DEBUG length min/median/max:",
-        min(lengths),
-        sorted(lengths)[len(lengths) // 2],
-        max(lengths),
-    )
-    print(
-        "DEBUG first loss min/median/max:",
-        min(first_loss_positions) if first_loss_positions else None,
-        sorted(first_loss_positions)[len(first_loss_positions) // 2]
-        if first_loss_positions
-        else None,
-        max(first_loss_positions) if first_loss_positions else None,
-    )
-    print(
-        "DEBUG fraction length >= C1:",
-        sum(x >= window_settings.C1 for x in lengths) / len(lengths),
-    )
-    print(
-        "DEBUG fraction first loss < C1:",
-        sum(x < window_settings.C1 for x in first_loss_positions) / len(lengths),
-    )
+        if n >= c1:
+            num_len_ge_c1 += 1
+            if bool(ex.loss_mask[:c1].any()):
+                num_first_window_loss += 1
+
+    lengths_sorted = sorted(lengths)
+    first_loss_sorted = sorted(first_loss_positions)
+
+    def pct(xs: list[int], q: float) -> int | None:
+        if not xs:
+            return None
+        return xs[int((len(xs) - 1) * q)]
+
+    print("DEBUG FULL examples:", num_examples)
+    print("DEBUG FULL C1:", c1)
+    print("DEBUG FULL length >= C1:", num_len_ge_c1)
+    print("DEBUG FULL first-window loss:", num_first_window_loss)
+    print("DEBUG FULL loss anywhere:", num_loss_anywhere)
+    print("DEBUG FULL length p10/p25/p50/p75/p90:",
+        pct(lengths_sorted, 0.10),
+        pct(lengths_sorted, 0.25),
+        pct(lengths_sorted, 0.50),
+        pct(lengths_sorted, 0.75),
+        pct(lengths_sorted, 0.90))
+    print("DEBUG FULL first loss p10/p25/p50/p75/p90:",
+        pct(first_loss_sorted, 0.10),
+        pct(first_loss_sorted, 0.25),
+        pct(first_loss_sorted, 0.50),
+        pct(first_loss_sorted, 0.75),
+        pct(first_loss_sorted, 0.90))
 
     window_index = build_chat_window_index(
         tokenized_examples,
