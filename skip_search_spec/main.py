@@ -40,7 +40,7 @@ def main() -> None:
         num_epochs = 1 # Ensure never get scores on data it has seen
 
         models = ["meta-llama/Llama-3.2-1B-Instruct"]
-        active_start_end_lengths = [(2, 2)]
+        active_start_end_lengths = [(3, 3)]
 
         # SINGLE LAYER AT START
         print("Version: 2.12")
