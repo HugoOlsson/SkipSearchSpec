@@ -20,7 +20,7 @@ from skip_search_spec.protocols.windows import DatasetSpec
 STORE_PATH_FLASH_HEAD = "checkpoints/flashhead_llama32_3b_v2.pt"
 MODEL_NAME_FLASH_HEAD = "meta-llama/Llama-3.2-3B"
 
-INFERENCE_TEST_MAX_NEW_TOKENS = 100
+INFERENCE_TEST_MAX_NEW_TOKENS = 200
 
 
 def main() -> None:
