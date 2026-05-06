@@ -34,11 +34,11 @@ def main() -> None:
         from skip_search_spec.experiments.dataset_mix import get_dataset_mix
         from skip_search_spec.training.train_skipping_layers import train_skipping_layers
 
-        number_of_windows = 30_000
+        number_of_windows = 5_000
         num_epochs = 1 # Ensure never get scores on data it has seen
 
-        models = ["mistralai/Mistral-7B-Instruct-v0.3"]
-        active_start_end_lengths = [(1, 1)]
+        models = ["Qwen/Qwen3-30B-A3B-Instruct-2507"]
+        active_start_end_lengths = [(2, 2)]
 
         # SINGLE LAYER AT START
         print("Version: 2.12")
@@ -52,7 +52,7 @@ def main() -> None:
                     dataset_mix=get_dataset_mix(number_of_windows),
                     context_len=256,
                     num_windows_to_use=number_of_windows,
-                    batch_size=20,
+                    batch_size=5,
                     active_start_layers=active_start_layers, 
                     active_end_layers=active_end_layers,
                     num_epochs=num_epochs,
