@@ -317,7 +317,7 @@ def build_window_index(
     return window_index
 
 
-class WindowDataset(TorchDataset[tuple[torch.Tensor, torch.Tensor, torch.Tensor]]):
+class WindowDatasetChat(TorchDataset[tuple[torch.Tensor, torch.Tensor, torch.Tensor]]):
     """
     Lazy window dataset backed by:
       - tokenized_examples: list of token ids plus loss masks

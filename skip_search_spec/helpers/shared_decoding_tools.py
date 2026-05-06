@@ -22,7 +22,7 @@ from skip_search_spec.helpers.window_building import (
 )
 from skip_search_spec.helpers.window_building_chat import (
     DEFAULT_CHAT_SYSTEM_PROMPT,
-    WindowDataset as ChatWindowDataset,
+    WindowDatasetChat,
     build_window_index as build_chat_window_index,
     collate_windows as collate_chat_windows,
     tokenize_dataset_to_examples as tokenize_chat_dataset_to_examples,
@@ -584,7 +584,7 @@ def build_fixed_window_dataloader_chat(
     if pad_token_id is None:
         raise ValueError("Tokenizer must have either pad_token_id or eos_token_id.")
 
-    window_dataset = WindowDataset(
+    window_dataset = WindowDatasetChat(
         tokenized_examples=tokenized_examples,
         window_index=window_index,
         window_settings=window_settings,
