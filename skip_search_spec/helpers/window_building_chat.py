@@ -384,3 +384,166 @@ def collate_windows(
     loss_mask = torch.stack([item[1] for item in batch], dim=0)
     attention_mask = torch.ones_like(input_ids)
     return input_ids, attention_mask, loss_mask
+
+
+
+def debug_raw_dataset_message_lengths(
+    dataset: Dataset,
+    tokenizer: PreTrainedTokenizerBase,
+    dataset_spec: DatasetSpec,
+    *,
+    num_examples: int = 10_000,
+) -> None:
+    """
+    Debug helper that avoids the chat-template/tokenization pipeline as much as possible.
+
+    It directly inspects the first num_examples raw dataset rows:
+      - reads dataset_spec.text_field
+      - checks raw message roles/content
+      - joins raw content strings without chat template
+      - tokenizes that plain text
+      - prints length statistics
+
+    This does NOT call:
+      - _normalize_chat_messages()
+      - tokenizer.apply_chat_template()
+      - _tokenize_chat_with_assistant_mask()
+      - tokenize_dataset_to_examples()
+    """
+    messages_field = dataset_spec.text_field
+    limit = min(num_examples, len(dataset))
+
+    raw_char_lengths: list[int] = []
+    raw_token_lengths: list[int] = []
+    user_char_lengths: list[int] = []
+    assistant_char_lengths: list[int] = []
+    user_token_lengths: list[int] = []
+    assistant_token_lengths: list[int] = []
+
+    skipped_non_list = 0
+    skipped_no_assistant = 0
+    skipped_no_valid_content = 0
+
+    debug_printed = 0
+
+    for row_idx in range(limit):
+        row = dataset[row_idx]
+        raw_messages = row[messages_field]
+
+        if not isinstance(raw_messages, list):
+            skipped_non_list += 1
+            continue
+
+        user_parts: list[str] = []
+        assistant_parts: list[str] = []
+        all_parts: list[str] = []
+
+        for raw_message in raw_messages:
+            if not isinstance(raw_message, dict):
+                continue
+
+            role = raw_message.get("role")
+            content = raw_message.get("content")
+
+            if not isinstance(role, str) or not isinstance(content, str):
+                continue
+
+            content = content.strip()
+            if not content:
+                continue
+
+            if role == "user":
+                user_parts.append(content)
+                all_parts.append(content)
+            elif role == "assistant":
+                assistant_parts.append(content)
+                all_parts.append(content)
+            elif role == "system":
+                all_parts.append(content)
+
+        if not all_parts:
+            skipped_no_valid_content += 1
+            continue
+
+        if not assistant_parts:
+            skipped_no_assistant += 1
+            continue
+
+        raw_text = "\n\n".join(all_parts)
+        user_text = "\n\n".join(user_parts)
+        assistant_text = "\n\n".join(assistant_parts)
+
+        raw_ids = tokenizer(raw_text, add_special_tokens=False)["input_ids"]
+        user_ids = tokenizer(user_text, add_special_tokens=False)["input_ids"]
+        assistant_ids = tokenizer(assistant_text, add_special_tokens=False)["input_ids"]
+
+        raw_char_lengths.append(len(raw_text))
+        raw_token_lengths.append(len(raw_ids))
+        user_char_lengths.append(len(user_text))
+        assistant_char_lengths.append(len(assistant_text))
+        user_token_lengths.append(len(user_ids))
+        assistant_token_lengths.append(len(assistant_ids))
+
+        if debug_printed < 5 and len(raw_ids) < 256:
+            debug_printed += 1
+            print("\nDEBUG RAW EXAMPLE UNDER 256 TOKENS")
+            print("row_idx:", row_idx)
+            print("raw_token_length:", len(raw_ids))
+            print("user_token_length:", len(user_ids))
+            print("assistant_token_length:", len(assistant_ids))
+            print("raw_char_length:", len(raw_text))
+            print("num_messages:", len(raw_messages))
+            print("roles:", [
+                m.get("role") if isinstance(m, dict) else None
+                for m in raw_messages
+            ])
+            print("RAW TEXT:")
+            print(raw_text[:3000])
+            print("END DEBUG RAW EXAMPLE UNDER 256 TOKENS\n")
+
+    if not raw_token_lengths:
+        print("DEBUG RAW LENGTHS: no valid examples found.")
+        return
+
+    def percentile(xs: list[int], q: float) -> int:
+        xs_sorted = sorted(xs)
+        index = int((len(xs_sorted) - 1) * q)
+        return xs_sorted[index]
+
+    def print_stats(name: str, xs: list[int]) -> None:
+        xs_sorted = sorted(xs)
+        print(
+            f"{name} min/p10/p25/median/p75/p90/max:",
+            xs_sorted[0],
+            percentile(xs_sorted, 0.10),
+            percentile(xs_sorted, 0.25),
+            percentile(xs_sorted, 0.50),
+            percentile(xs_sorted, 0.75),
+            percentile(xs_sorted, 0.90),
+            xs_sorted[-1],
+        )
+
+    print("\nDEBUG RAW DATASET MESSAGE LENGTHS")
+    print("requested_examples:", num_examples)
+    print("inspected_rows:", limit)
+    print("valid_examples_with_assistant:", len(raw_token_lengths))
+    print("skipped_non_list:", skipped_non_list)
+    print("skipped_no_valid_content:", skipped_no_valid_content)
+    print("skipped_no_assistant:", skipped_no_assistant)
+
+    print_stats("raw_token_length", raw_token_lengths)
+    print_stats("user_token_length", user_token_lengths)
+    print_stats("assistant_token_length", assistant_token_lengths)
+    print_stats("raw_char_length", raw_char_lengths)
+    print_stats("user_char_length", user_char_lengths)
+    print_stats("assistant_char_length", assistant_char_lengths)
+
+    print(
+        "fraction_raw_token_length_lt_256:",
+        sum(x < 256 for x in raw_token_lengths) / len(raw_token_lengths),
+    )
+    print(
+        "fraction_raw_token_length_ge_256:",
+        sum(x >= 256 for x in raw_token_lengths) / len(raw_token_lengths),
+    )
+    print("END DEBUG RAW DATASET MESSAGE LENGTHS\n")

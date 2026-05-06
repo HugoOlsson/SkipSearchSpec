@@ -8,6 +8,7 @@ from skip_search_spec.experiments.inference_prompts import INFERENCE_TEST_PROMPT
 
 
 
+
 os.environ.setdefault("FLA_TILELANG", "0")
 # os.environ.setdefault("FLA_DISABLE_BACKEND_DISPATCH", "1")
 
@@ -436,6 +437,34 @@ def main() -> None:
 
         print()
         print({"total_inference_seconds": total_inference_seconds})
+
+    elif mode == "debug_tulu_lengths":
+        from datasets import load_dataset
+        from transformers import AutoTokenizer
+        from skip_search_spec.helpers.window_building_chat import debug_raw_dataset_message_lengths
+        from skip_search_spec.experiments.dataset_mix import get_chat_dataset_mix
+      
+
+        dataset_spec = DatasetSpec(
+            name="Tulu-3-SFT-Mixture-English",
+            huggingface_path="yimingzhang/tulu-3-sft-mixture-english",
+            split="train",
+            text_field="messages",
+        )
+
+        dataset = load_dataset(
+            dataset_spec.huggingface_path,
+            split=dataset_spec.split,
+        )
+
+        tokenizer = AutoTokenizer.from_pretrained("meta-llama/Llama-3.2-3B-Instruct")
+
+        debug_raw_dataset_message_lengths(
+            dataset=dataset,
+            tokenizer=tokenizer,
+            dataset_spec=dataset_spec,
+            num_examples=10_000,
+        )
 
 
     else:
