@@ -48,6 +48,6 @@ def get_dataset_mix(num_windows: int = 10_000) -> list[tuple[DatasetSpec, float,
         (
             DATASET_SPEC_EDU,
             1.0,
-            _max_examples_for_source(num_windows, 1.0, 3),
+            _max_examples_for_source(num_windows, 1.0, 1.2),
         ),
     ]
