@@ -38,7 +38,7 @@ def main() -> None:
         num_epochs = 1 # Ensure never get scores on data it has seen
 
         models = ["mistralai/Mistral-7B-Instruct-v0.3"]
-        active_start_end_lengths = [(6, 6)]
+        active_start_end_lengths = [(1, 1)]
 
         # SINGLE LAYER AT START
         print("Version: 2.12")

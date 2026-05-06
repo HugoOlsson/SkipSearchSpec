@@ -84,135 +84,6 @@ def make_train_sections(
 
     return list(zip(section_boundaries[1:-1], section_boundaries[2:]))
 
-
-def inspect_training_windows(
-    *,
-    dataloader: Any,
-    tokenizer: Any,
-    output_path: str | Path,
-    max_batches: int = 2,
-    max_examples: int = 20,
-) -> None:
-    output_path = Path(output_path)
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-
-    lines: list[str] = []
-    total_seen = 0
-
-    lines.append("TRAINING WINDOW INSPECTION")
-    lines.append("=" * 80)
-    lines.append(f"max_batches: {max_batches}")
-    lines.append(f"max_examples: {max_examples}")
-    lines.append("")
-
-    for batch_idx, batch in enumerate(dataloader):
-        if batch_idx >= max_batches or total_seen >= max_examples:
-            break
-
-        if len(batch) != 2:
-            raise ValueError(
-                f"Expected batch to be (input_ids, attention_mask), "
-                f"got {len(batch)} items."
-            )
-
-        input_ids, attention_mask = batch
-
-        input_ids = input_ids.detach().cpu()
-        attention_mask = attention_mask.detach().cpu().bool()
-
-        batch_size = input_ids.size(0)
-
-        for row_idx in range(batch_size):
-            if total_seen >= max_examples:
-                break
-
-            ids = input_ids[row_idx]
-            attn = attention_mask[row_idx]
-            real_len = int(attn.sum().item())
-            ids_real = ids[:real_len]
-
-            decoded_full = tokenizer.decode(
-                ids_real.tolist(),
-                skip_special_tokens=False,
-            )
-
-            lines.append("")
-            lines.append("=" * 80)
-            lines.append(f"example_index: {total_seen}")
-            lines.append(f"batch_idx: {batch_idx}")
-            lines.append(f"row_idx: {row_idx}")
-            lines.append(f"window_shape: {tuple(ids.shape)}")
-            lines.append(f"real_len: {real_len}")
-
-            lines.append("")
-            lines.append("POSITION MAP")
-            lines.append("-" * 80)
-            lines.append(
-                "Format: index | attn | token_id | decoded_token"
-            )
-
-            for pos in range(min(real_len, 512)):
-                token_id = int(ids[pos].item())
-                decoded_token = tokenizer.decode(
-                    [token_id],
-                    skip_special_tokens=False,
-                )
-                decoded_token = decoded_token.replace("\n", "\\n")
-                lines.append(
-                    f"{pos:04d} | "
-                    f"attn={int(attn[pos].item())} | "
-                    f"id={token_id:<8d} | "
-                    f"{decoded_token!r}"
-                )
-
-            if real_len > 512:
-                lines.append(
-                    f"... truncated position map at 512 of {real_len} real tokens"
-                )
-
-            lines.append("")
-            lines.append("NEXT-TOKEN TRAINING PAIRS")
-            lines.append("-" * 80)
-            lines.append(
-                "Format: index -> target_index | input_id -> target_id | "
-                "decoded_input -> decoded_target"
-            )
-
-            max_pair_pos = min(real_len - 1, 256)
-            for pos in range(max_pair_pos):
-                token_id = int(ids[pos].item())
-                target_id = int(ids[pos + 1].item())
-                decoded_token = tokenizer.decode(
-                    [token_id],
-                    skip_special_tokens=False,
-                )
-                decoded_target = tokenizer.decode(
-                    [target_id],
-                    skip_special_tokens=False,
-                )
-                decoded_token = decoded_token.replace("\n", "\\n")
-                decoded_target = decoded_target.replace("\n", "\\n")
-                lines.append(
-                    f"{pos:04d} -> {pos + 1:04d} | "
-                    f"{token_id:<8d} -> {target_id:<8d} | "
-                    f"{decoded_token!r} -> {decoded_target!r}"
-                )
-
-            if real_len - 1 > 256:
-                lines.append(
-                    f"... truncated next-token pairs at 256 of {real_len - 1} pairs"
-                )
-
-            lines.append("")
-            lines.append("DECODED FULL WINDOW")
-            lines.append("-" * 80)
-            lines.append(decoded_full)
-
-            total_seen += 1
-
-    output_path.write_text("\n".join(lines), encoding="utf-8")
-    print(f"Wrote window inspection to {output_path}", flush=True)
-
 def run_drafter_on_training_sections(
     *,
     bridged: BridgedGapModel,
@@ -440,13 +311,13 @@ def train_skipping_layers(
         shuffle=True,
     )
 
-    inspect_training_windows(
-            dataloader=dataloader,
-            tokenizer=bridged.tokenizer,
-            output_path="debug_outputs/training_windows.txt",
-            max_batches=2,
-            max_examples=20,
-        )
+    # inspect_training_windows(
+    #         dataloader=dataloader,
+    #         tokenizer=bridged.tokenizer,
+    #         output_path="debug_outputs/training_windows.txt",
+    #         max_batches=2,
+    #         max_examples=20,
+    #     )
 
 
     step = 0
@@ -699,3 +570,133 @@ def train_skipping_layers(
         bridge=bridge,
         checkpoint_path=checkpoint_path,
     )
+
+
+
+def inspect_training_windows(
+    *,
+    dataloader: Any,
+    tokenizer: Any,
+    output_path: str | Path,
+    max_batches: int = 2,
+    max_examples: int = 20,
+) -> None:
+    output_path = Path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    lines: list[str] = []
+    total_seen = 0
+
+    lines.append("TRAINING WINDOW INSPECTION")
+    lines.append("=" * 80)
+    lines.append(f"max_batches: {max_batches}")
+    lines.append(f"max_examples: {max_examples}")
+    lines.append("")
+
+    for batch_idx, batch in enumerate(dataloader):
+        if batch_idx >= max_batches or total_seen >= max_examples:
+            break
+
+        if len(batch) != 2:
+            raise ValueError(
+                f"Expected batch to be (input_ids, attention_mask), "
+                f"got {len(batch)} items."
+            )
+
+        input_ids, attention_mask = batch
+
+        input_ids = input_ids.detach().cpu()
+        attention_mask = attention_mask.detach().cpu().bool()
+
+        batch_size = input_ids.size(0)
+
+        for row_idx in range(batch_size):
+            if total_seen >= max_examples:
+                break
+
+            ids = input_ids[row_idx]
+            attn = attention_mask[row_idx]
+            real_len = int(attn.sum().item())
+            ids_real = ids[:real_len]
+
+            decoded_full = tokenizer.decode(
+                ids_real.tolist(),
+                skip_special_tokens=False,
+            )
+
+            lines.append("")
+            lines.append("=" * 80)
+            lines.append(f"example_index: {total_seen}")
+            lines.append(f"batch_idx: {batch_idx}")
+            lines.append(f"row_idx: {row_idx}")
+            lines.append(f"window_shape: {tuple(ids.shape)}")
+            lines.append(f"real_len: {real_len}")
+
+            lines.append("")
+            lines.append("POSITION MAP")
+            lines.append("-" * 80)
+            lines.append(
+                "Format: index | attn | token_id | decoded_token"
+            )
+
+            for pos in range(min(real_len, 512)):
+                token_id = int(ids[pos].item())
+                decoded_token = tokenizer.decode(
+                    [token_id],
+                    skip_special_tokens=False,
+                )
+                decoded_token = decoded_token.replace("\n", "\\n")
+                lines.append(
+                    f"{pos:04d} | "
+                    f"attn={int(attn[pos].item())} | "
+                    f"id={token_id:<8d} | "
+                    f"{decoded_token!r}"
+                )
+
+            if real_len > 512:
+                lines.append(
+                    f"... truncated position map at 512 of {real_len} real tokens"
+                )
+
+            lines.append("")
+            lines.append("NEXT-TOKEN TRAINING PAIRS")
+            lines.append("-" * 80)
+            lines.append(
+                "Format: index -> target_index | input_id -> target_id | "
+                "decoded_input -> decoded_target"
+            )
+
+            max_pair_pos = min(real_len - 1, 256)
+            for pos in range(max_pair_pos):
+                token_id = int(ids[pos].item())
+                target_id = int(ids[pos + 1].item())
+                decoded_token = tokenizer.decode(
+                    [token_id],
+                    skip_special_tokens=False,
+                )
+                decoded_target = tokenizer.decode(
+                    [target_id],
+                    skip_special_tokens=False,
+                )
+                decoded_token = decoded_token.replace("\n", "\\n")
+                decoded_target = decoded_target.replace("\n", "\\n")
+                lines.append(
+                    f"{pos:04d} -> {pos + 1:04d} | "
+                    f"{token_id:<8d} -> {target_id:<8d} | "
+                    f"{decoded_token!r} -> {decoded_target!r}"
+                )
+
+            if real_len - 1 > 256:
+                lines.append(
+                    f"... truncated next-token pairs at 256 of {real_len - 1} pairs"
+                )
+
+            lines.append("")
+            lines.append("DECODED FULL WINDOW")
+            lines.append("-" * 80)
+            lines.append(decoded_full)
+
+            total_seen += 1
+
+    output_path.write_text("\n".join(lines), encoding="utf-8")
+    print(f"Wrote window inspection to {output_path}", flush=True)
