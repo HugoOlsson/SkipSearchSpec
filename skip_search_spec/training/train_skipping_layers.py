@@ -328,6 +328,7 @@ def train_skipping_layers(
             shuffle=True,
             one_window_per_example=one_chat_window_per_example,
             system_prompt=chat_system_prompt,
+            num_draft_sections=num_draft_sections,
         )
     else:
         dataloader = build_mixed_fixed_window_dataloader(

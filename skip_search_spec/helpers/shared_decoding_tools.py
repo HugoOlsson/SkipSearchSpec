@@ -22,8 +22,8 @@ from skip_search_spec.helpers.window_building import (
 )
 from skip_search_spec.helpers.window_building_chat import (
     DEFAULT_CHAT_SYSTEM_PROMPT,
-    WindowDatasetChat,
-    build_window_index as build_chat_window_index,
+    ChatWindowDataset,
+    build_chat_windows,
     collate_windows as collate_chat_windows,
     tokenize_dataset_to_examples as tokenize_chat_dataset_to_examples,
 )
@@ -502,6 +502,7 @@ def build_fixed_window_dataloader_chat(
     shuffle: bool,
     one_window_per_example: bool = True,
     system_prompt: str | None = DEFAULT_CHAT_SYSTEM_PROMPT,
+    num_draft_sections: int = 4,
 ) -> DataLoader[Any]:
     dataset: Dataset = load_dataset(dataset_spec)
     window_settings = WindowSettings(C1=context_len)
@@ -514,82 +515,48 @@ def build_fixed_window_dataloader_chat(
         system_prompt=system_prompt,
     )
 
-
-    num_examples = len(tokenized_examples)
-    c1 = window_settings.C1
-
-    num_len_ge_c1 = 0
-    num_first_window_loss = 0
-    num_loss_anywhere = 0
-    lengths = []
-    first_loss_positions = []
-
-    for ex in tokenized_examples:
-        n = int(ex.input_ids.numel())
-        lengths.append(n)
-
-        positions = torch.nonzero(ex.loss_mask, as_tuple=False).flatten()
-        if positions.numel() > 0:
-            num_loss_anywhere += 1
-            first_loss_positions.append(int(positions[0]))
-
-        if n >= c1:
-            num_len_ge_c1 += 1
-            if bool(ex.loss_mask[:c1].any()):
-                num_first_window_loss += 1
-
-    lengths_sorted = sorted(lengths)
-    first_loss_sorted = sorted(first_loss_positions)
-
-    def pct(xs: list[int], q: float) -> int | None:
-        if not xs:
-            return None
-        return xs[int((len(xs) - 1) * q)]
-
-    print("DEBUG FULL examples:", num_examples)
-    print("DEBUG FULL C1:", c1)
-    print("DEBUG FULL length >= C1:", num_len_ge_c1)
-    print("DEBUG FULL first-window loss:", num_first_window_loss)
-    print("DEBUG FULL loss anywhere:", num_loss_anywhere)
-    print("DEBUG FULL length p10/p25/p50/p75/p90:",
-        pct(lengths_sorted, 0.10),
-        pct(lengths_sorted, 0.25),
-        pct(lengths_sorted, 0.50),
-        pct(lengths_sorted, 0.75),
-        pct(lengths_sorted, 0.90))
-    print("DEBUG FULL first loss p10/p25/p50/p75/p90:",
-        pct(first_loss_sorted, 0.10),
-        pct(first_loss_sorted, 0.25),
-        pct(first_loss_sorted, 0.50),
-        pct(first_loss_sorted, 0.75),
-        pct(first_loss_sorted, 0.90))
-
-    window_index = build_chat_window_index(
-        tokenized_examples,
-        window_settings,
-        one_window_per_example=one_window_per_example,
-    )
-
-    if len(window_index) < num_windows_to_use:
-        raise ValueError(
-            f"Requested {num_windows_to_use} windows, but only built {len(window_index)}."
-        )
-
-    selected_window_index = window_index[:num_windows_to_use]
-
     pad_token_id = model_and_tokenizer.tokenizer.pad_token_id
     if pad_token_id is None:
         pad_token_id = model_and_tokenizer.tokenizer.eos_token_id
-
     if pad_token_id is None:
         raise ValueError("Tokenizer must have either pad_token_id or eos_token_id.")
 
-    window_dataset = WindowDatasetChat(
+    if num_draft_sections < 2:
+        raise ValueError(
+            f"num_draft_sections must be at least 2, got {num_draft_sections}."
+        )
+
+    train_start_offset = context_len // num_draft_sections
+
+    windows = build_chat_windows(
         tokenized_examples=tokenized_examples,
-        window_index=window_index,
         window_settings=window_settings,
         pad_token_id=pad_token_id,
+        one_window_per_example=one_window_per_example,
+        train_start_offset=train_start_offset,
     )
+
+    print(
+        "Built chat windows:",
+        {
+            "tokenized_examples": len(tokenized_examples),
+            "windows": len(windows),
+            "requested_windows": num_windows_to_use,
+            "context_len": context_len,
+            "one_window_per_example": one_window_per_example,
+            "train_start_offset": train_start_offset,
+            "pad_token_id": pad_token_id,
+        },
+        flush=True,
+    )
+
+    if len(windows) < num_windows_to_use:
+        raise ValueError(
+            f"Requested {num_windows_to_use} windows, but only built {len(windows)}."
+        )
+
+    selected_windows = windows[:num_windows_to_use]
+    window_dataset = ChatWindowDataset(selected_windows)
 
     return DataLoader(
         window_dataset,
@@ -729,6 +696,7 @@ def build_mixed_fixed_window_dataloader_chat(
     shuffle: bool = True,
     one_window_per_example: bool = True,
     system_prompt: str | None = DEFAULT_CHAT_SYSTEM_PROMPT,
+    num_draft_sections: int = 4,
 ) -> DataLoader[Any]:
     if len(dataset_mix) == 0:
         raise ValueError("dataset_mix must contain at least one dataset.")
@@ -778,6 +746,7 @@ def build_mixed_fixed_window_dataloader_chat(
             shuffle=shuffle,
             one_window_per_example=one_window_per_example,
             system_prompt=system_prompt,
+            num_draft_sections=num_draft_sections,
         )
 
         datasets.append(source_loader.dataset)
