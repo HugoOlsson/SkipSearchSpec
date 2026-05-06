@@ -50,7 +50,7 @@ def main() -> None:
                 train_skipping_layers(
                     model_name=model,
                     dataset_mix=get_dataset_mix(number_of_windows),
-                    context_len=1024,
+                    context_len=700,
                     num_windows_to_use=number_of_windows,
                     batch_size=4,
                     active_start_layers=active_start_layers, 
