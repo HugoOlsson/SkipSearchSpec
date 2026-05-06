@@ -34,10 +34,10 @@ def main() -> None:
         from skip_search_spec.experiments.dataset_mix import get_dataset_mix
         from skip_search_spec.training.train_skipping_layers import train_skipping_layers
 
-        number_of_windows = 50_000
+        number_of_windows = 20_000
         num_epochs = 1 # Ensure never get scores on data it has seen
 
-        models = ["meta-llama/Llama-3.2-3B"]
+        models = ["meta-llama/Llama-3.2-3B-Instruct"]
         active_start_end_lengths = [(4, 4)]
 
         # SINGLE LAYER AT START
@@ -50,9 +50,9 @@ def main() -> None:
                 train_skipping_layers(
                     model_name=model,
                     dataset_mix=get_dataset_mix(number_of_windows),
-                    context_len=128,
+                    context_len=1024,
                     num_windows_to_use=number_of_windows,
-                    batch_size=20,
+                    batch_size=4,
                     active_start_layers=active_start_layers, 
                     active_end_layers=active_end_layers,
                     num_epochs=num_epochs,
@@ -63,7 +63,7 @@ def main() -> None:
                     ce_loss_weight=1.0,
                     checkpoint_every_steps=None,
                     log_every=100,
-                    num_draft_sections=5,
+                    num_draft_sections=10,
                     reference_hidden_source="final"
                 )
 
@@ -214,7 +214,7 @@ def main() -> None:
         speedups_per_token = []
         number_exact_matches_between_self_spec_and_normal = 0
 
-        for test_idx, (test_name, prompt) in enumerate(INFERENCE_TEST_PROMPTS_EASY, start=1):
+        for test_idx, (test_name, prompt) in enumerate(CHAT_TEST_PROMPTS, start=1):
             print()
             print(f"Test {test_idx}: {test_name}")
             print()
@@ -227,7 +227,7 @@ def main() -> None:
                 prompt=prompt,
                 max_new_tokens=INFERENCE_TEST_MAX_NEW_TOKENS,
                 draft_block_size=int(draft_block_size),
-                use_chat_template=False,
+                use_chat_template=True,
                 flashhead_path=flashhead_path,
                 build_token_trace=False,
                 measure_internal_timings=False
@@ -260,7 +260,7 @@ def main() -> None:
                     model_name_or_path=result.model_name,
                     prompt=prompt,
                     max_new_tokens=INFERENCE_TEST_MAX_NEW_TOKENS,
-                    use_chat_template=False,
+                    use_chat_template=True,
                     use_cache=True,
                 )
                 total_tokens_produced_normal += normal_run_result.num_generated_tokens
