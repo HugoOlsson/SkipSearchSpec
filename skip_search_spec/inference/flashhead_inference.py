@@ -21,6 +21,7 @@ class FlashHeadInferenceResult:
     inference_seconds: float
     flashhead_seconds: float
     num_generated_tokens: int
+    num_model_steps: int
 
 
 def sync_device_for_timing(device: torch.device) -> None:
@@ -246,4 +247,5 @@ def generate_with_flashhead(
         inference_seconds=inference_seconds,
         flashhead_seconds=flashhead_seconds,
         num_generated_tokens=int(accepted_ids.size(1) - input_ids.size(1)),
+        num_model_steps=len(generated_token_pieces),
     )

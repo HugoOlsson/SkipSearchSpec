@@ -444,10 +444,11 @@ def main() -> None:
         total_speedup_per_token = 0.0
         total_number_of_examples_ran = 0
         total_tokens_produced_flashhead = 0
+        total_model_steps_flashhead = 0
         total_tokens_produced_normal = 0
         number_exact_matches_between_flashhead_and_normal = 0
 
-        for test_idx, (test_name, prompt) in enumerate(INFERENCE_TEST_PROMPTS_HARD, start=1):
+        for test_idx, (test_name, prompt) in enumerate(CHAT_TEST_PROMPTS, start=1):
             print()
             print(f"Test {test_idx}: {test_name}")
             print()
@@ -460,7 +461,7 @@ def main() -> None:
                 flashhead=flashhead,
                 flashhead_top_k_clusters=flashhead_top_k_clusters,
                 max_new_tokens=INFERENCE_TEST_MAX_NEW_TOKENS,
-                use_chat_template=False,
+                use_chat_template=True,
                 use_cache=True,
                 measure_internal_timings=False,
                 model=model,
@@ -471,6 +472,7 @@ def main() -> None:
             total_flashhead_seconds += result.flashhead_seconds
             total_number_of_examples_ran += 1
             total_tokens_produced_flashhead += result.num_generated_tokens
+            total_model_steps_flashhead += result.num_model_steps
 
             print(result.text)
             print(
@@ -478,6 +480,7 @@ def main() -> None:
                     "inference_seconds": result.inference_seconds,
                     "flashhead_seconds": result.flashhead_seconds,
                     "num_generated_tokens": result.num_generated_tokens,
+                    "num_model_steps": result.num_model_steps,
                 }
             )
 
@@ -486,7 +489,7 @@ def main() -> None:
                 normal_run_result = generate_normal(
                     prompt=prompt,
                     max_new_tokens=INFERENCE_TEST_MAX_NEW_TOKENS,
-                    use_chat_template=False,
+                    use_chat_template=True,
                     use_cache=True,
                     model=model,
                     tokenizer=tokenizer,
@@ -511,7 +514,15 @@ def main() -> None:
                     print("First text mismatch index:", first_mismatch_idx)
                     print("Flashhead from mismatch:", repr(result.text[first_mismatch_idx:first_mismatch_idx + 120]))
                     print("Normal from mismatch:", repr(normal_run_result.text[first_mismatch_idx:first_mismatch_idx + 120]))
-                print("Speedup with flashhead:", normal_run_result.inference_seconds/result.inference_seconds)
+                print(
+                    {
+                        "normal_inference_seconds": normal_run_result.inference_seconds,
+                        "normal_num_generated_tokens": normal_run_result.num_generated_tokens,
+                        "flashhead_inference_seconds": result.inference_seconds,
+                        "flashhead_visible_generated_tokens": result.num_generated_tokens,
+                        "flashhead_model_steps": result.num_model_steps,
+                    }
+                )
 
                 normal_tps = (
                     normal_run_result.num_generated_tokens
@@ -519,16 +530,30 @@ def main() -> None:
                 )
 
                 flashhead_tps = (
-                    result.num_generated_tokens
+                    result.num_model_steps
                     / result.inference_seconds
+                )
+                wall_clock_latency_ratio = (
+                    normal_run_result.inference_seconds
+                    / result.inference_seconds
+                )
+                throughput_speedup = flashhead_tps / normal_tps
+                estimated_flashhead_seconds_for_normal_token_count = (
+                    normal_run_result.num_generated_tokens
+                    / flashhead_tps
+                )
+                estimated_same_length_latency_ratio = (
+                    normal_run_result.inference_seconds
+                    / estimated_flashhead_seconds_for_normal_token_count
                 )
 
                 print("Normal tokens/sec:", normal_tps)
-                print("Flashhead tokens/sec:", flashhead_tps)
+                print("Flashhead model steps/sec:", flashhead_tps)
+                print("Wall-clock latency ratio:", wall_clock_latency_ratio)
+                print("Throughput speedup per model step:", throughput_speedup)
+                print("Estimated same-length latency ratio:", estimated_same_length_latency_ratio)
 
-                speedup_per_gen_token = flashhead_tps / normal_tps
-                total_speedup_per_token += speedup_per_gen_token
-                print("Speedup per generated token:", speedup_per_gen_token)
+                total_speedup_per_token += throughput_speedup
 
         print()
         print(
@@ -538,6 +563,7 @@ def main() -> None:
             }
         )
         print("Total tokens produced by flashhead:", total_tokens_produced_flashhead)
+        print("Total model steps run by flashhead:", total_model_steps_flashhead)
         print("Total tokens produced by normal:", total_tokens_produced_normal)
         if args.compare_to_normal:
             print("Per example average speedup per token:", total_speedup_per_token/total_number_of_examples_ran)
