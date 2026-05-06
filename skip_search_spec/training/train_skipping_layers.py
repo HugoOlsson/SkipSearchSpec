@@ -19,7 +19,9 @@ from skip_search_spec.protocols.windows import (
 )
 
 from skip_search_spec.helpers.shared_decoding_tools import (
+    DEFAULT_CHAT_SYSTEM_PROMPT,
     build_mixed_fixed_window_dataloader,
+    build_mixed_fixed_window_dataloader_chat,
     crop_past_key_values,
     get_effective_gap_mode,
     make_layer_pattern,
@@ -91,11 +93,18 @@ def run_drafter_on_training_sections(
     teacher: VerifierBridgeOutput,
     input_ids: torch.Tensor,
     attention_mask: torch.Tensor,
+    loss_mask: torch.Tensor,
     train_sections: list[tuple[int, int]],
     include_hidden_targets: bool,
 ) -> TrainingSectionsBatch:
     if teacher.past_key_values is None:
         raise RuntimeError("Verifier did not return past_key_values.")
+
+    if loss_mask.shape != input_ids.shape:
+        raise ValueError(
+            f"loss_mask shape {tuple(loss_mask.shape)} must match "
+            f"input_ids shape {tuple(input_ids.shape)}."
+        )
 
     prev_reference_hidden = bridged.build_prev_reference(
         teacher.reference_hidden,
@@ -140,7 +149,7 @@ def run_drafter_on_training_sections(
             teacher.logits[:, section_start:section_end, :].detach()
         )
         train_mask_parts.append(
-            attention_mask[:, section_start:section_end].bool()
+            loss_mask[:, section_start:section_end].bool()
         )
         section_offset_parts.append(
             torch.arange(
@@ -264,6 +273,9 @@ def train_skipping_layers(
     log_every: int = 100,
     measurement_save_interval_seconds: float = 60.0,
     num_draft_sections: int = 4,
+    use_chat_dataset: bool = False,
+    one_chat_window_per_example: bool = True,
+    chat_system_prompt: str | None = DEFAULT_CHAT_SYSTEM_PROMPT,
 ) -> TrainGapBridgeOutput:
     stage("train_gap_bridge: start")
 
@@ -302,15 +314,28 @@ def train_skipping_layers(
 
     stage("building dataloader")
 
-    dataloader = build_mixed_fixed_window_dataloader(
-        dataset_mix=dataset_mix,
-        model_and_tokenizer=cast(ModelAndTokenizer, bridged),
-        context_len=context_len,
-        num_windows_to_use=num_windows_to_use,
-        batch_size=batch_size,
-        device=device,
-        shuffle=True,
-    )
+    if use_chat_dataset:
+        dataloader = build_mixed_fixed_window_dataloader_chat(
+            dataset_mix=dataset_mix,
+            model_and_tokenizer=cast(ModelAndTokenizer, bridged),
+            context_len=context_len,
+            num_windows_to_use=num_windows_to_use,
+            batch_size=batch_size,
+            device=device,
+            shuffle=True,
+            one_window_per_example=one_chat_window_per_example,
+            system_prompt=chat_system_prompt,
+        )
+    else:
+        dataloader = build_mixed_fixed_window_dataloader(
+            dataset_mix=dataset_mix,
+            model_and_tokenizer=cast(ModelAndTokenizer, bridged),
+            context_len=context_len,
+            num_windows_to_use=num_windows_to_use,
+            batch_size=batch_size,
+            device=device,
+            shuffle=True,
+        )
 
 
     step = 0
@@ -364,6 +389,9 @@ def train_skipping_layers(
             "checkpoint_every_steps": checkpoint_every_steps,
             "log_every": log_every,
             "num_draft_sections": num_draft_sections,
+            "use_chat_dataset": use_chat_dataset,
+            "one_chat_window_per_example": one_chat_window_per_example,
+            "chat_system_prompt": chat_system_prompt,
         },
     )
 
@@ -407,6 +435,9 @@ def train_skipping_layers(
                     "teacher_temperature": teacher_temperature,
                     "reference_hidden_source": reference_hidden_source,
                     "num_draft_sections": num_draft_sections,
+                    "use_chat_dataset": use_chat_dataset,
+                    "one_chat_window_per_example": one_chat_window_per_example,
+                    "chat_system_prompt": chat_system_prompt,
                 },
             },
         )
@@ -418,14 +449,21 @@ def train_skipping_layers(
     )
 
     for epoch_idx in range(num_epochs):
-        for batch_idx, (input_ids, attention_mask) in enumerate(dataloader, start=1):
+        for batch_idx, batch in enumerate(dataloader, start=1):
             if max_steps is not None and step >= max_steps:
                 break
 
             step += 1
 
+            if use_chat_dataset:
+                input_ids, attention_mask, loss_mask = batch
+            else:
+                input_ids, attention_mask = batch
+                loss_mask = attention_mask
+
             input_ids = input_ids.to(device, non_blocking=True)
             attention_mask = attention_mask.to(device, non_blocking=True)
+            loss_mask = loss_mask.to(device, non_blocking=True)
 
             optimizer.zero_grad(set_to_none=True)
 
@@ -444,6 +482,7 @@ def train_skipping_layers(
                 teacher=teacher,
                 input_ids=input_ids,
                 attention_mask=attention_mask,
+                loss_mask=loss_mask,
                 train_sections=train_sections,
                 include_hidden_targets=hidden_loss_weight > 0.0,
             )
@@ -487,6 +526,7 @@ def train_skipping_layers(
                     sim = distribution_similarity_metrics(
                         shift_logits_drafter=student_train_logits,
                         shift_logits_verifier=teacher_train_logits,
+                        mask=train_mask,
                     )
 
                 batch_metrics = [

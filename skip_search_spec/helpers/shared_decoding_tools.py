@@ -20,6 +20,13 @@ from skip_search_spec.helpers.window_building import (
     collate_windows,
     tokenize_dataset_to_examples,
 )
+from skip_search_spec.helpers.window_building_chat import (
+    DEFAULT_CHAT_SYSTEM_PROMPT,
+    WindowDataset as ChatWindowDataset,
+    build_window_index as build_chat_window_index,
+    collate_windows as collate_chat_windows,
+    tokenize_dataset_to_examples as tokenize_chat_dataset_to_examples,
+)
 from skip_search_spec.protocols.windows import (
     DatasetSpec,
     ModelAndTokenizer,
@@ -483,6 +490,58 @@ def build_fixed_window_dataloader(
     )
 
 
+def build_fixed_window_dataloader_chat(
+    *,
+    dataset_spec: DatasetSpec,
+    model_and_tokenizer: ModelAndTokenizer,
+    context_len: int,
+    max_examples: int,
+    num_windows_to_use: int,
+    batch_size: int,
+    device: torch.device,
+    shuffle: bool,
+    one_window_per_example: bool = True,
+    system_prompt: str | None = DEFAULT_CHAT_SYSTEM_PROMPT,
+) -> DataLoader[Any]:
+    dataset: Dataset = load_dataset(dataset_spec)
+    window_settings = WindowSettings(C1=context_len)
+
+    tokenized_examples = tokenize_chat_dataset_to_examples(
+        dataset,
+        model_and_tokenizer.tokenizer,
+        dataset_spec,
+        max_examples=max_examples,
+        system_prompt=system_prompt,
+    )
+
+    window_index = build_chat_window_index(
+        tokenized_examples,
+        window_settings,
+        one_window_per_example=one_window_per_example,
+    )
+
+    if len(window_index) < num_windows_to_use:
+        raise ValueError(
+            f"Requested {num_windows_to_use} windows, but only built {len(window_index)}."
+        )
+
+    selected_window_index = window_index[:num_windows_to_use]
+
+    window_dataset = ChatWindowDataset(
+        tokenized_examples=tokenized_examples,
+        window_index=selected_window_index,
+        window_settings=window_settings,
+    )
+
+    return DataLoader(
+        window_dataset,
+        batch_size=batch_size,
+        shuffle=shuffle,
+        collate_fn=collate_chat_windows,
+        pin_memory=(device.type == "cuda"),
+    )
+
+
 def split_count_by_weights(
     *,
     total: int,
@@ -589,6 +648,92 @@ def build_mixed_fixed_window_dataloader(
 
     stage(
         f"built mixed dataset with {len(mixed_dataset)} windows "
+        f"from {len(datasets)} sources"
+    )
+
+    return DataLoader(
+        mixed_dataset,
+        batch_size=batch_size,
+        shuffle=shuffle,
+        collate_fn=collate_fn,
+        pin_memory=(device.type == "cuda"),
+    )
+
+
+def build_mixed_fixed_window_dataloader_chat(
+    *,
+    dataset_mix: list[tuple[DatasetSpec, float, int]],
+    model_and_tokenizer: ModelAndTokenizer,
+    context_len: int,
+    num_windows_to_use: int,
+    batch_size: int,
+    device: torch.device,
+    shuffle: bool = True,
+    one_window_per_example: bool = True,
+    system_prompt: str | None = DEFAULT_CHAT_SYSTEM_PROMPT,
+) -> DataLoader[Any]:
+    if len(dataset_mix) == 0:
+        raise ValueError("dataset_mix must contain at least one dataset.")
+
+    for dataset_spec, weight, max_examples in dataset_mix:
+        if weight <= 0:
+            raise ValueError(
+                f"Dataset {dataset_spec.name} has invalid weight={weight}. "
+                "Weights must be > 0."
+            )
+
+        if max_examples <= 0:
+            raise ValueError(
+                f"Dataset {dataset_spec.name} has invalid max_examples={max_examples}. "
+                "Per-dataset max_examples must be > 0."
+            )
+
+    weights = [weight for _, weight, _ in dataset_mix]
+
+    windows_per_dataset = split_count_by_weights(
+        total=num_windows_to_use,
+        weights=weights,
+    )
+
+    datasets: list[Any] = []
+    collate_fn: Any | None = None
+
+    for (dataset_spec, weight, source_max_examples), source_num_windows in zip(
+        dataset_mix,
+        windows_per_dataset,
+    ):
+        stage(
+            f"building chat source dataloader: {dataset_spec.name} "
+            f"weight={weight:.3f} "
+            f"max_examples={source_max_examples} "
+            f"num_windows={source_num_windows}"
+        )
+
+        source_loader = build_fixed_window_dataloader_chat(
+            dataset_spec=dataset_spec,
+            model_and_tokenizer=model_and_tokenizer,
+            context_len=context_len,
+            max_examples=source_max_examples,
+            num_windows_to_use=source_num_windows,
+            batch_size=batch_size,
+            device=device,
+            shuffle=shuffle,
+            one_window_per_example=one_window_per_example,
+            system_prompt=system_prompt,
+        )
+
+        datasets.append(source_loader.dataset)
+
+        if collate_fn is None:
+            collate_fn = source_loader.collate_fn
+
+    if collate_fn is None:
+        raise RuntimeError("Failed to get collate_fn from source dataloaders.")
+
+    mixed_dataset = ConcatDataset(datasets)
+
+    stage(
+        f"built mixed chat dataset with {len(mixed_dataset)} windows "
         f"from {len(datasets)} sources"
     )
 

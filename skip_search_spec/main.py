@@ -31,13 +31,13 @@ def main() -> None:
 
 
     if mode == "train_skipping_layers":
-        from skip_search_spec.experiments.dataset_mix import get_dataset_mix
+        from skip_search_spec.experiments.dataset_mix import get_chat_dataset_mix
         from skip_search_spec.training.train_skipping_layers import train_skipping_layers
 
-        number_of_windows = 100_000
+        number_of_windows = 30_000
         num_epochs = 1 # Ensure never get scores on data it has seen
 
-        models = ["mistralai/Mistral-7B-v0.3"]
+        models = ["meta-llama/Llama-3.2-3B-Instruct"]
         active_start_end_lengths = [(5, 5)]
 
         # SINGLE LAYER AT START
@@ -49,7 +49,7 @@ def main() -> None:
 
                 train_skipping_layers(
                     model_name=model,
-                    dataset_mix=get_dataset_mix(number_of_windows),
+                    dataset_mix=get_chat_dataset_mix(number_of_windows),
                     context_len=256,
                     num_windows_to_use=number_of_windows,
                     batch_size=10,
@@ -64,7 +64,8 @@ def main() -> None:
                     checkpoint_every_steps=1000,
                     log_every=100,
                     num_draft_sections=4,
-                    reference_hidden_source="final"
+                    reference_hidden_source="final",
+                    use_chat_dataset=True,
                 )
 
        

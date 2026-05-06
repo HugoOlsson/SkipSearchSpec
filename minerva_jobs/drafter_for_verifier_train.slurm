@@ -46,4 +46,4 @@ fi
 
 run_cmd=("$VENV_PATH/bin/python" -u -m skip_search_spec.main)
 echo "Run command: ${run_cmd[*]}"
-"${run_cmd[@]}" train_drafter_for_verifier
+"${run_cmd[@]}" train_skipping_layers

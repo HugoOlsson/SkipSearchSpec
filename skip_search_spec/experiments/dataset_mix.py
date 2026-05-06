@@ -34,6 +34,13 @@ DATASET_SPEC_EDU = DatasetSpec(
     text_field="text",
 )
 
+DATASET_SPEC_TULU_CHAT = DatasetSpec(
+    name="Tulu-3-SFT-Mixture-English",
+    huggingface_path="yimingzhang/tulu-3-sft-mixture-english",
+    split="train",
+    text_field="messages",
+)
+
 
 def _max_examples_for_source(
     num_windows: int,
@@ -47,6 +54,16 @@ def get_dataset_mix(num_windows: int = 10_000) -> list[tuple[DatasetSpec, float,
     return [
         (
             DATASET_SPEC_EDU,
+            1.0,
+            _max_examples_for_source(num_windows, 1.0, 1.5),
+        ),
+    ]
+
+
+def get_chat_dataset_mix(num_windows: int = 10_000) -> list[tuple[DatasetSpec, float, int]]:
+    return [
+        (
+            DATASET_SPEC_TULU_CHAT,
             1.0,
             _max_examples_for_source(num_windows, 1.0, 1.5),
         ),

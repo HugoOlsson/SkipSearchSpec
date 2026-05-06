@@ -155,9 +155,20 @@ def assert_same_tokenizer(
 def distribution_similarity_metrics(
     shift_logits_drafter: torch.Tensor,
     shift_logits_verifier: torch.Tensor,
+    mask: torch.Tensor | None = None,
 ) -> dict[str, torch.Tensor]:
     shift_logits_drafter = shift_logits_drafter.detach().float()
     shift_logits_verifier = shift_logits_verifier.detach().float()
+
+    def mean_metric(values: torch.Tensor) -> torch.Tensor:
+        if mask is None:
+            return values.mean()
+
+        if values.shape != mask.shape:
+            raise ValueError(f"values.shape {values.shape} != mask.shape {mask.shape}")
+
+        mask_f = mask.to(device=values.device, dtype=values.dtype)
+        return (values * mask_f).sum() / mask_f.sum().clamp_min(1.0)
 
     log_p_drafter = F.log_softmax(shift_logits_drafter, dim=-1)
     log_p_verifier = F.log_softmax(shift_logits_verifier, dim=-1)
@@ -165,24 +176,34 @@ def distribution_similarity_metrics(
     p_drafter = log_p_drafter.exp()
     p_verifier = log_p_verifier.exp()
 
-    kl_verifier_to_drafter = (p_verifier * (log_p_verifier - log_p_drafter)).sum(dim=-1).mean()
-    kl_drafter_to_verifier = (p_drafter * (log_p_drafter - log_p_verifier)).sum(dim=-1).mean()
+    kl_verifier_to_drafter = mean_metric(
+        (p_verifier * (log_p_verifier - log_p_drafter)).sum(dim=-1)
+    )
+    kl_drafter_to_verifier = mean_metric(
+        (p_drafter * (log_p_drafter - log_p_verifier)).sum(dim=-1)
+    )
 
     m = 0.5 * (p_verifier + p_drafter)
     log_m = torch.log(m.clamp_min(1e-12))
-    js_verifier_drafter = 0.5 * (
+    js_verifier_drafter = mean_metric(0.5 * (
         (p_verifier * (log_p_verifier - log_m)).sum(dim=-1)
         + (p_drafter * (log_p_drafter - log_m)).sum(dim=-1)
-    ).mean()
+    ))
 
     top1_drafter = shift_logits_drafter.argmax(dim=-1)
     top1_verifier = shift_logits_verifier.argmax(dim=-1)
-    top1_drafter_matches_verifier = (top1_drafter == top1_verifier).float().mean()
+    top1_drafter_matches_verifier = mean_metric(
+        (top1_drafter == top1_verifier).float()
+    )
 
     verifier_argmax = top1_verifier.unsqueeze(-1)
-    p_drafter_on_verifier_top1 = p_drafter.gather(dim=-1, index=verifier_argmax).squeeze(-1).mean()
+    p_drafter_on_verifier_top1 = mean_metric(
+        p_drafter.gather(dim=-1, index=verifier_argmax).squeeze(-1)
+    )
 
-    prob_mass_overlap_verifier_drafter = torch.minimum(p_drafter, p_verifier).sum(dim=-1).mean()
+    prob_mass_overlap_verifier_drafter = mean_metric(
+        torch.minimum(p_drafter, p_verifier).sum(dim=-1)
+    )
 
     return {
         "kl_verifier_to_drafter": kl_verifier_to_drafter,
