@@ -686,3 +686,162 @@ INFERENCE_TEST_PROMPTS_EASY = [
 # #         "Tell me a story about a man named Bob that lived in Texas and liked to drive his pickup truck."
 # #     ),
 # # ]
+
+
+CHAT_INFERENCE_TEST_PROMPTS_EASY_SMALL = [
+    (
+        "chat_summary_garden",
+        [
+            {
+                "role": "system",
+                "content": "You are a helpful assistant. Answer clearly and briefly.",
+            },
+            {
+                "role": "user",
+                "content": (
+                    "Summarize this in one sentence:\n\n"
+                    "The community garden opened in May. Volunteers planted tomatoes, carrots, "
+                    "and herbs. Families visit on weekends to water the plants and collect vegetables."
+                ),
+            },
+        ],
+    ),
+    (
+        "chat_fact_elephants",
+        [
+            {
+                "role": "system",
+                "content": "You are a helpful assistant. Answer clearly and briefly.",
+            },
+            {
+                "role": "user",
+                "content": (
+                    "Write two simple facts about elephants."
+                ),
+            },
+        ],
+    ),
+    (
+        "chat_qa_plants",
+        [
+            {
+                "role": "system",
+                "content": "You are a helpful assistant. Answer clearly and briefly.",
+            },
+            {
+                "role": "user",
+                "content": (
+                    "Why do plants need sunlight?"
+                ),
+            },
+        ],
+    ),
+    (
+        "chat_math_cookies",
+        [
+            {
+                "role": "system",
+                "content": "You are a helpful math tutor. Show a short calculation.",
+            },
+            {
+                "role": "user",
+                "content": (
+                    "Sara baked 12 cookies. She gave away 4 and ate 2. "
+                    "How many cookies are left?"
+                ),
+            },
+        ],
+    ),
+    (
+        "chat_transform_formal",
+        [
+            {
+                "role": "system",
+                "content": "You are a helpful writing assistant.",
+            },
+            {
+                "role": "user",
+                "content": (
+                    "Make this note more formal:\n\n"
+                    "hi sam, thanks for helping me yesterday."
+                ),
+            },
+        ],
+    ),
+    (
+        "chat_code_add_numbers",
+        [
+            {
+                "role": "system",
+                "content": "You are a helpful Python assistant. Return only code.",
+            },
+            {
+                "role": "user",
+                "content": (
+                    "Write a Python function called add_numbers that takes two integers "
+                    "and returns their sum."
+                ),
+            },
+        ],
+    ),
+    (
+        "chat_story_cat",
+        [
+            {
+                "role": "system",
+                "content": "You are a creative writing assistant. Keep it short.",
+            },
+            {
+                "role": "user",
+                "content": (
+                    "Write a short three-sentence story about a cat watching rain."
+                ),
+            },
+        ],
+    ),
+    (
+        "chat_procedure_tea",
+        [
+            {
+                "role": "system",
+                "content": "You are a helpful assistant. Use simple steps.",
+            },
+            {
+                "role": "user",
+                "content": (
+                    "Explain how to make a cup of tea in three simple steps."
+                ),
+            },
+        ],
+    ),
+    (
+        "chat_compare_cats_dogs",
+        [
+            {
+                "role": "system",
+                "content": "You are a helpful assistant. Answer clearly and briefly.",
+            },
+            {
+                "role": "user",
+                "content": (
+                    "Compare cats and dogs in two sentences."
+                ),
+            },
+        ],
+    ),
+    (
+        "chat_counting",
+        [
+            {
+                "role": "system",
+                "content": "You are a careful assistant. Follow the instruction exactly.",
+            },
+            {
+                "role": "user",
+                "content": (
+                    "Count from 1 to 10."
+                ),
+            },
+        ],
+    ),
+]

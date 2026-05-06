@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 
-from skip_search_spec.experiments.inference_prompts import INFERENCE_TEST_PROMPTS_EASY, INFERENCE_TEST_PROMPTS_HARD
+from skip_search_spec.experiments.inference_prompts import CHAT_INFERENCE_TEST_PROMPTS_EASY_SMALL, INFERENCE_TEST_PROMPTS_EASY, INFERENCE_TEST_PROMPTS_HARD
 
 
 
@@ -302,7 +302,7 @@ def main() -> None:
         speedups_per_token = []
         number_exact_matches_between_self_spec_and_normal = 0
 
-        for test_idx, (test_name, prompt) in enumerate(INFERENCE_TEST_PROMPTS_EASY, start=1):
+        for test_idx, (test_name, prompt) in enumerate(CHAT_INFERENCE_TEST_PROMPTS_EASY_SMALL, start=1):
             print()
             print(f"Test {test_idx}: {test_name}")
             print()
@@ -315,7 +315,7 @@ def main() -> None:
                 prompt=prompt,
                 max_new_tokens=INFERENCE_TEST_MAX_NEW_TOKENS,
                 draft_block_size=int(draft_block_size),
-                use_chat_template=False,
+                use_chat_template=True,
                 flashhead_path=flashhead_path,
                 build_token_trace=False,
                 measure_internal_timings=False
@@ -348,7 +348,7 @@ def main() -> None:
                     model_name_or_path=result.model_name,
                     prompt=prompt,
                     max_new_tokens=INFERENCE_TEST_MAX_NEW_TOKENS,
-                    use_chat_template=False,
+                    use_chat_template=True,
                     use_cache=True,
                 )
                 total_tokens_produced_normal += normal_run_result.num_generated_tokens
