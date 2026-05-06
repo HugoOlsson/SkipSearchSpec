@@ -248,20 +248,25 @@ def build_chat_windows(
         n = int(example.input_ids.numel())
         if n == 0:
             continue
-        
-        if n <= c1:
-            starts = [0]
-        else:
-            starts = list(range(0, n, c1))
 
-        for start in starts:
-            window = _make_window(example, start, c1, pad_token_id)
-            if not window.loss_mask.any():
-                continue
+        if one_window_per_example:
+            # Chat mode: only keep prefix windows.
+            # This guarantees every training window starts at the real chat start:
+            # BOS/system/user/... not a mid-conversation fragment.
+            window = _make_window(example, start=0, c1=c1, pad_token_id=pad_token_id)
 
-            windows.append(window)
-            if one_window_per_example:
-                break
+            if window.loss_mask.any():
+                windows.append(window)
+
+            continue
+
+        # Non-chat-continuation mode: allow later chunks.
+        # These are language-model chunks, not clean chat-prefix windows.
+        for start in range(0, n, c1):
+            window = _make_window(example, start=start, c1=c1, pad_token_id=pad_token_id)
+
+            if window.loss_mask.any():
+                windows.append(window)
 
     return windows
 
