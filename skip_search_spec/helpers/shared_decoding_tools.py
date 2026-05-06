@@ -502,7 +502,6 @@ def build_fixed_window_dataloader_chat(
     shuffle: bool,
     one_window_per_example: bool = True,
     system_prompt: str | None = DEFAULT_CHAT_SYSTEM_PROMPT,
-    num_draft_sections: int = 4,
 ) -> DataLoader[Any]:
     dataset: Dataset = load_dataset(dataset_spec)
     window_settings = WindowSettings(C1=context_len)
@@ -521,19 +520,11 @@ def build_fixed_window_dataloader_chat(
     if pad_token_id is None:
         raise ValueError("Tokenizer must have either pad_token_id or eos_token_id.")
 
-    if num_draft_sections < 2:
-        raise ValueError(
-            f"num_draft_sections must be at least 2, got {num_draft_sections}."
-        )
-
-    train_start_offset = context_len // num_draft_sections
-
     windows = build_chat_windows(
         tokenized_examples=tokenized_examples,
         window_settings=window_settings,
         pad_token_id=pad_token_id,
         one_window_per_example=one_window_per_example,
-        train_start_offset=train_start_offset,
     )
 
     print(
@@ -544,7 +535,6 @@ def build_fixed_window_dataloader_chat(
             "requested_windows": num_windows_to_use,
             "context_len": context_len,
             "one_window_per_example": one_window_per_example,
-            "train_start_offset": train_start_offset,
             "pad_token_id": pad_token_id,
         },
         flush=True,
@@ -555,8 +545,7 @@ def build_fixed_window_dataloader_chat(
             f"Requested {num_windows_to_use} windows, but only built {len(windows)}."
         )
 
-    selected_windows = windows[:num_windows_to_use]
-    window_dataset = ChatWindowDataset(selected_windows)
+    window_dataset = ChatWindowDataset(windows[:num_windows_to_use])
 
     return DataLoader(
         window_dataset,
@@ -696,7 +685,6 @@ def build_mixed_fixed_window_dataloader_chat(
     shuffle: bool = True,
     one_window_per_example: bool = True,
     system_prompt: str | None = DEFAULT_CHAT_SYSTEM_PROMPT,
-    num_draft_sections: int = 4,
 ) -> DataLoader[Any]:
     if len(dataset_mix) == 0:
         raise ValueError("dataset_mix must contain at least one dataset.")
@@ -707,31 +695,28 @@ def build_mixed_fixed_window_dataloader_chat(
                 f"Dataset {dataset_spec.name} has invalid weight={weight}. "
                 "Weights must be > 0."
             )
-
         if max_examples <= 0:
             raise ValueError(
                 f"Dataset {dataset_spec.name} has invalid max_examples={max_examples}. "
                 "Per-dataset max_examples must be > 0."
             )
 
-    weights = [weight for _, weight, _ in dataset_mix]
-
     windows_per_dataset = split_count_by_weights(
         total=num_windows_to_use,
-        weights=weights,
+        weights=[weight for _, weight, _ in dataset_mix],
     )
 
     datasets: list[Any] = []
     collate_fn: Any | None = None
 
-    for (dataset_spec, weight, source_max_examples), source_num_windows in zip(
+    for (dataset_spec, weight, max_examples), source_num_windows in zip(
         dataset_mix,
         windows_per_dataset,
     ):
         stage(
             f"building chat source dataloader: {dataset_spec.name} "
             f"weight={weight:.3f} "
-            f"max_examples={source_max_examples} "
+            f"max_examples={max_examples} "
             f"num_windows={source_num_windows}"
         )
 
@@ -739,18 +724,16 @@ def build_mixed_fixed_window_dataloader_chat(
             dataset_spec=dataset_spec,
             model_and_tokenizer=model_and_tokenizer,
             context_len=context_len,
-            max_examples=source_max_examples,
+            max_examples=max_examples,
             num_windows_to_use=source_num_windows,
             batch_size=batch_size,
             device=device,
             shuffle=shuffle,
             one_window_per_example=one_window_per_example,
             system_prompt=system_prompt,
-            num_draft_sections=num_draft_sections,
         )
 
         datasets.append(source_loader.dataset)
-
         if collate_fn is None:
             collate_fn = source_loader.collate_fn
 

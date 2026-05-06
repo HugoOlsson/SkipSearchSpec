@@ -123,6 +123,16 @@ def run_drafter_on_training_sections(
     teacher_hidden_parts: list[torch.Tensor] = []
 
     for section_start, section_end in train_sections:
+
+        section_train_mask = (
+            loss_mask[:, section_start:section_end].bool()
+            & attention_mask[:, section_start:section_end].bool()
+        )
+
+        if not section_train_mask.any():
+            continue
+
+
         teacher_cache_at_start = copy.deepcopy(teacher.past_key_values)
         crop_past_key_values(
             teacher_cache_at_start,
@@ -148,12 +158,7 @@ def run_drafter_on_training_sections(
         teacher_logits_parts.append(
             teacher.logits[:, section_start:section_end, :].detach()
         )
-        train_mask_parts.append(
-            (
-                loss_mask[:, section_start:section_end].bool()
-                & attention_mask[:, section_start:section_end].bool()
-            )
-        )
+        train_mask_parts.append(section_train_mask)
         section_offset_parts.append(
             torch.arange(
                 section_end - section_start,
@@ -169,6 +174,9 @@ def run_drafter_on_training_sections(
             teacher_hidden_parts.append(
                 teacher_target_hidden[:, section_start:section_end, :].detach()
             )
+    
+    if not student_logits_parts:
+        raise ValueError("No trainable assistant tokens found in any training section.")
 
     student_hidden = (
         torch.cat(student_hidden_parts, dim=1)
@@ -328,7 +336,6 @@ def train_skipping_layers(
             shuffle=True,
             one_window_per_example=one_chat_window_per_example,
             system_prompt=chat_system_prompt,
-            num_draft_sections=num_draft_sections,
         )
     else:
         dataloader = build_mixed_fixed_window_dataloader(
