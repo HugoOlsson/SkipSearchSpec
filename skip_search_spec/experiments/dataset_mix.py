@@ -2,34 +2,20 @@
 from skip_search_spec.protocols.windows import DatasetSpec
 
 
-DATASET_SPEC_STORIES = DatasetSpec(
-    name="TinyStories",
-    huggingface_path="roneneldan/TinyStories",
-    config_name="default",
-    split="train",
-    text_field="text",
-)
 
-DATASET_SPEC_FINEPDFS = DatasetSpec(
-    name="FinePDFs-1B",
-    huggingface_path="codelion/finepdfs-1B",
-    config_name="default",
-    split="train",
-    text_field="text",
-)
-
-DATASET_SPEC_DCLM = DatasetSpec(
-    name="DCLM-Baseline-1B",
-    huggingface_path="codelion/dclm-baseline-1B",
-    config_name="default",
-    split="train",
-    text_field="text",
-)
 
 DATASET_SPEC_EDU = DatasetSpec(
     name="FineWeb-Edu-1B",
     huggingface_path="codelion/fineweb-edu-1B",
     config_name="default",
+    split="train",
+    text_field="text",
+)
+
+DATASET_SPEC_COSMOPEDIA_100K = DatasetSpec(
+    name="Cosmopedia-100k",
+    huggingface_path="HuggingFaceTB/cosmopedia-100k",
+    config_name=None,  # or "default" if your loader requires a string
     split="train",
     text_field="text",
 )
@@ -44,10 +30,18 @@ def _max_examples_for_source(
 
 
 def get_dataset_mix(num_windows: int = 10_000) -> list[tuple[DatasetSpec, float, int]]:
+    fineweb_fraction = 0.5
+    cosmopedia_fraction = 0.5
+
     return [
         (
             DATASET_SPEC_EDU,
-            1.0,
-            _max_examples_for_source(num_windows, 1.0, 1.2),
+            fineweb_fraction,
+            _max_examples_for_source(num_windows, fineweb_fraction, 1.2),
+        ),
+        (
+            DATASET_SPEC_COSMOPEDIA_100K,
+            cosmopedia_fraction,
+            _max_examples_for_source(num_windows, cosmopedia_fraction, 1.2),
         ),
     ]
