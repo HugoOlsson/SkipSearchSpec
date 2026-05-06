@@ -18,26 +18,40 @@ class NormalInferenceResult:
 
 
 def generate_normal(
-    model_name_or_path: str,
-    prompt: str,
+    model_name_or_path: str | None = None,
+    prompt: str = "",
     *,
     max_new_tokens: int = 100,
     tokenizer_name_or_path: str | None = None,
     use_chat_template: bool = True,
     enable_thinking: bool = False,
     use_cache: bool = True,
+    model: Any | None = None,
+    tokenizer: Any | None = None,
+    device: torch.device | None = None,
 ) -> NormalInferenceResult:
-    device = get_preferred_device()
-    dtype = get_preferred_float_dtype(device)
+    if (model is None) != (tokenizer is None):
+        raise ValueError("model and tokenizer must be provided together.")
 
-    mt = load_model_and_tokenizer(
-        model_name_or_path,
-        tokenizer_name_or_path=tokenizer_name_or_path,
-        model_kwargs={"torch_dtype": dtype},
-    )
+    if model is None or tokenizer is None:
+        if model_name_or_path is None:
+            raise ValueError(
+                "model_name_or_path is required when no loaded model is provided."
+            )
 
-    model = mt.model
-    tokenizer = mt.tokenizer
+        device = get_preferred_device()
+        dtype = get_preferred_float_dtype(device)
+
+        mt = load_model_and_tokenizer(
+            model_name_or_path,
+            tokenizer_name_or_path=tokenizer_name_or_path,
+            model_kwargs={"torch_dtype": dtype},
+        )
+
+        model = mt.model
+        tokenizer = mt.tokenizer
+    elif device is None:
+        device = next(model.parameters()).device
 
     model.to(device)  # type: ignore[attr-defined]
     model.eval()
