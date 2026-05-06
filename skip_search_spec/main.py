@@ -19,8 +19,8 @@ from skip_search_spec.protocols.windows import DatasetSpec
 
 
 
-STORE_PATH_FLASH_HEAD = "checkpoints/flashhead_qwen3_06b_4748c.pt"
-MODEL_NAME_FLASH_HEAD = "Qwen/Qwen3-0.6B"
+STORE_PATH_FLASH_HEAD = "checkpoints/flashhead_llama32_1b_5344c.pt"
+MODEL_NAME_FLASH_HEAD = "meta-llama/Llama-3.2-1B-Instruct"
 
 INFERENCE_TEST_MAX_NEW_TOKENS = 200
 
@@ -36,7 +36,7 @@ def main() -> None:
         from skip_search_spec.experiments.dataset_mix import get_dataset_mix
         from skip_search_spec.training.train_skipping_layers import train_skipping_layers
 
-        number_of_windows = 50_000
+        number_of_windows = 100_000
         num_epochs = 1 # Ensure never get scores on data it has seen
 
         models = ["meta-llama/Llama-3.2-1B-Instruct"]

@@ -77,8 +77,8 @@ def build_flashhead_head(store_path: str, model_name: str) -> None:
 
     built_clusters = build_clusters(
         lm_head_vector_table=loaded.lm_head_vector_table,
-        num_clusters=4748,
-        num_iters=150,
+        num_clusters=5344,
+        num_iters=100,
         normalize_vectors=True,
         seed=0,
     )
