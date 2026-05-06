@@ -184,11 +184,6 @@ def main() -> None:
 
 
     elif mode == "test_self_spec":
-        if len(sys.argv) <= 3:
-            raise ValueError(
-                "Must provide 3 arguments"
-            )
-        
         from skip_search_spec.inference.self_spec_inference import BridgeSelfSpeculator
         from skip_search_spec.inference.normal_inference import generate_normal
         from skip_search_spec.training.bridged_gap_model import BridgedGapModel
@@ -201,12 +196,27 @@ def main() -> None:
             action="store_true",
             help="Compare self-spec output to normal generation.",
         )
+        parser.add_argument(
+            "--prompt-set",
+            choices=("completion-style", "chat-style"),
+            default="completion-style",
+            help="Prompt set to run. completion-style preserves the old behavior.",
+        )
 
         args, remaining_argv = parser.parse_known_args(sys.argv[2:])
+        if len(remaining_argv) < 2:
+            raise ValueError(
+                "Must provide draft_block_size and bridge_checkpoint_path."
+            )
 
         draft_block_size = remaining_argv[0]
         bridge_checkpoint_path = remaining_argv[1]
         flashhead_path = remaining_argv[2] if len(remaining_argv) > 2 else None
+        prompt_sets = {
+            "chat-style": (CHAT_TEST_PROMPTS, True),
+            "completion-style": (INFERENCE_TEST_PROMPTS_EASY, False),
+        }
+        test_prompts, use_chat_template = prompt_sets[args.prompt_set]
 
         total_inference_seconds = 0.0
         total_accept_rate = 0.0
@@ -227,7 +237,7 @@ def main() -> None:
             flashhead_top_k_clusters=50,
         )
 
-        for test_idx, (test_name, prompt) in enumerate(INFERENCE_TEST_PROMPTS_EASY, start=1):
+        for test_idx, (test_name, prompt) in enumerate(test_prompts, start=1):
             print()
             print(f"Test {test_idx}: {test_name}")
             print()
@@ -239,7 +249,7 @@ def main() -> None:
                 prompt=prompt,
                 max_new_tokens=INFERENCE_TEST_MAX_NEW_TOKENS,
                 draft_block_size=int(draft_block_size),
-                use_chat_template=False,
+                use_chat_template=use_chat_template,
                 build_token_trace=False,
                 measure_internal_timings=False
             )
@@ -270,7 +280,7 @@ def main() -> None:
                 normal_run_result = generate_normal(
                     prompt=prompt,
                     max_new_tokens=INFERENCE_TEST_MAX_NEW_TOKENS,
-                    use_chat_template=False,
+                    use_chat_template=use_chat_template,
                     use_cache=True,
                     model=bridged.model,
                     tokenizer=bridged.tokenizer,
