@@ -346,16 +346,22 @@ def inspect_training_windows(
     print(f"Wrote window inspection to {output_path}", flush=True)
 
 
-def run_drafter_on_training_sections(
+def run_drafter_from_assistant_start(
     *,
     bridged: BridgedGapModel,
     teacher: VerifierBridgeOutput,
     input_ids: torch.Tensor,
     attention_mask: torch.Tensor,
     loss_mask: torch.Tensor,
-    train_sections: list[tuple[int, int]],
     include_hidden_targets: bool,
 ) -> TrainingSectionsBatch:
+    """
+    For each row, launch the drafter once from the first trainable assistant token.
+
+    The teacher/verifier has already run on the full batch. Since each row can have
+    a different assistant-start position, the drafter is run row-by-row with a
+    row-specific cropped teacher KV-cache.
+    """
     if teacher.past_key_values is None:
         raise RuntimeError("Verifier did not return past_key_values.")
 
@@ -365,9 +371,16 @@ def run_drafter_on_training_sections(
             f"input_ids shape {tuple(input_ids.shape)}."
         )
 
+    if attention_mask.shape != input_ids.shape:
+        raise ValueError(
+            f"attention_mask shape {tuple(attention_mask.shape)} must match "
+            f"input_ids shape {tuple(input_ids.shape)}."
+        )
+
     prev_reference_hidden = bridged.build_prev_reference(
         teacher.reference_hidden,
     )
+
     teacher_target_hidden = (
         bridged.bridge_target_hidden(teacher)
         if include_hidden_targets
@@ -381,61 +394,89 @@ def run_drafter_on_training_sections(
     student_hidden_parts: list[torch.Tensor] = []
     teacher_hidden_parts: list[torch.Tensor] = []
 
-    for section_start, section_end in train_sections:
+    batch_size = input_ids.size(0)
 
-        section_train_mask = (
-            loss_mask[:, section_start:section_end].bool()
-            & attention_mask[:, section_start:section_end].bool()
-        )
+    for row_idx in range(batch_size):
+        row_train_positions = torch.nonzero(
+            loss_mask[row_idx].bool() & attention_mask[row_idx].bool(),
+            as_tuple=False,
+        ).flatten()
 
-        if not section_train_mask.any():
+        if row_train_positions.numel() == 0:
             continue
 
+        launch_start = int(row_train_positions[0].item())
+        real_end = int(attention_mask[row_idx].sum().item())
 
-        teacher_cache_at_start = copy.deepcopy(teacher.past_key_values)
-        crop_past_key_values(
-            teacher_cache_at_start,
-            max_length=section_start,
+        if launch_start >= real_end:
+            continue
+
+        row_input_ids = input_ids[row_idx : row_idx + 1, launch_start:real_end]
+        row_attention_mask = attention_mask[row_idx : row_idx + 1, :real_end]
+        row_prev_reference_hidden = prev_reference_hidden[
+            row_idx : row_idx + 1,
+            launch_start:real_end,
+            :,
+        ]
+
+        row_train_mask = (
+            loss_mask[row_idx : row_idx + 1, launch_start:real_end].bool()
+            & attention_mask[row_idx : row_idx + 1, launch_start:real_end].bool()
         )
 
-        student_section = bridged.run_drafter(
-            input_ids=input_ids[:, section_start:section_end],
-            attention_mask=attention_mask[:, :section_end],
-            prev_reference_hidden=prev_reference_hidden[
-                :,
-                section_start:section_end,
-                :,
-            ],
-            past_key_values=teacher_cache_at_start,
+        if not row_train_mask.any():
+            continue
+
+        teacher_cache_at_launch = copy.deepcopy(teacher.past_key_values)
+        crop_past_key_values(
+            teacher_cache_at_launch,
+            max_length=launch_start,
+        )
+
+        student_row = bridged.run_drafter(
+            input_ids=row_input_ids,
+            attention_mask=row_attention_mask,
+            prev_reference_hidden=row_prev_reference_hidden,
+            past_key_values=teacher_cache_at_launch,
             use_cache=True,
         )
 
-        if student_section.logits is None:
+        if student_row.logits is None:
             raise RuntimeError("Drafter logits were not computed.")
 
-        student_logits_parts.append(student_section.logits)
+        student_logits_parts.append(student_row.logits)
         teacher_logits_parts.append(
-            teacher.logits[:, section_start:section_end, :].detach()
+            teacher.logits[
+                row_idx : row_idx + 1,
+                launch_start:real_end,
+                :,
+            ].detach()
         )
-        train_mask_parts.append(section_train_mask)
+        train_mask_parts.append(row_train_mask)
+
         section_offset_parts.append(
             torch.arange(
-                section_end - section_start,
+                real_end - launch_start,
                 device=input_ids.device,
-            ).unsqueeze(0).expand(input_ids.size(0), -1)
+            ).unsqueeze(0)
         )
 
         if include_hidden_targets:
             assert teacher_target_hidden is not None
+
             student_hidden_parts.append(
-                bridged.bridge_prediction_hidden(student_section)
+                bridged.bridge_prediction_hidden(student_row)
             )
             teacher_hidden_parts.append(
-                teacher_target_hidden[:, section_start:section_end, :].detach()
+                teacher_target_hidden[
+                    row_idx : row_idx + 1,
+                    launch_start:real_end,
+                    :,
+                ].detach()
             )
-    
+
     if not student_logits_parts:
-        raise ValueError("No trainable assistant tokens found in any training section.")
+        raise ValueError("No trainable assistant tokens found in this batch.")
 
     student_hidden = (
         torch.cat(student_hidden_parts, dim=1)
@@ -759,20 +800,17 @@ def train_skipping_layers(
                 attention_mask=attention_mask,
             )
 
-            train_sections = make_train_sections(
-                seq_len=input_ids.size(1),
-                num_draft_sections=num_draft_sections,
-            )
-
-            section_batch = run_drafter_on_training_sections(
-                bridged=bridged,
-                teacher=teacher,
-                input_ids=input_ids,
-                attention_mask=attention_mask,
-                loss_mask=loss_mask,
-                train_sections=train_sections,
-                include_hidden_targets=hidden_loss_weight > 0.0,
-            )
+            if use_chat_dataset:
+                section_batch = run_drafter_from_assistant_start(
+                    bridged=bridged,
+                    teacher=teacher,
+                    input_ids=input_ids,
+                    attention_mask=attention_mask,
+                    loss_mask=loss_mask,
+                    include_hidden_targets=hidden_loss_weight > 0.0,
+                )
+            else:
+               raise ValueError("Must be chat-dataset")
 
             student_train_logits = section_batch.student_logits
             teacher_train_logits = section_batch.teacher_logits

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 
-from skip_search_spec.experiments.inference_prompts import CHAT_INFERENCE_TEST_PROMPTS_EASY_SMALL, INFERENCE_TEST_PROMPTS_EASY, INFERENCE_TEST_PROMPTS_HARD
+from skip_search_spec.experiments.inference_prompts import CHAT_INFERENCE_TEST_PROMPTS_EASY_SMALL, CHAT_TEST_PROMPTS, INFERENCE_TEST_PROMPTS_EASY, INFERENCE_TEST_PROMPTS_HARD
 
 
 
@@ -302,7 +302,7 @@ def main() -> None:
         speedups_per_token = []
         number_exact_matches_between_self_spec_and_normal = 0
 
-        for test_idx, (test_name, prompt) in enumerate(CHAT_INFERENCE_TEST_PROMPTS_EASY_SMALL, start=1):
+        for test_idx, (test_name, prompt) in enumerate(CHAT_TEST_PROMPTS, start=1):
             print()
             print(f"Test {test_idx}: {test_name}")
             print()
