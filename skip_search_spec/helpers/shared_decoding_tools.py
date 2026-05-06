@@ -514,6 +514,46 @@ def build_fixed_window_dataloader_chat(
         system_prompt=system_prompt,
     )
 
+
+    # DEBUG: inspect tokenized example lengths and assistant-loss positions.
+    lengths = []
+    first_loss_positions = []
+    no_loss = 0
+
+    for ex in tokenized_examples[:1000]:
+        lengths.append(int(ex.input_ids.numel()))
+        positions = torch.nonzero(ex.loss_mask, as_tuple=False).flatten()
+        if positions.numel() == 0:
+            no_loss += 1
+        else:
+            first_loss_positions.append(int(positions[0]))
+
+    print("DEBUG C1:", window_settings.C1)
+    print("DEBUG num sampled:", len(lengths))
+    print("DEBUG no loss:", no_loss)
+    print(
+        "DEBUG length min/median/max:",
+        min(lengths),
+        sorted(lengths)[len(lengths) // 2],
+        max(lengths),
+    )
+    print(
+        "DEBUG first loss min/median/max:",
+        min(first_loss_positions) if first_loss_positions else None,
+        sorted(first_loss_positions)[len(first_loss_positions) // 2]
+        if first_loss_positions
+        else None,
+        max(first_loss_positions) if first_loss_positions else None,
+    )
+    print(
+        "DEBUG fraction length >= C1:",
+        sum(x >= window_settings.C1 for x in lengths) / len(lengths),
+    )
+    print(
+        "DEBUG fraction first loss < C1:",
+        sum(x < window_settings.C1 for x in first_loss_positions) / len(lengths),
+    )
+
     window_index = build_chat_window_index(
         tokenized_examples,
         window_settings,

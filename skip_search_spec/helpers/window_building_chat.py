@@ -189,6 +189,13 @@ def tokenize_dataset_to_examples(
         raise ValueError(f"batch_size must be > 0, got {batch_size}")
     if print_every <= 0:
         raise ValueError(f"print_every must be > 0, got {print_every}")
+    
+    using_offset_fallback = not _chat_template_has_generation_spans(tokenizer)
+    if using_offset_fallback:
+        print(
+            "Tokenizer chat_template has no {% generation %} spans; "
+            "using offset-based assistant-mask fallback."
+        )
 
     messages_field = dataset_spec.text_field
     num_rows = len(dataset)
@@ -278,6 +285,9 @@ def build_window_index(
     c1 = window_settings.C1
     if c1 <= 0:
         raise ValueError(f"window_settings.C1 must be > 0, got {c1}")
+    
+    print("DEBUG C1 =", window_settings.C1)
+    print("DEBUG one_window_per_example =", one_window_per_example)
 
     window_index: list[tuple[int, int]] = []
 
