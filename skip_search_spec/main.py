@@ -36,10 +36,10 @@ def main() -> None:
         from skip_search_spec.experiments.dataset_mix import get_dataset_mix
         from skip_search_spec.training.train_skipping_layers import train_skipping_layers
 
-        number_of_windows = 70_000
+        number_of_windows = 50_000
         num_epochs = 1 # Ensure never get scores on data it has seen
 
-        models = ["meta-llama/Llama-3.2-3B-Instruct"]
+        models = ["meta-llama/Llama-3.1-8B-Instruct"]
         active_start_end_lengths = [(2, 2)]
 
         # SINGLE LAYER AT START
@@ -92,14 +92,14 @@ def main() -> None:
             text_field="text",
         )
 
-        results = evaluate_layer_skip_ablations(
-            model_name="meta-llama/Llama-3.2-1B",
-            dataset_spec=DATASET_SPEC,
-            context_len=256,
-            max_examples=100,
-            num_windows_to_use=20,
-            batch_size=10,
-        )
+        # results = evaluate_layer_skip_ablations(
+        #     model_name="meta-llama/Llama-3.2-1B",
+        #     dataset_spec=DATASET_SPEC,
+        #     context_len=256,
+        #     max_examples=100,
+        #     num_windows_to_use=20,
+        #     batch_size=10,
+        # )
 
         results = evaluate_layer_skip_ablations(
             model_name="meta-llama/Llama-3.2-3B",
@@ -107,17 +107,17 @@ def main() -> None:
             context_len=256,
             max_examples=100,
             num_windows_to_use=20,
-            batch_size=10,
+            batch_size=2,
         )
 
-        results = evaluate_layer_skip_ablations(
-            model_name="meta-llama/Llama-3.1-8B",
-            dataset_spec=DATASET_SPEC,
-            context_len=256,
-            max_examples=100,
-            num_windows_to_use=20,
-            batch_size=10,
-        )
+        # results = evaluate_layer_skip_ablations(
+        #     model_name="meta-llama/Llama-3.1-8B",
+        #     dataset_spec=DATASET_SPEC,
+        #     context_len=256,
+        #     max_examples=100,
+        #     num_windows_to_use=20,
+        #     batch_size=10,
+        # )
 
     elif mode == "plot_layer_ablation_results":
         from skip_search_spec.analysis.plot_ablations_results import plot_ablation_json
@@ -127,6 +127,21 @@ def main() -> None:
         plot_ablation_json(
             file_path,
             metric="mean_kl_full_to_masked",
+            sort_order="smallest_to_biggest",
+            top_k=None,   # or e.g. 50
+        )
+
+        plot_ablation_json(
+            file_path,
+            metric="kl_per_removed_layer",
+            sort_order="smallest_to_biggest",
+            top_k=None,   # or e.g. 50
+        )
+
+        plot_ablation_json(
+            file_path,
+            metric="mean_top1_agreement",
+            sort_order="biggest_to_smallest",
             top_k=None,   # or e.g. 50
         )
 

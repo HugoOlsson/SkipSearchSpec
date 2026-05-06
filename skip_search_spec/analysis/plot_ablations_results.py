@@ -11,6 +11,12 @@ import matplotlib.pyplot as plt
 
 DEFAULT_METRIC = "kl_per_removed_layer"
 DEFAULT_NUM_COLUMNS = 3
+SORT_ORDER_TO_ASCENDING = {
+    "ascending": True,
+    "smallest_to_biggest": True,
+    "descending": False,
+    "biggest_to_smallest": False,
+}
 
 CATEGORY_COLORS = {
     "early_exit": "#D97706",    
@@ -90,6 +96,19 @@ def _sanitize_filename(text: str) -> str:
     sanitized = "".join(c if c in allowed else "_" for c in text)
     sanitized = sanitized.strip("._")
     return sanitized or "plot"
+
+
+def _resolve_ascending(*, ascending: bool, sort_order: str | None) -> bool:
+    if sort_order is None:
+        return ascending
+
+    try:
+        return SORT_ORDER_TO_ASCENDING[sort_order]
+    except KeyError as error:
+        valid_values = ", ".join(SORT_ORDER_TO_ASCENDING)
+        raise ValueError(
+            f"sort_order must be one of: {valid_values}. Got {sort_order!r}."
+        ) from error
 
 
 def _pick_ablation_index(result: dict[str, Any], fallback_index_1_based: int) -> int:
@@ -177,6 +196,7 @@ def plot_ablation_json(
     title: str | None = None,
     top_k: int | None = None,
     ascending: bool = True,
+    sort_order: str | None = None,
     include_full_model: bool = False,
     dpi: int = 220,
     num_columns: int = DEFAULT_NUM_COLUMNS,
@@ -190,8 +210,14 @@ def plot_ablation_json(
 
     All bar regions use the same global x-limits, so the normalization is shared
     across the full figure.
+
+    Sorting defaults to ascending, so the smallest metric values appear first at
+    the top-left. Pass sort_order="biggest_to_smallest" for metrics where higher
+    is better, such as mean_top1_agreement. The ascending argument is kept for
+    backward compatibility.
     """
     json_path = Path(json_path)
+    ascending = _resolve_ascending(ascending=ascending, sort_order=sort_order)
     metadata, rows = _prepare_rows(
         json_path=json_path,
         metric=metric,
@@ -428,6 +454,15 @@ def main() -> None:
         help="Sort from highest to lowest instead of lowest to highest",
     )
     parser.add_argument(
+        "--sort-order",
+        choices=tuple(SORT_ORDER_TO_ASCENDING),
+        default=None,
+        help=(
+            "Sort direction. Use smallest_to_biggest for metrics where lower is "
+            "better, or biggest_to_smallest for metrics where higher is better."
+        ),
+    )
+    parser.add_argument(
         "--include-full-model",
         action="store_true",
         help="Include entries with zero removed layers",
@@ -454,6 +489,7 @@ def main() -> None:
         title=args.title,
         top_k=args.top_k,
         ascending=not args.descending,
+        sort_order=args.sort_order,
         include_full_model=args.include_full_model,
         dpi=args.dpi,
         num_columns=args.num_columns,
