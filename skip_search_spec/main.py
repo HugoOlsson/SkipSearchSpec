@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import os
 
+import torch
+
 from skip_search_spec.experiments.inference_prompts import CHAT_TEST_PROMPTS, INFERENCE_TEST_PROMPTS_EASY, INFERENCE_TEST_PROMPTS_HARD
 
 
@@ -217,7 +219,7 @@ def main() -> None:
 
         bridged = BridgedGapModel.load_from_checkpoint(
             bridge_checkpoint_path=bridge_checkpoint_path,
-            bridge_dtype="model",
+            bridge_dtype=torch.float32,
         )
         speculator = BridgeSelfSpeculator(
             bridged_model=bridged,
