@@ -453,7 +453,7 @@ INFERENCE_TEST_PROMPTS_HARD = [
 ]
 
 
-EASY_INFERENCE_TEST_PROMPTS_EASY = [
+INFERENCE_TEST_PROMPTS_EASY = [
     (
         "easy_summary_garden",
         (

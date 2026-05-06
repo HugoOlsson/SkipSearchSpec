@@ -17,13 +17,20 @@ class BuiltFlashHeadClusters:
 
 @dataclass(frozen=True, slots=True)
 class FlashHeadIndex:
-    centroids_t: Tensor                    # [hidden_size, num_clusters], contiguous
-    cluster_to_token_ids: Tensor           # [num_clusters, cluster_size], no padding
-    clustered_lm_head: Tensor              # [num_clusters, cluster_size, hidden_size]
-    clustered_lm_head_bias: Tensor | None  # [num_clusters, cluster_size] or None
-    cluster_size: int
-    num_clusters: int
-    vocab_size: int
+    # [hidden_size, num_clusters], transposed centroids for fast cluster scoring
+    centroids_t: Tensor          
+    # [num_clusters, cluster_size], token ids contained in each cluster          
+    cluster_to_token_ids: Tensor     
+    # [num_clusters, cluster_size, hidden_size], LM-head rows grouped by cluster      
+    clustered_lm_head: Tensor           
+    # [num_clusters, cluster_size] or None, matching LM-head bias grouped by cluster   
+    clustered_lm_head_bias: Tensor | None  
+    # number of tokens in each cluster
+    cluster_size: int          
+    # total number of clusters           
+    num_clusters: int    
+    # total number of tokens in the vocabulary                 
+    vocab_size: int                        
 
 
 @dataclass(frozen=True, slots=True)

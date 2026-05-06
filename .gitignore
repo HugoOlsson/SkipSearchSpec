@@ -14,3 +14,4 @@ htmlcov/
 observer_dataset_*/
 measurements/**/*.png
 speculation_traces
+alternative-early-exit

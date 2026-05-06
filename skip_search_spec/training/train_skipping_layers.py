@@ -246,7 +246,7 @@ def train_skipping_layers(
     dataset_mix: list[tuple[DatasetSpec, float, int]],
     context_len: int = 256,
     num_windows_to_use: int,
-    batch_size: int = 2,
+    batch_size: int = 10,
     active_start_layers: int,
     active_end_layers: int,
     num_epochs: int = 1, # Always one to maximize data exposure per compute
@@ -258,7 +258,7 @@ def train_skipping_layers(
     ce_loss_weight: float = 1.0,
     hidden_loss_weight: float = 0.0,
     teacher_temperature: float = 1.0,
-    reference_hidden_source: ReferenceHiddenSource = "reentry",
+    reference_hidden_source: ReferenceHiddenSource = "final",
     model_kwargs: dict[str, Any] | None = None,
     checkpoint_every_steps: int | None = None,
     log_every: int = 100,

@@ -17,7 +17,7 @@ class NormalInferenceResult:
     num_generated_tokens: int
 
 
-def generate_from_plain_prompt(
+def generate_normal(
     model_name_or_path: str,
     prompt: str,
     *,

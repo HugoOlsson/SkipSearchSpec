@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 
-from skip_search_spec.experiments.inference_prompts import INFERENCE_TEST_PROMPTS_HARD
+from skip_search_spec.experiments.inference_prompts import INFERENCE_TEST_PROMPTS_EASY, INFERENCE_TEST_PROMPTS_HARD
 
 
 
@@ -20,7 +20,7 @@ from skip_search_spec.protocols.windows import DatasetSpec
 STORE_PATH_FLASH_HEAD = "checkpoints/flashhead_llama32_3b_v2.pt"
 MODEL_NAME_FLASH_HEAD = "meta-llama/Llama-3.2-3B"
 
-INFERENCE_TEST_MAX_NEW_TOKENS = 200
+INFERENCE_TEST_MAX_NEW_TOKENS = 100
 
 
 def main() -> None:
@@ -274,7 +274,7 @@ def main() -> None:
             )
         
         from skip_search_spec.inference.self_spec_inference import self_spec_inference_test
-        from skip_search_spec.inference.normal_inference import generate_from_plain_prompt
+        from skip_search_spec.inference.normal_inference import generate_normal
         import argparse
         import matplotlib.pyplot as plt
 
@@ -300,7 +300,7 @@ def main() -> None:
         speedups_per_token = []
         number_exact_matches_between_self_spec_and_normal = 0
 
-        for test_idx, (test_name, prompt) in enumerate(INFERENCE_TEST_PROMPTS_HARD, start=1):
+        for test_idx, (test_name, prompt) in enumerate(INFERENCE_TEST_PROMPTS_EASY, start=1):
             print()
             print(f"Test {test_idx}: {test_name}")
             print()
@@ -342,7 +342,7 @@ def main() -> None:
 
             if args.compare_to_normal:
                 print("Runs normal inference")
-                normal_run_result = generate_from_plain_prompt(
+                normal_run_result = generate_normal(
                     model_name_or_path=result.model_name,
                     prompt=prompt,
                     max_new_tokens=INFERENCE_TEST_MAX_NEW_TOKENS,
@@ -397,7 +397,7 @@ def main() -> None:
         print("Ratio exact matches:", number_exact_matches_between_self_spec_and_normal/total_number_of_examples_ran)
         if speedups_per_token:
             plt.figure()
-            plt.hist(speedups_per_token, bins=min(10, len(speedups_per_token)))
+            plt.hist(speedups_per_token, bins=min(20, len(speedups_per_token)))
             plt.xlabel("Speedup per generated token")
             plt.ylabel("Number of prompts")
             plt.title("Distribution of self-spec speedups")
@@ -409,7 +409,7 @@ def main() -> None:
 
 
     elif mode == "test_normal_inference":
-        from skip_search_spec.inference.normal_inference import generate_from_plain_prompt
+        from skip_search_spec.inference.normal_inference import generate_normal
 
         total_inference_seconds = 0.0
 
@@ -421,7 +421,7 @@ def main() -> None:
             print(prompt)
             print()
 
-            result = generate_from_plain_prompt(
+            result = generate_normal(
                 model_name_or_path="meta-llama/Llama-3.2-3B",
                 prompt=prompt,
                 max_new_tokens=INFERENCE_TEST_MAX_NEW_TOKENS,
