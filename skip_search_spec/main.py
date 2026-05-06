@@ -52,7 +52,7 @@ def main() -> None:
                     dataset_mix=get_dataset_mix(number_of_windows),
                     context_len=120,
                     num_windows_to_use=number_of_windows,
-                    batch_size=40,
+                    batch_size=30,
                     active_start_layers=active_start_layers, 
                     active_end_layers=active_end_layers,
                     num_epochs=num_epochs,
