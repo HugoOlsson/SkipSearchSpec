@@ -19,8 +19,8 @@ from skip_search_spec.protocols.windows import DatasetSpec
 
 
 
-STORE_PATH_FLASH_HEAD = "checkpoints/flashhead_llama32_3b_v2.pt"
-MODEL_NAME_FLASH_HEAD = "meta-llama/Llama-3.2-3B"
+STORE_PATH_FLASH_HEAD = "checkpoints/flashhead_qwen3_06b_4748c.pt"
+MODEL_NAME_FLASH_HEAD = "Qwen/Qwen3-0.6B"
 
 INFERENCE_TEST_MAX_NEW_TOKENS = 200
 
@@ -40,7 +40,7 @@ def main() -> None:
         num_epochs = 1 # Ensure never get scores on data it has seen
 
         models = ["Qwen/Qwen3-0.6B"]
-        active_start_end_lengths = [(2, 2)]
+        active_start_end_lengths = [(5, 5)]
 
         # SINGLE LAYER AT START
         print("Version: 2.12")
