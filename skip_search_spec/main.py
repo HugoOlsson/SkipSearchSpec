@@ -34,7 +34,7 @@ def main() -> None:
         from skip_search_spec.experiments.dataset_mix import get_dataset_mix
         from skip_search_spec.training.train_skipping_layers import train_skipping_layers
 
-        number_of_windows = 100_000
+        number_of_windows = 20_000
         num_epochs = 1 # Ensure never get scores on data it has seen
 
         models = ["meta-llama/Llama-3.2-3B-Instruct"]
