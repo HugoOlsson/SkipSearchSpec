@@ -149,7 +149,10 @@ def run_drafter_on_training_sections(
             teacher.logits[:, section_start:section_end, :].detach()
         )
         train_mask_parts.append(
-            loss_mask[:, section_start:section_end].bool()
+            (
+                loss_mask[:, section_start:section_end].bool()
+                & attention_mask[:, section_start:section_end].bool()
+            )
         )
         section_offset_parts.append(
             torch.arange(

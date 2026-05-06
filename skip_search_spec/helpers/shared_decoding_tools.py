@@ -577,10 +577,18 @@ def build_fixed_window_dataloader_chat(
 
     selected_window_index = window_index[:num_windows_to_use]
 
-    window_dataset = ChatWindowDataset(
+    pad_token_id = model_and_tokenizer.tokenizer.pad_token_id
+    if pad_token_id is None:
+        pad_token_id = model_and_tokenizer.tokenizer.eos_token_id
+
+    if pad_token_id is None:
+        raise ValueError("Tokenizer must have either pad_token_id or eos_token_id.")
+
+    window_dataset = WindowDataset(
         tokenized_examples=tokenized_examples,
-        window_index=selected_window_index,
+        window_index=window_index,
         window_settings=window_settings,
+        pad_token_id=pad_token_id,
     )
 
     return DataLoader(

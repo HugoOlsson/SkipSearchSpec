@@ -270,24 +270,9 @@ def build_window_index(
     window_settings: WindowSettings,
     one_window_per_example: bool = True,
 ) -> list[tuple[int, int]]:
-    """
-    Build a lightweight index of windows.
-
-    Returns a list of (example_idx, start) pairs, where each window is:
-        tokenized_examples[example_idx][start : start + C1]
-
-    Semantics match the original code:
-      - skip examples shorter than C1
-      - by default, keep only the first window so every window starts a chat
-      - optionally use non-overlapping stride C1
-      - do not cross example boundaries
-    """
     c1 = window_settings.C1
     if c1 <= 0:
         raise ValueError(f"window_settings.C1 must be > 0, got {c1}")
-    
-    print("DEBUG C1 =", window_settings.C1)
-    print("DEBUG one_window_per_example =", one_window_per_example)
 
     window_index: list[tuple[int, int]] = []
 
@@ -306,18 +291,25 @@ def build_window_index(
             )
 
         n = int(input_ids.numel())
-        if n < c1:
-            continue
 
-        if one_window_per_example:
-            if loss_mask[:c1].any():
+        # Short examples are valid. They will be padded in WindowDataset.
+        if n <= c1:
+            if loss_mask[:-1].any() if n > 1 else loss_mask.any():
                 window_index.append((example_idx, 0))
             continue
 
+        if one_window_per_example:
+            # Keep the first C1-token window that actually contains trainable loss.
+            for start in range(0, n - c1 + 1, c1):
+                if loss_mask[start : start + c1 - 1].any():
+                    window_index.append((example_idx, start))
+                    break
+            continue
+
+        # Keep all non-overlapping windows that contain trainable loss.
         for start in range(0, n - c1 + 1, c1):
-            if not loss_mask[start : start + c1].any():
-                continue
-            window_index.append((example_idx, start))
+            if loss_mask[start : start + c1 - 1].any():
+                window_index.append((example_idx, start))
 
         if len(window_index) > 0 and len(window_index) % 10000 == 0:
             print("Has built", len(window_index), "windows")
@@ -325,13 +317,16 @@ def build_window_index(
     return window_index
 
 
-class WindowDataset(TorchDataset[tuple[torch.Tensor, torch.Tensor]]):
+class WindowDataset(TorchDataset[tuple[torch.Tensor, torch.Tensor, torch.Tensor]]):
     """
     Lazy window dataset backed by:
       - tokenized_examples: list of token ids plus loss masks
       - window_index: list of (example_idx, start) pairs
 
-    __getitem__ returns (input_ids, loss_mask), each with shape [C1].
+    __getitem__ returns:
+      - input_ids: [C1]
+      - attention_mask: [C1]
+      - loss_mask: [C1]
     """
 
     def __init__(
@@ -339,10 +334,12 @@ class WindowDataset(TorchDataset[tuple[torch.Tensor, torch.Tensor]]):
         tokenized_examples: list[TokenizedChatExample],
         window_index: list[tuple[int, int]],
         window_settings: WindowSettings,
+        pad_token_id: int,
     ) -> None:
         self.tokenized_examples = tokenized_examples
         self.window_index = window_index
         self.c1 = window_settings.C1
+        self.pad_token_id = pad_token_id
 
         if self.c1 <= 0:
             raise ValueError(f"window_settings.C1 must be > 0, got {self.c1}")
@@ -350,39 +347,95 @@ class WindowDataset(TorchDataset[tuple[torch.Tensor, torch.Tensor]]):
     def __len__(self) -> int:
         return len(self.window_index)
 
-    def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor]:
+    def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         example_idx, start = self.window_index[idx]
         example = self.tokenized_examples[example_idx]
+
         input_ids_window = example.input_ids[start : start + self.c1]
-        loss_mask_window = example.loss_mask[start : start + self.c1]
+        loss_mask_window = example.loss_mask[start : start + self.c1].clone()
+
+        n = int(input_ids_window.numel())
+
+        if n > self.c1:
+            raise RuntimeError(
+                f"Window at idx={idx} has length {n} but expected at most {self.c1}."
+            )
+
+        # Last real position cannot predict a target inside this returned window.
+        if n > 0:
+            loss_mask_window[-1] = False
+
+        attention_mask_window = torch.ones_like(input_ids_window, dtype=torch.long)
+
+        if n < self.c1:
+            pad_len = self.c1 - n
+
+            input_ids_window = torch.cat(
+                [
+                    input_ids_window,
+                    torch.full(
+                        (pad_len,),
+                        self.pad_token_id,
+                        dtype=input_ids_window.dtype,
+                    ),
+                ],
+                dim=0,
+            )
+
+            attention_mask_window = torch.cat(
+                [
+                    attention_mask_window,
+                    torch.zeros(
+                        (pad_len,),
+                        dtype=torch.long,
+                    ),
+                ],
+                dim=0,
+            )
+
+            loss_mask_window = torch.cat(
+                [
+                    loss_mask_window,
+                    torch.zeros(
+                        (pad_len,),
+                        dtype=torch.bool,
+                    ),
+                ],
+                dim=0,
+            )
 
         if input_ids_window.numel() != self.c1:
             raise RuntimeError(
                 f"Window at idx={idx} has length {input_ids_window.numel()} but expected {self.c1}."
+            )
+        if attention_mask_window.numel() != self.c1:
+            raise RuntimeError(
+                f"Attention mask at idx={idx} has length {attention_mask_window.numel()} but expected {self.c1}."
             )
         if loss_mask_window.numel() != self.c1:
             raise RuntimeError(
                 f"Loss mask at idx={idx} has length {loss_mask_window.numel()} but expected {self.c1}."
             )
 
-        return input_ids_window, loss_mask_window
+        return input_ids_window, attention_mask_window, loss_mask_window
 
 
 def collate_windows(
-    batch: list[tuple[torch.Tensor, torch.Tensor]],
+    batch: list[tuple[torch.Tensor, torch.Tensor, torch.Tensor]],
 ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Stack fixed-length windows into:
       - input_ids: [B, C1]
-      - attention_mask: [B, C1] of ones
+      - attention_mask: [B, C1]
       - loss_mask: [B, C1], true where next-token loss should be trained
     """
     if not batch:
         raise ValueError("collate_windows received an empty batch.")
 
     input_ids = torch.stack([item[0] for item in batch], dim=0)
-    loss_mask = torch.stack([item[1] for item in batch], dim=0)
-    attention_mask = torch.ones_like(input_ids)
+    attention_mask = torch.stack([item[1] for item in batch], dim=0)
+    loss_mask = torch.stack([item[2] for item in batch], dim=0)
+
     return input_ids, attention_mask, loss_mask
 
 

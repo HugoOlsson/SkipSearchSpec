@@ -51,7 +51,7 @@ def main() -> None:
                 train_skipping_layers(
                     model_name=model,
                     dataset_mix=get_chat_dataset_mix(number_of_windows),
-                    context_len=384,
+                    context_len=256,
                     num_windows_to_use=number_of_windows,
                     batch_size=5,
                     active_start_layers=active_start_layers, 
