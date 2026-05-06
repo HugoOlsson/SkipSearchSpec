@@ -65,6 +65,6 @@ def get_chat_dataset_mix(num_windows: int = 10_000) -> list[tuple[DatasetSpec, f
         (
             DATASET_SPEC_TULU_CHAT,
             1.0,
-            _max_examples_for_source(num_windows, 1.0, 1.5),
+            _max_examples_for_source(num_windows, 1.0, 3),
         ),
     ]
