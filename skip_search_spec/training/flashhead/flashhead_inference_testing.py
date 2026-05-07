@@ -57,14 +57,15 @@ def save_top1_match_rate_table_image(
             str(metrics.top_k_clusters),
             f"{100 * metrics.top_k_clusters / num_clusters:.2f}%",
             f"{metrics.top1_match_rate:.6f}",
+            f"{metrics.top3_containment:.6f}",
         )
         for metrics in metrics_by_top_k
     ]
 
     fig_height = 0.55 + 0.24 * (len(rows) + 1)
-    fig, ax = plt.subplots(figsize=(6.8, fig_height))
+    fig, ax = plt.subplots(figsize=(8.2, fig_height))
     ax.axis("off")
-    ax.set_title("Top-1 match rate by probing top_k_clusters", pad=3)
+    ax.set_title("Top-1 and top-3 match rate by probing top_k_clusters", pad=3)
 
     table = ax.table(
         cellText=rows,
@@ -72,6 +73,7 @@ def save_top1_match_rate_table_image(
             "top_k_clusters",
             "% of all clusters probed",
             "top1_match_rate",
+            "top3_containment",
         ),
         cellLoc="left",
         colLoc="left",
@@ -89,7 +91,7 @@ def save_top1_match_rate_table_image(
 
     ax.text(
         0.5,
-        0.02,
+        0.01,
         (
             f"commit={git_commit[:7]}  "
             f"windows={num_windows}  "
@@ -99,7 +101,7 @@ def save_top1_match_rate_table_image(
         transform=ax.transAxes,
         ha="center",
         va="bottom",
-        fontsize=8,
+        fontsize=7,
         color="#57606a",
     )
 
