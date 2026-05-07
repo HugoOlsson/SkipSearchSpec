@@ -258,7 +258,7 @@ def main() -> None:
         speculator = BridgeSelfSpeculator(
             bridged_model=bridged,
             flashhead_path=flashhead_path,
-            flashhead_top_k_clusters=50,
+            flashhead_top_k_clusters=20,
         )
 
         for test_idx, (test_name, prompt) in enumerate(test_prompts, start=1):

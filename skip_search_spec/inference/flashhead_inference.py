@@ -84,7 +84,6 @@ def generate_with_flashhead(
     tokenizer_name_or_path: str | None = None,
     use_chat_template: bool = True,
     enable_thinking: bool = False,
-    use_cache: bool = True,
     stop_on_eos: bool = True,
     measure_internal_timings: bool = True,
     model: Any | None = None,
@@ -162,14 +161,11 @@ def generate_with_flashhead(
 
     sync_device_for_timing(device)
     start_time = time.perf_counter()
-
     backbone_call = cast(Any, backbone)
-    find_token = flashhead.find_token
     append_generated_token = generated_token_pieces.append
 
     with torch.inference_mode():
-        if use_cache:
-            for _ in range(max_new_tokens):
+        for _ in range(max_new_tokens):
                 outputs = backbone_call(
                     input_ids=current_ids,
                     past_key_values=past_key_values,
@@ -186,7 +182,7 @@ def generate_with_flashhead(
                     sync_device_for_timing(device)
                     flashhead_start_time = time.perf_counter()
 
-                next_token = find_token(hidden_vector).view(1, 1)
+                next_token = flashhead.find_token(hidden_vector).view(1, 1)
 
                 if measure_internal_timings:
                     flashhead_seconds += elapsed_seconds_since(
@@ -196,35 +192,6 @@ def generate_with_flashhead(
 
                 append_generated_token(next_token)
                 current_ids = next_token
-        else:
-            for _ in range(max_new_tokens):
-                outputs = backbone_call(
-                    input_ids=current_ids,
-                    use_cache=False,
-                    return_dict=False,
-                )
-
-                last_hidden_state, _ = get_backbone_hidden_and_cache(outputs)
-                hidden_vector = last_hidden_state[0, -1, :]
-
-                if measure_internal_timings:
-                    sync_device_for_timing(device)
-                    flashhead_start_time = time.perf_counter()
-
-                next_token = find_token(hidden_vector).view(1, 1)
-
-                if measure_internal_timings:
-                    flashhead_seconds += elapsed_seconds_since(
-                        flashhead_start_time,
-                        device=device,
-                    )
-
-                append_generated_token(next_token)
-                accepted_ids = torch.cat(
-                    [input_ids, *generated_token_pieces],
-                    dim=1,
-                )
-                current_ids = accepted_ids
 
     inference_seconds = elapsed_seconds_since(start_time, device=device)
     accepted_ids = (
