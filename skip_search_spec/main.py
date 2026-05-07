@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from pprint import pprint
 
 import torch
 
@@ -258,7 +259,7 @@ def main() -> None:
         speculator = BridgeSelfSpeculator(
             bridged_model=bridged,
             flashhead_path=flashhead_path,
-            flashhead_top_k_clusters=20,
+            flashhead_top_k_clusters=50,
         )
 
         for test_idx, (test_name, prompt) in enumerate(test_prompts, start=1):
@@ -567,6 +568,192 @@ def main() -> None:
         if args.compare_to_normal:
             print("Per example average speedup per token:", total_speedup_per_token/total_number_of_examples_ran)
             print("Ratio exact matches:", number_exact_matches_between_flashhead_and_normal/total_number_of_examples_ran)
+
+    elif mode == "test_timed_normal_inference":
+        import argparse
+
+        from skip_search_spec.helpers.tooling import get_preferred_device, get_preferred_float_dtype, load_model_and_tokenizer
+        from skip_search_spec.inference.timed_normal_inference import (
+            TimedNormalInferenceOptions,
+            TimedNormalInferenceTimings,
+            generate_timed_normal,
+        )
+
+        parser = argparse.ArgumentParser(add_help=False)
+        parser.add_argument(
+            "--prompt-set",
+            choices=("completion-style", "chat-style", "hard-completion-style"),
+            default="chat-style",
+            help="Prompt set to run.",
+        )
+        parser.add_argument(
+            "--max-new-tokens",
+            type=int,
+            default=INFERENCE_TEST_MAX_NEW_TOKENS,
+            help="Maximum number of new tokens per prompt.",
+        )
+        parser.add_argument(
+            "--limit",
+            type=int,
+            default=None,
+            help="Optional maximum number of prompts to run.",
+        )
+        parser.add_argument(
+            "--measure-body",
+            action=argparse.BooleanOptionalAction,
+            default=True,
+            help="Synchronize and time backbone/body forwards.",
+        )
+        parser.add_argument(
+            "--measure-lm-head",
+            action=argparse.BooleanOptionalAction,
+            default=True,
+            help="Synchronize and time LM-head calls.",
+        )
+        parser.add_argument(
+            "--measure-token-selection",
+            action=argparse.BooleanOptionalAction,
+            default=False,
+            help="Synchronize and time greedy argmax token selection.",
+        )
+        parser.add_argument(
+            "--print-text",
+            action=argparse.BooleanOptionalAction,
+            default=False,
+            help="Print generated text for each prompt.",
+        )
+
+        args, remaining_argv = parser.parse_known_args(sys.argv[2:])
+        model_name = remaining_argv[0] if len(remaining_argv) > 0 else MODEL_NAME_FLASH_HEAD
+        prompt_sets = {
+            "chat-style": (CHAT_TEST_PROMPTS, True),
+            "completion-style": (INFERENCE_TEST_PROMPTS_EASY, False),
+            "hard-completion-style": (INFERENCE_TEST_PROMPTS_HARD, False),
+        }
+        test_prompts, use_chat_template = prompt_sets[args.prompt_set]
+        if args.limit is not None:
+            test_prompts = test_prompts[:args.limit]
+
+        timing_options = TimedNormalInferenceOptions(
+            measure_body=args.measure_body,
+            measure_lm_head=args.measure_lm_head,
+            measure_token_selection=args.measure_token_selection,
+        )
+
+        device = get_preferred_device()
+        dtype = get_preferred_float_dtype(device)
+        mt = load_model_and_tokenizer(
+            model_name,
+            model_kwargs={"torch_dtype": dtype},
+        )
+        model = mt.model
+        tokenizer = mt.tokenizer
+        model.to(device)
+        model.eval()
+
+        if tokenizer.pad_token_id is None:
+            tokenizer.pad_token = tokenizer.eos_token
+
+        total_timings = TimedNormalInferenceTimings()
+        total_generated_tokens = 0
+        total_model_steps = 0
+        total_number_of_examples_ran = 0
+
+        def enabled_timing_measurements(
+            timings: TimedNormalInferenceTimings,
+        ) -> dict[str, float | int]:
+            measurements: dict[str, float | int] = {}
+            if timing_options.measure_body:
+                measurements["body_seconds"] = timings.body_seconds
+                measurements["body_calls"] = timings.body_calls
+                measurements["body_seconds_per_call"] = (
+                    timings.body_seconds / max(timings.body_calls, 1)
+                )
+                measurements["body_share_of_total"] = (
+                    timings.body_seconds / max(timings.total_seconds, 1e-12)
+                )
+            if timing_options.measure_lm_head:
+                measurements["lm_head_seconds"] = timings.lm_head_seconds
+                measurements["lm_head_calls"] = timings.lm_head_calls
+                measurements["lm_head_seconds_per_call"] = (
+                    timings.lm_head_seconds / max(timings.lm_head_calls, 1)
+                )
+                measurements["lm_head_share_of_total"] = (
+                    timings.lm_head_seconds / max(timings.total_seconds, 1e-12)
+                )
+            if timing_options.measure_token_selection:
+                measurements["token_selection_seconds"] = timings.token_selection_seconds
+                measurements["token_selection_calls"] = timings.token_selection_calls
+                measurements["token_selection_seconds_per_call"] = (
+                    timings.token_selection_seconds
+                    / max(timings.token_selection_calls, 1)
+                )
+                measurements["token_selection_share_of_total"] = (
+                    timings.token_selection_seconds
+                    / max(timings.total_seconds, 1e-12)
+                )
+            return measurements
+
+        for test_idx, (test_name, prompt) in enumerate(test_prompts, start=1):
+            print()
+            print(f"Test {test_idx}: {test_name}")
+            print()
+            print("Prompt:")
+            print(prompt)
+            print()
+
+            result = generate_timed_normal(
+                prompt=prompt,
+                max_new_tokens=args.max_new_tokens,
+                use_chat_template=use_chat_template,
+                timing_options=timing_options,
+                model=model,
+                tokenizer=tokenizer,
+                device=device,
+            )
+
+            total_number_of_examples_ran += 1
+            total_generated_tokens += result.num_generated_tokens
+            total_model_steps += result.num_model_steps
+            total_timings.total_seconds += result.timings.total_seconds
+            total_timings.body_seconds += result.timings.body_seconds
+            total_timings.lm_head_seconds += result.timings.lm_head_seconds
+            total_timings.token_selection_seconds += result.timings.token_selection_seconds
+            total_timings.body_calls += result.timings.body_calls
+            total_timings.lm_head_calls += result.timings.lm_head_calls
+            total_timings.token_selection_calls += result.timings.token_selection_calls
+
+            if args.print_text:
+                print(result.text)
+
+            print(
+                {
+                    "inference_seconds": result.inference_seconds,
+                    "num_generated_tokens": result.num_generated_tokens,
+                    "num_model_steps": result.num_model_steps,
+                    "tokens_per_sec": (
+                        result.num_generated_tokens
+                        / max(result.inference_seconds, 1e-12)
+                    ),
+                    **enabled_timing_measurements(result.timings),
+                }
+            )
+
+        print()
+        pprint(
+            {
+                "total_inference_seconds": total_timings.total_seconds,
+                "total_generated_tokens": total_generated_tokens,
+                "total_model_steps": total_model_steps,
+                "overall_tokens_per_sec": (
+                    total_generated_tokens
+                    / max(total_timings.total_seconds, 1e-12)
+                ),
+                "num_examples": total_number_of_examples_ran,
+                **enabled_timing_measurements(total_timings),
+            },
+            sort_dicts=False,
+        )
 
 
     else:
