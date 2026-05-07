@@ -269,7 +269,7 @@ def evaluate_flashhead(stored_path: str, model_name: str) -> None:
 
     max_examples = 100
     context_len = 200
-    num_windows_to_use = 2
+    num_windows_to_use = 30
     batch_size = 8
 
     dataloader = build_fixed_window_dataloader(
