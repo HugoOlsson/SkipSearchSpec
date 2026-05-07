@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import time
 from typing import Any, cast
 
 from torch import Tensor
@@ -11,6 +12,7 @@ from skip_search_spec.helpers.tooling import (
     get_preferred_float_dtype,
     load_model_and_tokenizer,
 )
+from skip_search_spec.helpers.versioning import get_git_revision
 
 from skip_search_spec.helpers.shared_decoding_tools import build_fixed_window_dataloader
 from skip_search_spec.protocols.windows import DatasetSpec, ModelAndTokenizer
@@ -58,6 +60,8 @@ def load_flashhead_base(model_name: str) -> LoadedFlashHeadBase:
 
 
 def build_flashhead_head(store_path: str, model_name: str) -> None:
+    print(f"git_commit={get_git_revision().commit}")
+
     loaded = load_flashhead_base(model_name)
 
     vocab_size, hidden_size = loaded.lm_head_vector_table.shape
@@ -75,6 +79,7 @@ def build_flashhead_head(store_path: str, model_name: str) -> None:
     print()
     print("building clusters...")
 
+    cluster_build_start_seconds = time.perf_counter()
     built_clusters = build_clusters(
         lm_head_vector_table=loaded.lm_head_vector_table,
         num_clusters=5344,
@@ -82,6 +87,8 @@ def build_flashhead_head(store_path: str, model_name: str) -> None:
         normalize_vectors=True,
         seed=0,
     )
+    cluster_build_seconds = time.perf_counter() - cluster_build_start_seconds
+    print(f"cluster_build_seconds={cluster_build_seconds:.3f}")
 
     print()
     print("largest cluster size:")
