@@ -402,7 +402,6 @@ def main() -> None:
         import argparse
 
         from skip_search_spec.inference.flashhead_inference import generate_with_flashhead
-        from skip_search_spec.inference.normal_inference import generate_normal
         from skip_search_spec.helpers.tooling import get_preferred_device, get_preferred_float_dtype, load_model_and_tokenizer
         from skip_search_spec.training.flashhead.next_token_adapter import FlashHeadModule
 
@@ -410,7 +409,7 @@ def main() -> None:
         parser.add_argument(
             "--compare-to-normal",
             action="store_true",
-            help="Compare flashhead output to normal generation.",
+            help="Compare flashhead to the same custom backbone loop with the dense LM head.",
         )
 
         args, remaining_argv = parser.parse_known_args(sys.argv[2:])
@@ -441,12 +440,12 @@ def main() -> None:
         flashhead.eval()
 
         total_inference_seconds = 0.0
-        total_flashhead_seconds = 0.0
+        total_flashhead_head_seconds = 0.0
         total_speedup_per_token = 0.0
         total_number_of_examples_ran = 0
         total_tokens_produced_flashhead = 0
-        total_tokens_produced_normal = 0
-        number_exact_matches_between_flashhead_and_normal = 0
+        total_tokens_produced_dense_head = 0
+        number_exact_matches_between_flashhead_and_dense_head = 0
 
         for test_idx, (test_name, prompt) in enumerate(CHAT_TEST_PROMPTS, start=1):
             print()
@@ -463,12 +462,13 @@ def main() -> None:
                 max_new_tokens=INFERENCE_TEST_MAX_NEW_TOKENS,
                 use_chat_template=True,
                 measure_internal_timings=False,
+                head_mode="flashhead",
                 model=model,
                 tokenizer=tokenizer,
                 device=device,
             )
             total_inference_seconds += result.inference_seconds
-            total_flashhead_seconds += result.flashhead_seconds
+            total_flashhead_head_seconds += result.head_seconds
             total_number_of_examples_ran += 1
             total_tokens_produced_flashhead += result.num_generated_tokens
 
@@ -476,53 +476,56 @@ def main() -> None:
             print(
                 {
                     "inference_seconds": result.inference_seconds,
-                    "flashhead_seconds": result.flashhead_seconds,
+                    "head_seconds": result.head_seconds,
                     "num_generated_tokens": result.num_generated_tokens,
                 }
             )
 
             if args.compare_to_normal:
-                print("Runs normal inference")
-                normal_run_result = generate_normal(
+                print("Runs custom dense-head inference")
+                dense_head_result = generate_with_flashhead(
                     prompt=prompt,
                     max_new_tokens=INFERENCE_TEST_MAX_NEW_TOKENS,
                     use_chat_template=True,
-                    use_cache=True,
+                    measure_internal_timings=False,
+                    head_mode="lm_head",
                     model=model,
                     tokenizer=tokenizer,
                     device=device,
                 )
-                total_tokens_produced_normal += normal_run_result.num_generated_tokens
-                did_match = result.text == normal_run_result.text
+                total_tokens_produced_dense_head += dense_head_result.num_generated_tokens
+                did_match = result.text == dense_head_result.text
                 if did_match:
-                    number_exact_matches_between_flashhead_and_normal += 1
-                print("Did match normal:", did_match)
+                    number_exact_matches_between_flashhead_and_dense_head += 1
+                print("Did match dense head:", did_match)
 
                 if not did_match:
                     first_mismatch_idx = next(
                         (
                             i
-                            for i, (a, b) in enumerate(zip(result.text, normal_run_result.text))
+                            for i, (a, b) in enumerate(zip(result.text, dense_head_result.text))
                             if a != b
                         ),
-                        min(len(result.text), len(normal_run_result.text)),
+                        min(len(result.text), len(dense_head_result.text)),
                     )
 
                     print("First text mismatch index:", first_mismatch_idx)
                     print("Flashhead from mismatch:", repr(result.text[first_mismatch_idx:first_mismatch_idx + 120]))
-                    print("Normal from mismatch:", repr(normal_run_result.text[first_mismatch_idx:first_mismatch_idx + 120]))
+                    print("Dense head from mismatch:", repr(dense_head_result.text[first_mismatch_idx:first_mismatch_idx + 120]))
                 print(
                     {
-                        "normal_inference_seconds": normal_run_result.inference_seconds,
-                        "normal_num_generated_tokens": normal_run_result.num_generated_tokens,
+                        "dense_head_inference_seconds": dense_head_result.inference_seconds,
+                        "dense_head_head_seconds": dense_head_result.head_seconds,
+                        "dense_head_num_generated_tokens": dense_head_result.num_generated_tokens,
                         "flashhead_inference_seconds": result.inference_seconds,
+                        "flashhead_head_seconds": result.head_seconds,
                         "flashhead_num_generated_tokens": result.num_generated_tokens,
                     }
                 )
 
-                normal_tps = (
-                    normal_run_result.num_generated_tokens
-                    / normal_run_result.inference_seconds
+                dense_head_tps = (
+                    dense_head_result.num_generated_tokens
+                    / dense_head_result.inference_seconds
                 )
 
                 flashhead_tps = (
@@ -530,12 +533,12 @@ def main() -> None:
                     / result.inference_seconds
                 )
                 wall_clock_latency_ratio = (
-                    normal_run_result.inference_seconds
+                    dense_head_result.inference_seconds
                     / result.inference_seconds
                 )
-                speedup_per_generated_token = flashhead_tps / normal_tps
+                speedup_per_generated_token = flashhead_tps / dense_head_tps
 
-                print("Normal tokens/sec:", normal_tps)
+                print("Dense-head tokens/sec:", dense_head_tps)
                 print("Flashhead tokens/sec:", flashhead_tps)
                 print("Wall-clock latency ratio:", wall_clock_latency_ratio)
                 print("Speedup per generated token:", speedup_per_generated_token)
@@ -546,14 +549,14 @@ def main() -> None:
         print(
             {
                 "total_inference_seconds": total_inference_seconds,
-                "total_flashhead_seconds": total_flashhead_seconds,
+                "total_flashhead_head_seconds": total_flashhead_head_seconds,
             }
         )
         print("Total tokens produced by flashhead:", total_tokens_produced_flashhead)
-        print("Total tokens produced by normal:", total_tokens_produced_normal)
+        print("Total tokens produced by dense head:", total_tokens_produced_dense_head)
         if args.compare_to_normal:
             print("Per example average speedup per token:", total_speedup_per_token/total_number_of_examples_ran)
-            print("Ratio exact matches:", number_exact_matches_between_flashhead_and_normal/total_number_of_examples_ran)
+            print("Ratio exact matches:", number_exact_matches_between_flashhead_and_dense_head/total_number_of_examples_ran)
 
     elif mode == "test_timed_normal_inference":
         import argparse

@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import time
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, Literal, cast
 
 import torch
 
@@ -19,7 +19,7 @@ from skip_search_spec.training.flashhead.next_token_adapter import FlashHeadModu
 class FlashHeadInferenceResult:
     text: str
     inference_seconds: float
-    flashhead_seconds: float
+    head_seconds: float
     num_generated_tokens: int
 
 
@@ -72,6 +72,18 @@ def get_backbone_hidden_and_cache(outputs: Any) -> tuple[torch.Tensor, Any | Non
     return get_last_hidden_state(outputs), getattr(outputs, "past_key_values", None)
 
 
+def get_output_lm_head(model: Any) -> Any:
+    lm_head = getattr(model, "lm_head", None)
+    if lm_head is not None and callable(lm_head):
+        return lm_head
+
+    output_embeddings = model.get_output_embeddings()
+    if output_embeddings is not None and callable(output_embeddings):
+        return output_embeddings
+
+    raise ValueError("Could not find a callable LM head on the model.")
+
+
 def generate_with_flashhead(
     model_name_or_path: str | None = None,
     prompt: str = "",
@@ -85,6 +97,7 @@ def generate_with_flashhead(
     enable_thinking: bool = False,
     stop_on_eos: bool = True,
     measure_internal_timings: bool = True,
+    head_mode: Literal["flashhead", "lm_head"] = "flashhead",
     model: Any | None = None,
     tokenizer: Any | None = None,
     device: torch.device | None = None,
@@ -118,7 +131,7 @@ def generate_with_flashhead(
     if tokenizer.pad_token_id is None:
         tokenizer.pad_token = tokenizer.eos_token
 
-    if flashhead is None:
+    if flashhead is None and head_mode == "flashhead":
         if flashhead_path is None:
             raise ValueError("flashhead_path is required when no flashhead is provided.")
 
@@ -128,8 +141,10 @@ def generate_with_flashhead(
             top_k_clusters=flashhead_top_k_clusters,
         )
 
-    flashhead.eval()
+    if flashhead is not None:
+        flashhead.eval()
     backbone = get_causal_lm_backbone(model)
+    lm_head = get_output_lm_head(model)
 
     model_prompt = prompt
     if use_chat_template:
@@ -156,7 +171,7 @@ def generate_with_flashhead(
     current_ids = input_ids
     past_key_values: Any | None = None
     generated_token_pieces: list[torch.Tensor] = []
-    flashhead_seconds = 0.0
+    head_seconds = 0.0
 
     sync_device_for_timing(device)
     start_time = time.perf_counter()
@@ -175,17 +190,30 @@ def generate_with_flashhead(
             last_hidden_state, past_key_values = get_backbone_hidden_and_cache(
                 outputs
             )
-            hidden_vector = last_hidden_state[0, -1, :]
+            lm_head_input_hidden = last_hidden_state[:, -1:, :]
 
             if measure_internal_timings:
                 sync_device_for_timing(device)
-                flashhead_start_time = time.perf_counter()
+                head_start_time = time.perf_counter()
 
-            next_token = flashhead.find_token(hidden_vector).view(1, 1)
+            if head_mode == "flashhead":
+                if flashhead is None:
+                    raise RuntimeError("flashhead is required when head_mode='flashhead'.")
+                next_token = flashhead.find_token(
+                    lm_head_input_hidden[0, -1, :]
+                ).view(1, 1)
+            elif head_mode == "lm_head":
+                logits = lm_head(lm_head_input_hidden)
+                next_token = logits[:, -1, :].argmax(
+                    dim=-1,
+                    keepdim=True,
+                )
+            else:
+                raise ValueError(f"Unknown head_mode: {head_mode}")
 
             if measure_internal_timings:
-                flashhead_seconds += elapsed_seconds_since(
-                    flashhead_start_time,
+                head_seconds += elapsed_seconds_since(
+                    head_start_time,
                     device=device,
                 )
 
@@ -208,6 +236,6 @@ def generate_with_flashhead(
     return FlashHeadInferenceResult(
         text=text,
         inference_seconds=inference_seconds,
-        flashhead_seconds=flashhead_seconds,
+        head_seconds=head_seconds,
         num_generated_tokens=int(accepted_ids.size(1) - input_ids.size(1)),
     )
