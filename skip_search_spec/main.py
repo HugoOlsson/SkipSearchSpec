@@ -462,7 +462,6 @@ def main() -> None:
                 flashhead_top_k_clusters=flashhead_top_k_clusters,
                 max_new_tokens=INFERENCE_TEST_MAX_NEW_TOKENS,
                 use_chat_template=True,
-                use_cache=True,
                 measure_internal_timings=False,
                 model=model,
                 tokenizer=tokenizer,
