@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from dataclasses import dataclass
 from torch import Tensor, nn
 import torch
@@ -276,6 +277,7 @@ def build_clusters(
     normalize_vectors: bool = True,
     seed: int = 0,
     build_device: torch.device | str | None = None,
+    on_iteration_metrics: Callable[[int, dict[str, float]], None] | None = None,
 ) -> BuiltFlashHeadClusters:
     if lm_head_vector_table.ndim != 2:
         raise ValueError("lm_head_vector_table must have shape [vocab_size, hidden_size]")
@@ -344,6 +346,8 @@ def build_clusters(
             centroids=centroids,
             token_to_cluster_mapping=token_to_cluster_mapping,
         )
+        if on_iteration_metrics is not None:
+            on_iteration_metrics(iter_idx + 1, metrics_after)
 
         print(
             f"iter {iter_idx + 1}/{num_iters} "

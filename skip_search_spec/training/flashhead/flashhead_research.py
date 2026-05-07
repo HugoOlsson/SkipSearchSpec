@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
+import subprocess
+import sys
 import time
 from typing import Any, cast
 
@@ -59,8 +62,126 @@ def load_flashhead_base(model_name: str) -> LoadedFlashHeadBase:
     )
 
 
+def get_computer_label() -> str:
+    if sys.platform == "darwin":
+        try:
+            chip = subprocess.check_output(
+                ["sysctl", "-n", "machdep.cpu.brand_string"],
+                text=True,
+            ).strip()
+            memory_bytes = int(
+                subprocess.check_output(
+                    ["sysctl", "-n", "hw.memsize"],
+                    text=True,
+                ).strip()
+            )
+            memory_gb = round(memory_bytes / 1024**3)
+            return f"{chip}, {memory_gb}GB"
+        except (OSError, subprocess.CalledProcessError, ValueError):
+            return "Apple M5, 24GB"
+
+    if sys.platform.startswith("linux"):
+        try:
+            gpu_line = subprocess.check_output(
+                [
+                    "nvidia-smi",
+                    "--query-gpu=name,memory.total",
+                    "--format=csv,noheader,nounits",
+                ],
+                text=True,
+            ).splitlines()[0]
+            gpu_name, memory_mb = [part.strip() for part in gpu_line.split(",", 1)]
+            memory_gb = round(int(memory_mb) / 1024)
+            return f"{gpu_name}, {memory_gb}GB"
+        except (IndexError, OSError, subprocess.CalledProcessError, ValueError):
+            return "linux"
+
+    return sys.platform
+
+
+def save_mean_similarity_plot(
+    *,
+    mean_similarity_by_iteration: tuple[float, ...],
+    store_path: str,
+    model_name: str,
+    git_commit: str,
+    cluster_build_seconds: float,
+    num_clusters: int,
+    computer_label: str,
+    dtype: str,
+) -> Path:
+    plot_path = Path(store_path).with_name(
+        f"{Path(store_path).stem}_mean_similarity.png"
+    )
+    plot_path.parent.mkdir(parents=True, exist_ok=True)
+
+    iterations = range(1, len(mean_similarity_by_iteration) + 1)
+    num_iterations = len(mean_similarity_by_iteration)
+    tick_step = max(1, num_iterations // 8)
+    x_ticks = sorted(
+        {
+            1,
+            num_iterations,
+            *range(tick_step, num_iterations + 1, tick_step),
+        }
+    )
+
+    fig, ax = plt.subplots(figsize=(8, 4.5))
+    ax.plot(
+        iterations,
+        mean_similarity_by_iteration,
+        color="#005278",
+        marker="o",
+        linewidth=1.5,
+    )
+    ax.set_title("Flashhead clustering", pad=22)
+    ax.text(
+        0.5,
+        1.035,
+        model_name,
+        transform=ax.transAxes,
+        ha="center",
+        va="bottom",
+        fontsize=9,
+    )
+    ax.set_xlabel("Iteration")
+    ax.set_ylabel("Mean assigned similarity")
+    ax.set_xticks(x_ticks)
+    ax.grid(True, alpha=0.3)
+    ax.text(
+        0.99,
+        0.01,
+        (
+            f"commit={git_commit[:7]}\n"
+            f"clustering_time={cluster_build_seconds:.3f}s\n"
+            f"clusters={num_clusters}\n"
+            f"computer={computer_label}\n"
+            f"dtype={dtype}"
+        ),
+        transform=ax.transAxes,
+        ha="right",
+        va="bottom",
+        multialignment="left",
+        linespacing=1.25,
+        fontsize=8,
+        bbox={
+            "boxstyle": "round,pad=0.25",
+            "facecolor": "white",
+            "alpha": 0.85,
+            "edgecolor": "none",
+        },
+    )
+    fig.tight_layout()
+    fig.savefig(plot_path, dpi=160)
+    plt.close(fig)
+
+    return plot_path
+
+
 def build_flashhead_head(store_path: str, model_name: str) -> None:
-    print(f"git_commit={get_git_revision().commit}")
+    git_commit = get_git_revision().commit
+    num_clusters = 5344
+    print(f"git_commit={git_commit}")
 
     loaded = load_flashhead_base(model_name)
 
@@ -79,16 +200,32 @@ def build_flashhead_head(store_path: str, model_name: str) -> None:
     print()
     print("building clusters...")
 
+    mean_similarity_by_iteration: list[float] = []
     cluster_build_start_seconds = time.perf_counter()
     built_clusters = build_clusters(
         lm_head_vector_table=loaded.lm_head_vector_table,
-        num_clusters=5344,
-        num_iters=100,
+        num_clusters=num_clusters,
+        num_iters=40,
         normalize_vectors=True,
         seed=0,
+        on_iteration_metrics=lambda _iteration, metrics: mean_similarity_by_iteration.append(
+            metrics["mean_assigned_similarity"]
+        ),
     )
     cluster_build_seconds = time.perf_counter() - cluster_build_start_seconds
     print(f"cluster_build_seconds={cluster_build_seconds:.3f}")
+
+    plot_path = save_mean_similarity_plot(
+        mean_similarity_by_iteration=tuple(mean_similarity_by_iteration),
+        store_path=store_path,
+        model_name=model_name,
+        git_commit=git_commit,
+        cluster_build_seconds=cluster_build_seconds,
+        num_clusters=num_clusters,
+        computer_label=get_computer_label(),
+        dtype=str(loaded.lm_head_vector_table.dtype).removeprefix("torch."),
+    )
+    print(f"mean_similarity_plot_path={plot_path}")
 
     print()
     print("largest cluster size:")
