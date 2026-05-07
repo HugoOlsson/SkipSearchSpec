@@ -12,25 +12,43 @@ import matplotlib.pyplot as plt
 DEFAULT_METRIC = "kl_per_removed_layer"
 DEFAULT_NUM_COLUMNS = 3
 
+METRIC_HEADERS = {
+    "num_kept_layers": "Kept layers",
+    "num_removed_layers": "Skipped layers",
+    "num_total_layers": "Total layers",
+    "keep_fraction": "Fraction of layers kept",
+    "remove_fraction": "Fraction of layers skipped",
+    "mean_ce_masked": "Mean CE, skipped model",
+    "mean_ce_full": "Mean CE, full model",
+    "mean_ce_gap": "Mean CE increase on dataset tokens from skipping",
+    "mean_kl_full_to_masked": "Mean KL: full -> skipped",
+    "kl_per_removed_layer": "KL full -> skipped per skipped layer",
+    "mean_js": "Mean Jensen-Shannon divergence",
+    "mean_top1_agreement": "Mean top-1 agreement with full model",
+    "mean_overlap": "Mean probability overlap with full model",
+    "mean_p_masked_on_full_argmax": "Mean skipped-model probability on full-model top token",
+}
+
 CATEGORY_COLORS = {
     "early_exit": "#0BB2B2",    
     "late_start": "#710088", 
-    "single_left_out": "#5F8CFF",
-    "internal_gap": "#007F1E", 
-    "other": "#005278",
+    "gap-jump": "#005278",
+    "other": "#007F1E",
 }
+
+
+def metric_header(metric: str) -> str:
+    return METRIC_HEADERS.get(metric, metric)
+
 
 def classify_ablation(mask_name: str) -> str:
     family = mask_name.partition("__")[0]
-
-    if family == "drop_internal_single":
-        return "single_left_out"
     
     if family == "keep_suffix":
             return "late_start"
 
-    if family == "drop_internal_block" or family == "keep_edges":
-        return "internal_gap"
+    if family in {"drop_internal_block", "drop_internal_gap", "keep_edges"}:
+        return "gap-jump"
 
     if family == "keep_prefix":
         return "early_exit"
@@ -217,7 +235,7 @@ def plot_ablation_json(
     right_pad = 0.3 * x_span
     global_xlim = (x_lower - left_pad, x_upper + right_pad)
 
-    label_fontsize = min(8.0, max(3.0, 240.0 / max(max_rows_in_any_column, 1)))
+    label_fontsize = 1.3*min(8.0, max(3.0, 240.0 / max(max_rows_in_any_column, 1)))
     value_fontsize = max(6, label_fontsize - 0.2)
     max_visual_chars = max(len(row["visual"]) for row in rows)
     layer_count = max_visual_chars
@@ -225,7 +243,7 @@ def plot_ablation_json(
     t = max(0.0, min(1.0, t))
     visual_divisor = 1.0 + t * (1.4 - 1.0)
     visual_fontsize = label_fontsize / visual_divisor
-    title_fontsize = 13.0
+    title_fontsize = 16.0
 
     # Inches needed for the visual column, given monospace at visual_fontsize.
     # ~0.6 em per char; em ≈ fontsize in points; 72 pt/inch.
@@ -243,12 +261,10 @@ def plot_ablation_json(
     fig = plt.figure(figsize=(fig_width, fig_height), dpi=dpi)
     outer = fig.add_gridspec(1, actual_num_columns, wspace=0)
 
+    model_name = metadata.get("model_name")
+    display_metric = metric_header(metric)
     if title is None:
-        model_name = metadata.get("model_name")
-        if isinstance(model_name, str) and len(model_name) > 0:
-            title = f"{metric} | {model_name}"
-        else:
-            title = metric
+        title = display_metric
 
     code_version = metadata.get("code_version") or {}
     commit = code_version.get("commit")
@@ -302,12 +318,10 @@ def plot_ablation_json(
             row_color = CATEGORY_COLORS[classify_ablation(row["mask_name"])]
 
             metric_value = row["metric"]
-            full_kl_value = row["mean_kl_full_to_masked"]
 
             metric_str = f"{metric_value:.1f}" if abs(metric_value) > 5 else f"{metric_value:.3f}"
-            full_kl_str = f"{full_kl_value:.1f}" if abs(full_kl_value) > 5 else f"{full_kl_value:.2f}"
 
-            label = f"{metric_str} ({full_kl_str})"
+            label = f"{metric_str}"
 
             idx_ax.text(
                 0.98,
@@ -349,15 +363,16 @@ def plot_ablation_json(
     for bar_ax in bar_axes[1:]:
         bar_ax.tick_params(axis="x", labelbottom=True)
 
-    fig.suptitle(metric, fontsize=title_fontsize, y=0.98)
-    fig.text(
-        0.5,
-        0.955,
-        f"Model: {model_name}",
-        ha="center",
-        va="top",
-        fontsize=title_fontsize/1.3,
-    )
+    fig.suptitle(title, fontsize=title_fontsize, y=0.98)
+    if isinstance(model_name, str) and len(model_name) > 0:
+        fig.text(
+            0.5,
+            0.95,
+            f"Model: {model_name}",
+            ha="center",
+            va="top",
+            fontsize=title_fontsize/1.3,
+        )
 
     if short_commit:
         fig.text(
@@ -366,7 +381,7 @@ def plot_ablation_json(
             f"commit {short_commit}",
             ha="right",
             va="bottom",
-            fontsize=9,
+            fontsize=12,
             color="#666",
             family="monospace",
         )
@@ -387,7 +402,8 @@ def plot_ablation_json(
         loc="upper center",
         ncol=5,
         frameon=False,
-        bbox_to_anchor=(0.5, 0.94),
+        bbox_to_anchor=(0.5, 0.93),
+        fontsize=title_fontsize/1.4,
     )
 
     fig.subplots_adjust(
