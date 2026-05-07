@@ -301,6 +301,7 @@ def evaluate_flashhead(stored_path: str, model_name: str) -> None:
         top1_match_rate_table_image_path=Path(stored_path).with_name(
             f"{Path(stored_path).stem}_topk_sweep_top1_match_rate.png"
         ),
+        window_length=context_len,
     )
 
     print(metrics)

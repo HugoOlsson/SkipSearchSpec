@@ -29,7 +29,8 @@ def save_top1_match_rate_table_image(
     path: str | Path,
     git_commit: str,
     num_windows: int,
-    max_positions_per_window: int | None,
+    window_length: int,
+    num_clusters: int,
 ) -> Path:
     matplotlib_cache_root = Path(tempfile.gettempdir()) / "skip_search_spec_matplotlib"
     mpl_config_dir = matplotlib_cache_root / "config"
@@ -52,18 +53,26 @@ def save_top1_match_rate_table_image(
     table_path.parent.mkdir(parents=True, exist_ok=True)
 
     rows = [
-        (str(metrics.top_k_clusters), f"{metrics.top1_match_rate:.6f}")
+        (
+            str(metrics.top_k_clusters),
+            f"{100 * metrics.top_k_clusters / num_clusters:.2f}%",
+            f"{metrics.top1_match_rate:.6f}",
+        )
         for metrics in metrics_by_top_k
     ]
 
     fig_height = 0.55 + 0.24 * (len(rows) + 1)
-    fig, ax = plt.subplots(figsize=(5.4, fig_height))
+    fig, ax = plt.subplots(figsize=(6.8, fig_height))
     ax.axis("off")
-    ax.set_title("Top-1 match rate by top_k_clusters", pad=3)
+    ax.set_title("Top-1 match rate by probing top_k_clusters", pad=3)
 
     table = ax.table(
         cellText=rows,
-        colLabels=("top_k_clusters", "top1_match_rate"),
+        colLabels=(
+            "top_k_clusters",
+            "% of all clusters probed",
+            "top1_match_rate",
+        ),
         cellLoc="left",
         colLoc="left",
         bbox=(0.03, 0.10, 0.94, 0.80),
@@ -78,18 +87,14 @@ def save_top1_match_rate_table_image(
             cell.set_facecolor("#f6f8fa")
             cell.set_text_props(weight="bold")
 
-    max_positions_label = (
-        "None"
-        if max_positions_per_window is None
-        else str(max_positions_per_window)
-    )
     ax.text(
         0.5,
         0.02,
         (
             f"commit={git_commit[:7]}  "
             f"windows={num_windows}  "
-            f"max_positions_per_window={max_positions_label}"
+            f"window_length={window_length}  "
+            f"total_clusters={num_clusters}"
         ),
         transform=ax.transAxes,
         ha="center",
@@ -251,6 +256,7 @@ def evaluate_topk_cluster_sweep_on_token_windows(
     top1_match_rate_table_image_path: str | Path = (
         "topk_cluster_sweep_top1_match_rate.png"
     ),
+    window_length: int | None = None,
 ) -> tuple[TopKContainmentMetrics, ...]:
     if max_windows < 1:
         raise ValueError("max_windows must be >= 1")
@@ -274,11 +280,20 @@ def evaluate_topk_cluster_sweep_on_token_windows(
     if not fixed_token_windows:
         raise RuntimeError("No token windows were collected for the sweep.")
 
+    plotted_window_length = (
+        int(fixed_token_windows[0].numel())
+        if window_length is None
+        else int(window_length)
+    )
+    num_clusters = int(flashhead.centroids_t.shape[1])
+
     git_commit = get_git_revision().commit
     print(f"git_commit={git_commit}")
     print("Starting top-k cluster sweep...")
     print(f"  top_k_clusters_values={top_k_clusters_values}")
     print(f"  num_windows={len(fixed_token_windows)}")
+    print(f"  window_length={plotted_window_length}")
+    print(f"  num_clusters={num_clusters}")
     print(f"  max_positions_per_window={max_positions_per_window}")
     print()
 
@@ -310,7 +325,8 @@ def evaluate_topk_cluster_sweep_on_token_windows(
         path=top1_match_rate_table_image_path,
         git_commit=git_commit,
         num_windows=len(fixed_token_windows),
-        max_positions_per_window=max_positions_per_window,
+        window_length=plotted_window_length,
+        num_clusters=num_clusters,
     )
     print(f"top1_match_rate_table_image_path={table_path}")
 
