@@ -21,7 +21,6 @@ class FlashHeadInferenceResult:
     inference_seconds: float
     flashhead_seconds: float
     num_generated_tokens: int
-    num_model_steps: int
 
 
 def sync_device_for_timing(device: torch.device) -> None:
@@ -166,32 +165,36 @@ def generate_with_flashhead(
 
     with torch.inference_mode():
         for _ in range(max_new_tokens):
-                outputs = backbone_call(
-                    input_ids=current_ids,
-                    past_key_values=past_key_values,
-                    use_cache=True,
-                    return_dict=False,
+            outputs = backbone_call(
+                input_ids=current_ids,
+                past_key_values=past_key_values,
+                use_cache=True,
+                return_dict=False,
+            )
+
+            last_hidden_state, past_key_values = get_backbone_hidden_and_cache(
+                outputs
+            )
+            hidden_vector = last_hidden_state[0, -1, :]
+
+            if measure_internal_timings:
+                sync_device_for_timing(device)
+                flashhead_start_time = time.perf_counter()
+
+            next_token = flashhead.find_token(hidden_vector).view(1, 1)
+
+            if measure_internal_timings:
+                flashhead_seconds += elapsed_seconds_since(
+                    flashhead_start_time,
+                    device=device,
                 )
 
-                last_hidden_state, past_key_values = get_backbone_hidden_and_cache(
-                    outputs
-                )
-                hidden_vector = last_hidden_state[0, -1, :]
+            append_generated_token(next_token)
+            current_ids = next_token
 
-                if measure_internal_timings:
-                    sync_device_for_timing(device)
-                    flashhead_start_time = time.perf_counter()
-
-                next_token = flashhead.find_token(hidden_vector).view(1, 1)
-
-                if measure_internal_timings:
-                    flashhead_seconds += elapsed_seconds_since(
-                        flashhead_start_time,
-                        device=device,
-                    )
-
-                append_generated_token(next_token)
-                current_ids = next_token
+            if stop_on_eos and tokenizer.eos_token_id is not None:
+                if int(next_token.item()) == int(tokenizer.eos_token_id):
+                    break
 
     inference_seconds = elapsed_seconds_since(start_time, device=device)
     accepted_ids = (
@@ -200,13 +203,6 @@ def generate_with_flashhead(
         else input_ids
     )
 
-    if stop_on_eos and tokenizer.eos_token_id is not None:
-        generated_suffix = accepted_ids[0, input_ids.size(1):]
-        eos_hits = (generated_suffix == int(tokenizer.eos_token_id)).nonzero(as_tuple=False)
-        if eos_hits.numel() > 0:
-            first_eos = input_ids.size(1) + int(eos_hits[0, 0].item())
-            accepted_ids = accepted_ids[:, : first_eos + 1]
-
     text = cast(str, tokenizer.decode(accepted_ids[0], skip_special_tokens=True))
 
     return FlashHeadInferenceResult(
@@ -214,5 +210,4 @@ def generate_with_flashhead(
         inference_seconds=inference_seconds,
         flashhead_seconds=flashhead_seconds,
         num_generated_tokens=int(accepted_ids.size(1) - input_ids.size(1)),
-        num_model_steps=len(generated_token_pieces),
     )

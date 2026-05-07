@@ -36,7 +36,6 @@ class TimedNormalInferenceResult:
     text: str
     inference_seconds: float
     num_generated_tokens: int
-    num_model_steps: int
     timings: TimedNormalInferenceTimings
 
 
@@ -245,6 +244,5 @@ def generate_timed_normal(
         text=text,
         inference_seconds=timings.total_seconds,
         num_generated_tokens=num_generated_tokens,
-        num_model_steps=len(generated_token_pieces),
         timings=timings,
     )
