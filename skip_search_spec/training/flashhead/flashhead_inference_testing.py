@@ -1,10 +1,14 @@
 from dataclasses import dataclass
+import os
+from pathlib import Path
+import tempfile
 from typing import Iterable
 
 import torch
 from torch import Tensor
 from transformers import PreTrainedModel, PreTrainedTokenizerBase
 
+from skip_search_spec.helpers.versioning import get_git_revision
 from skip_search_spec.training.flashhead.next_token_adapter import FlashHeadModule
 
 
@@ -14,6 +18,91 @@ class TopKContainmentMetrics:
     num_positions: int
     top1_match_rate: float
     top3_containment: float
+
+
+DEFAULT_TOP_K_CLUSTER_SWEEP = (1, 10, 20, 50, 100, 300, 500, 1000)
+
+
+def save_top1_match_rate_table_image(
+    *,
+    metrics_by_top_k: Iterable[TopKContainmentMetrics],
+    path: str | Path,
+    git_commit: str,
+    num_windows: int,
+    max_positions_per_window: int | None,
+) -> Path:
+    matplotlib_cache_root = Path(tempfile.gettempdir()) / "skip_search_spec_matplotlib"
+    mpl_config_dir = matplotlib_cache_root / "config"
+    xdg_cache_dir = matplotlib_cache_root / "xdg"
+    mpl_config_dir.mkdir(parents=True, exist_ok=True)
+    xdg_cache_dir.mkdir(parents=True, exist_ok=True)
+    os.environ.setdefault("MPLCONFIGDIR", str(mpl_config_dir))
+    os.environ.setdefault("XDG_CACHE_HOME", str(xdg_cache_dir))
+
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    metrics_by_top_k = tuple(metrics_by_top_k)
+    if not metrics_by_top_k:
+        raise ValueError("metrics_by_top_k must not be empty")
+
+    table_path = Path(path)
+    table_path.parent.mkdir(parents=True, exist_ok=True)
+
+    rows = [
+        (str(metrics.top_k_clusters), f"{metrics.top1_match_rate:.6f}")
+        for metrics in metrics_by_top_k
+    ]
+
+    fig_height = 0.55 + 0.24 * (len(rows) + 1)
+    fig, ax = plt.subplots(figsize=(5.4, fig_height))
+    ax.axis("off")
+    ax.set_title("Top-1 match rate by top_k_clusters", pad=3)
+
+    table = ax.table(
+        cellText=rows,
+        colLabels=("top_k_clusters", "top1_match_rate"),
+        cellLoc="left",
+        colLoc="left",
+        bbox=(0.03, 0.10, 0.94, 0.80),
+    )
+    table.auto_set_font_size(False)
+    table.set_fontsize(8)
+
+    for (row, col), cell in table.get_celld().items():
+        cell.set_edgecolor("#d0d7de")
+        cell.set_text_props(ha="left")
+        if row == 0:
+            cell.set_facecolor("#f6f8fa")
+            cell.set_text_props(weight="bold")
+
+    max_positions_label = (
+        "None"
+        if max_positions_per_window is None
+        else str(max_positions_per_window)
+    )
+    ax.text(
+        0.5,
+        0.02,
+        (
+            f"commit={git_commit[:7]}  "
+            f"windows={num_windows}  "
+            f"max_positions_per_window={max_positions_label}"
+        ),
+        transform=ax.transAxes,
+        ha="center",
+        va="bottom",
+        fontsize=8,
+        color="#57606a",
+    )
+
+    fig.tight_layout()
+    fig.savefig(table_path, dpi=180)
+    plt.close(fig)
+
+    return table_path
 
 
 @torch.inference_mode()
@@ -27,6 +116,7 @@ def evaluate_topk_containment_on_token_windows(
     max_positions_per_window: int | None = None,
     print_every_windows: int | None = 10,
     print_first_n_mismatches: int = 5,
+    print_git_commit: bool = True,
 ) -> TopKContainmentMetrics:
     model_device = next(model.parameters()).device
     model_dtype = next(model.parameters()).dtype
@@ -39,6 +129,9 @@ def evaluate_topk_containment_on_token_windows(
     top3_hits = 0
     num_printed_mismatches = 0
 
+    if print_git_commit:
+        git_commit = get_git_revision().commit
+        print(f"git_commit={git_commit}")
     print("Starting top-k containment evaluation...")
     print(f"  top_k_clusters={flashhead.top_k_clusters}")
     print(f"  max_windows={max_windows}")
@@ -141,3 +234,84 @@ def evaluate_topk_containment_on_token_windows(
     print(f"  top3_containment={metrics.top3_containment:.6f}")
 
     return metrics
+
+
+@torch.inference_mode()
+def evaluate_topk_cluster_sweep_on_token_windows(
+    model: PreTrainedModel,
+    tokenizer: PreTrainedTokenizerBase,
+    flashhead: FlashHeadModule,
+    token_windows: Iterable[Tensor],
+    *,
+    top_k_clusters_values: Iterable[int] = DEFAULT_TOP_K_CLUSTER_SWEEP,
+    max_windows: int = 30,
+    max_positions_per_window: int | None = None,
+    print_every_windows: int | None = 10,
+    print_first_n_mismatches: int = 0,
+    top1_match_rate_table_image_path: str | Path = (
+        "topk_cluster_sweep_top1_match_rate.png"
+    ),
+) -> tuple[TopKContainmentMetrics, ...]:
+    if max_windows < 1:
+        raise ValueError("max_windows must be >= 1")
+
+    top_k_clusters_values = tuple(top_k_clusters_values)
+    if not top_k_clusters_values:
+        raise ValueError("top_k_clusters_values must not be empty")
+
+    invalid_top_k_values = [value for value in top_k_clusters_values if value < 1]
+    if invalid_top_k_values:
+        raise ValueError(
+            f"top_k_clusters_values must all be >= 1: {invalid_top_k_values}"
+        )
+
+    fixed_token_windows: list[Tensor] = []
+    for window_input_ids in token_windows:
+        if len(fixed_token_windows) >= max_windows:
+            break
+        fixed_token_windows.append(window_input_ids.detach().cpu())
+
+    if not fixed_token_windows:
+        raise RuntimeError("No token windows were collected for the sweep.")
+
+    git_commit = get_git_revision().commit
+    print(f"git_commit={git_commit}")
+    print("Starting top-k cluster sweep...")
+    print(f"  top_k_clusters_values={top_k_clusters_values}")
+    print(f"  num_windows={len(fixed_token_windows)}")
+    print(f"  max_positions_per_window={max_positions_per_window}")
+    print()
+
+    original_top_k_clusters = flashhead.top_k_clusters
+    metrics_by_top_k: list[TopKContainmentMetrics] = []
+
+    try:
+        for top_k_clusters in top_k_clusters_values:
+            print(f"Evaluating top_k_clusters={top_k_clusters}")
+            flashhead.top_k_clusters = top_k_clusters
+            metrics = evaluate_topk_containment_on_token_windows(
+                model=model,
+                tokenizer=tokenizer,
+                flashhead=flashhead,
+                token_windows=fixed_token_windows,
+                max_windows=len(fixed_token_windows),
+                max_positions_per_window=max_positions_per_window,
+                print_every_windows=print_every_windows,
+                print_first_n_mismatches=print_first_n_mismatches,
+                print_git_commit=False,
+            )
+            metrics_by_top_k.append(metrics)
+            print()
+    finally:
+        flashhead.top_k_clusters = original_top_k_clusters
+
+    table_path = save_top1_match_rate_table_image(
+        metrics_by_top_k=metrics_by_top_k,
+        path=top1_match_rate_table_image_path,
+        git_commit=git_commit,
+        num_windows=len(fixed_token_windows),
+        max_positions_per_window=max_positions_per_window,
+    )
+    print(f"top1_match_rate_table_image_path={table_path}")
+
+    return tuple(metrics_by_top_k)

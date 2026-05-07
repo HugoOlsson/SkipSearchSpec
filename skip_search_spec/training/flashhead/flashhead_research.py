@@ -21,7 +21,7 @@ from skip_search_spec.helpers.shared_decoding_tools import build_fixed_window_da
 from skip_search_spec.protocols.windows import DatasetSpec, ModelAndTokenizer
 from skip_search_spec.training.flashhead.building_clusters import build_clusters
 from skip_search_spec.training.flashhead.flashhead_inference_testing import (
-    evaluate_topk_containment_on_token_windows,
+    evaluate_topk_cluster_sweep_on_token_windows,
 )
 from skip_search_spec.training.flashhead.next_token_adapter import FlashHeadModule
 from skip_search_spec.training.flashhead.storage import save_flashhead
@@ -269,7 +269,7 @@ def evaluate_flashhead(stored_path: str, model_name: str) -> None:
 
     max_examples = 100
     context_len = 200
-    num_windows_to_use = 50
+    num_windows_to_use = 2
     batch_size = 8
 
     dataloader = build_fixed_window_dataloader(
@@ -291,13 +291,16 @@ def evaluate_flashhead(stored_path: str, model_name: str) -> None:
             for window_input_ids in input_ids:
                 yield window_input_ids
 
-    metrics = evaluate_topk_containment_on_token_windows(
+    metrics = evaluate_topk_cluster_sweep_on_token_windows(
         model=loaded.model,
         flashhead=flashhead,
         token_windows=iter_token_windows(),
         max_windows=num_windows_to_use,
         max_positions_per_window=256,
         tokenizer=loaded.tokenizer,
+        top1_match_rate_table_image_path=Path(stored_path).with_name(
+            f"{Path(stored_path).stem}_topk_sweep_top1_match_rate.png"
+        ),
     )
 
     print(metrics)
