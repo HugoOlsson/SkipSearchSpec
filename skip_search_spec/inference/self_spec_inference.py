@@ -219,6 +219,8 @@ class BridgeSelfSpeculator:
         saved_trace_json_path: Path | None = None
 
         add_tokens_to_trace(token_trace, input_ids, token_type="prompt")
+        eos_token_id = self.tokenizer.eos_token_id
+        should_stop_on_eos = stop_on_eos and isinstance(eos_token_id, int)
 
         # 1. Verify the prompt once to create the base.
         verifier = self.bridged.run_verifier(
@@ -289,47 +291,74 @@ class BridgeSelfSpeculator:
                 verifier_logits_start : verifier_logits_start + draft_tokens.size(1),
                 :,
             ].argmax(dim=-1)
+            bonus_token = verifier.logits[:, -1, :].argmax(
+                dim=-1,
+                keepdim=True,
+            )
 
-            matches = verifier_draft_tokens == draft_tokens
-            mismatch_positions = (~matches[0]).nonzero(as_tuple=False)
+            draft_block_token_count = draft_tokens.size(1)
+            decision_token_ids = torch.cat(
+                [
+                    draft_tokens[0],
+                    verifier_draft_tokens[0],
+                    bonus_token[0],
+                ],
+                dim=0,
+            ).detach().cpu().tolist()
+            draft_token_ids = decision_token_ids[:draft_block_token_count]
+            verifier_draft_token_ids = decision_token_ids[
+                draft_block_token_count : 2 * draft_block_token_count
+            ]
+            bonus_token_id = decision_token_ids[-1]
 
             # 5. Stop where draft and verifier no longer match.
-            if mismatch_positions.numel() == 0:
-                num_accepted = draft_tokens.size(1)
-            else:
-                num_accepted = int(mismatch_positions[0, 0].item())
+            num_accepted = 0
+            generated_should_stop = False
+            for draft_token_id, verifier_draft_token_id in zip(
+                draft_token_ids,
+                verifier_draft_token_ids,
+            ):
+                if draft_token_id != verifier_draft_token_id:
+                    break
+
+                num_accepted += 1
+                if should_stop_on_eos and draft_token_id == eos_token_id:
+                    generated_should_stop = True
+                    break
 
             draft_block_index += 1
+            num_accepted_to_append = num_accepted
 
             if token_trace is not None:
                 add_tokens_to_trace(
                     token_trace,
                     draft_tokens,
                     token_type="draft",
-                    num_accepted=num_accepted,
+                    num_accepted=num_accepted_to_append,
                     draft_block_index=draft_block_index,
                 )
 
-            if num_accepted > 0:
+            if num_accepted_to_append > 0:
                 accepted_ids = torch.cat(
-                    [accepted_ids, draft_tokens[:, :num_accepted]],
+                    [accepted_ids, draft_tokens[:, :num_accepted_to_append]],
                     dim=1,
                 )
-                accepted_draft_tokens += num_accepted
-                generated_tokens += num_accepted
+                accepted_draft_tokens += num_accepted_to_append
+                generated_tokens += num_accepted_to_append
 
-                if generated_tokens >= max_new_tokens:
+                if generated_should_stop or generated_tokens >= max_new_tokens:
                     break
 
             # 6. Add the verifier token.
             #
             # If there was a mismatch, this is the verifier correction token.
             # If all draft tokens matched, this is the verifier bonus token.
-            if num_accepted < draft_tokens.size(1):
+            if num_accepted < draft_block_token_count:
                 verifier_token = verifier_draft_tokens[
                     :,
                     num_accepted : num_accepted + 1,
                 ]
+                verifier_token_id = verifier_draft_token_ids[num_accepted]
 
                 # The next loop needs verifier reference hidden for the prefix
                 # before this verifier-produced token.
@@ -345,10 +374,8 @@ class BridgeSelfSpeculator:
                     accepted_prefix_len=next_reference_len,
                 )
             else:
-                verifier_token = verifier.logits[:, -1, :].argmax(
-                    dim=-1,
-                    keepdim=True,
-                )
+                verifier_token = bonus_token
+                verifier_token_id = bonus_token_id
 
                 # The bonus token is predicted from the full candidate prefix.
                 verifier_reference_hidden = verifier_reference_hidden_full
@@ -362,17 +389,8 @@ class BridgeSelfSpeculator:
             accepted_ids = torch.cat([accepted_ids, verifier_token], dim=1)
             generated_tokens += 1
 
-            # Chat templates can contain EOS/end-of-turn tokens in the prompt.
-            # Only generated tokens should trigger stopping.
-            if stop_on_eos:
-                eos_token_id = self.tokenizer.eos_token_id
-                if isinstance(eos_token_id, int):
-                    generated_suffix = accepted_ids[0, prompt_len:]
-                    eos_hits = (generated_suffix == eos_token_id).nonzero(as_tuple=False)
-                    if eos_hits.numel() > 0:
-                        first_eos = prompt_len + int(eos_hits[0, 0].item())
-                        accepted_ids = accepted_ids[:, : first_eos + 1]
-                        break
+            if should_stop_on_eos and verifier_token_id == eos_token_id:
+                break
 
         text = self.tokenizer.decode(
             accepted_ids[0],
