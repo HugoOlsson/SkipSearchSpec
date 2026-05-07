@@ -260,16 +260,16 @@ def evaluate_flashhead(stored_path: str, model_name: str) -> None:
     )
 
     dataset_spec = DatasetSpec(
-        name="FineWeb-Edu-1B",
-        huggingface_path="codelion/fineweb-edu-1B",
-        config_name="default",
+        name="Cosmopedia-100k",
+        huggingface_path="HuggingFaceTB/cosmopedia-100k",
+        config_name=None,  # or "default" if your loader requires a string
         split="train",
         text_field="text",
     )
 
     max_examples = 100
     context_len = 200
-    num_windows_to_use = 20
+    num_windows_to_use = 50
     batch_size = 8
 
     dataloader = build_fixed_window_dataloader(

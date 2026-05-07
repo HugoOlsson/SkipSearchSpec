@@ -10,8 +10,9 @@ from skip_search_spec.training.flashhead.next_token_adapter import FlashHeadModu
 
 @dataclass(frozen=True, slots=True)
 class TopKContainmentMetrics:
+    top_k_clusters: int
     num_positions: int
-    top1_containment: float
+    top1_match_rate: float
     top3_containment: float
 
 
@@ -125,16 +126,18 @@ def evaluate_topk_containment_on_token_windows(
         raise RuntimeError("No evaluation positions were collected.")
 
     metrics = TopKContainmentMetrics(
+        top_k_clusters=flashhead.top_k_clusters,
         num_positions=num_positions,
-        top1_containment=top1_hits / num_positions,
+        top1_match_rate=top1_hits / num_positions,
         top3_containment=top3_hits / num_positions,
     )
 
     print()
     print("Finished top-k containment evaluation.")
     print(f"  num_windows_used={num_windows_used}")
+    print(f"  top_k_clusters={metrics.top_k_clusters}")
     print(f"  num_positions={metrics.num_positions}")
-    print(f"  top1_containment={metrics.top1_containment:.6f}")
+    print(f"  top1_match_rate={metrics.top1_match_rate:.6f}")
     print(f"  top3_containment={metrics.top3_containment:.6f}")
 
     return metrics
