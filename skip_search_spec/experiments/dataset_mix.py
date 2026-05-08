@@ -106,6 +106,14 @@ DATASET_SPEC_TINYSTORIES = DatasetSpec(
     text_field="text",
 )
 
+DATASET_SPEC_OPENORCA_FORMATTED = DatasetSpec(
+    name="OpenOrca-formatted",
+    huggingface_path="Open-Orca/OpenOrca",
+    config_name=None,
+    split="train",
+    text_field="text",
+)
+
 # -----------------------------------------------------------------------------
 # Mix helpers
 # -----------------------------------------------------------------------------
@@ -261,6 +269,50 @@ def get_dataset_mix_prompt_aligned(
         # Summarization and story style.
         (DATASET_SPEC_DIALOGSUM_FORMATTED, 0.05, 6.0*buffer_adjuster),
         (DATASET_SPEC_TINYSTORIES, 0.05, 6.0*buffer_adjuster),
+    ]
+
+    return [
+        (
+            spec,
+            fraction,
+            _max_examples_for_source(
+                num_windows=num_windows,
+                fraction=fraction,
+                examples_per_window=examples_per_window,
+            ),
+        )
+        for spec, fraction, examples_per_window in mix
+    ]
+
+
+def get_dataset_mix_openorca(
+    num_windows: int = 200_000,
+) -> list[tuple[DatasetSpec, float, int]]:
+    """
+    Prompt-aligned mix for ~200k fixed windows with C1=128.
+
+    Uses:
+      - Cosmopedia: synthetic educational prose / articles / explanations
+      - FineWeb-Edu: broad educational web text
+      - Python-Codes-25k: code examples
+      - OpenOrca: large formatted Q/A / instruction data
+      - TinyStories: 3% story-style continuation data
+
+    Intended for the current non-packed window builder.
+    """
+    mix: list[tuple[DatasetSpec, float, float]] = [
+        # Long-form prose / educational continuation.
+        (DATASET_SPEC_COSMOPEDIA_100K, 0.30, 2.5),
+        (DATASET_SPEC_FINEWEB_EDU_1B, 0.20, 2.2),
+
+        # Large Q/A and instruction-style source.
+        (DATASET_SPEC_OPENORCA_FORMATTED, 0.37, 3.0),
+
+        # Code.
+        (DATASET_SPEC_PYTHON_CODES_25K, 0.10, 6.0),
+
+        # Story style, exactly 3%.
+        (DATASET_SPEC_TINYSTORIES, 0.03, 3.0),
     ]
 
     return [

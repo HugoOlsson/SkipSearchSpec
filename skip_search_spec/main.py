@@ -7,7 +7,7 @@ from pprint import pprint
 
 import torch
 
-from skip_search_spec.experiments.dataset_mix import get_dataset_mix_prompt_aligned, get_dataset_mix_question_answer_only
+from skip_search_spec.experiments.dataset_mix import get_dataset_mix_openorca, get_dataset_mix_prompt_aligned, get_dataset_mix_question_answer_only
 from skip_search_spec.experiments.inference_prompts import (
     CHAT_TEST_PROMPTS,
     INFERENCE_TEST_PROMPTS_CONCRETE,
@@ -51,7 +51,7 @@ def main() -> None:
         active_start_end_lengths = [(1, 2)]
 
         # SINGLE LAYER AT START
-        print("Version: 2.13")
+        print("Version: 2.14")
 
         for active_start_layers, active_end_layers in active_start_end_lengths: 
 
@@ -59,7 +59,7 @@ def main() -> None:
 
                 train_skipping_layers(
                     model_name=model,
-                    dataset_mix=get_dataset_mix_prompt_aligned(number_of_windows),
+                    dataset_mix=get_dataset_mix_openorca(number_of_windows),
                     context_len=128,
                     num_windows_to_use=number_of_windows,
                     batch_size=10,

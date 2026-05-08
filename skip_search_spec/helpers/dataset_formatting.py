@@ -212,6 +212,30 @@ def format_dialogsum_row(row: dict[str, Any]) -> str | None:
 
     return f"Dialogue:\n{dialogue}\n\nSummary:\n{summary}"
 
+def format_openorca_row(row: dict[str, Any]) -> str | None:
+    system_prompt = _clean(row.get("system_prompt"))
+    question = _clean(row.get("question"))
+    response = _clean(row.get("response"))
+
+    if not question or not response:
+        return None
+
+    if system_prompt:
+        return (
+            "### System\n"
+            f"{system_prompt}\n\n"
+            "### Instruction\n"
+            f"{question}\n\n"
+            "### Response\n"
+            f"{response}"
+        )
+
+    return (
+        "### Instruction\n"
+        f"{question}\n\n"
+        "### Response\n"
+        f"{response}"
+    )
 
 DATASET_ROW_FORMATTERS_BY_NAME: dict[str, DatasetRowFormatter] = {
     "Dolly-15k-formatted": format_instruction_qa_row,
@@ -222,6 +246,7 @@ DATASET_ROW_FORMATTERS_BY_NAME: dict[str, DatasetRowFormatter] = {
     "GSM8K-formatted": format_gsm8k_row,
     "MBPP-formatted": format_mbpp_row,
     "DialogSum-formatted": format_dialogsum_row,
+    "OpenOrca-formatted": format_openorca_row,
 }
 
 def maybe_format_dataset_to_text(
