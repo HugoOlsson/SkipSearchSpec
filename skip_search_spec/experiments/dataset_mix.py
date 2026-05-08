@@ -89,13 +89,6 @@ DATASET_SPEC_GSM8K_FORMATTED = DatasetSpec(
     text_field="text",
 )
 
-DATASET_SPEC_MBPP_FORMATTED = DatasetSpec(
-    name="MBPP-formatted",
-    huggingface_path="google-research-datasets/mbpp",
-    config_name=None,
-    split="train",
-    text_field="text",
-)
 
 DATASET_SPEC_DIALOGSUM_FORMATTED = DatasetSpec(
     name="DialogSum-formatted",
@@ -246,7 +239,7 @@ def get_dataset_mix_prompt_aligned(
     """
     mix: list[tuple[DatasetSpec, float, float]] = [
         # Article/prose/procedure/comparison continuation.
-        (DATASET_SPEC_COSMOPEDIA_100K, 0.20, 1.5),
+        (DATASET_SPEC_COSMOPEDIA_100K, 0.25, 1.5),
         (DATASET_SPEC_FINEWEB_EDU_1B, 0.15, 1.3),
 
         # General instruction / answer formatting.
@@ -262,7 +255,6 @@ def get_dataset_mix_prompt_aligned(
         (DATASET_SPEC_METAMATHQA_40K_FORMATTED, 0.07, 6.0),
 
         # Code completion / small Python tasks.
-        (DATASET_SPEC_MBPP_FORMATTED, 0.05, 8.0),
         (DATASET_SPEC_PYTHON_CODES_25K, 0.05, 6.8),
 
         # Summarization and story style.
