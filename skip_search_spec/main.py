@@ -42,7 +42,7 @@ def main() -> None:
         num_epochs = 1 # Ensure never get scores on data it has seen
 
         models = ["mistralai/Mistral-7B-Instruct-v0.3"]
-        active_start_end_lengths = [(2, 1)]
+        active_start_end_lengths = [(1, 2)]
 
         # SINGLE LAYER AT START
         print("Version: 2.13")
@@ -62,7 +62,7 @@ def main() -> None:
                     num_epochs=num_epochs,
                     lr=1e-4,
                     max_steps=1000000, #just something big
-                    kl_loss_weight=1.0,
+                    kl_loss_weight=0.25,
                     hidden_loss_weight=0.01,
                     ce_loss_weight=1.0,
                     checkpoint_every_steps=None,
