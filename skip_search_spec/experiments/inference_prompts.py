@@ -823,6 +823,189 @@ INFERENCE_TEST_PROMPTS_CONCRETE = [
 ]
 
 
+INFERENCE_TEST_PROMPTS_CONCRETE_SWEDISH = [
+    # -------------------------------------------------------------------------
+    # Konkreta svenska completion-uppgifter med smala, entydiga svar
+    # -------------------------------------------------------------------------
+    (
+        "svenska_konkret_matte_totalpris",
+        (
+            "Uppgift: Räkna ut totalpriset.\n"
+            "En anteckningsbok kostar 40 kronor. En penna kostar 15 kronor. "
+            "Köp 2 anteckningsböcker och 3 pennor.\n"
+            "Svara endast med det totala antalet kronor.\n\n"
+            "Svar:\n"
+        ),
+    ),
+    (
+        "svenska_konkret_matte_sidor_kvar",
+        (
+            "Uppgift: Räkna ut hur många sidor som är kvar.\n"
+            "En bok har 180 sidor. Sara läser 45 sidor på måndagen och 60 sidor "
+            "på tisdagen.\n"
+            "Svara endast med antalet olästa sidor.\n\n"
+            "Svar:\n"
+        ),
+    ),
+    (
+        "svenska_konkret_matte_medelvarde",
+        (
+            "Uppgift: Räkna ut medelvärdet.\n"
+            "Tal: 8, 12, 16, 20\n"
+            "Svara endast med medelvärdet som ett heltal.\n\n"
+            "Svar:\n"
+        ),
+    ),
+    (
+        "svenska_konkret_sortera_tal",
+        (
+            "Uppgift: Sortera talen i stigande ordning.\n"
+            "Tal: 31, 4, 18, 9, 25\n"
+            "Svara endast med en kommaseparerad lista av tal.\n\n"
+            "Utdata:\n"
+        ),
+    ),
+    (
+        "svenska_konkret_storsta_tal",
+        (
+            "Uppgift: Hitta det största talet.\n"
+            "Tal: 16, 72, 48, 91, 33\n"
+            "Svara endast med det största talet.\n\n"
+            "Svar:\n"
+        ),
+    ),
+    (
+        "svenska_konkret_rakna_ord",
+        (
+            "Uppgift: Räkna orden i meningen.\n"
+            "Mening: Den röda bussen stannar vid torget.\n"
+            "Svara endast med antalet ord som en siffra.\n\n"
+            "Svar:\n"
+        ),
+    ),
+    (
+        "svenska_konkret_extrahera_namn",
+        (
+            "Uppgift: Extrahera kundens fullständiga namn.\n"
+            "Post: Kund: Erik Lund; Beställning: 4 mappar; Stad: Uppsala.\n"
+            "Svara endast med det fullständiga namnet.\n\n"
+            "Utdata:\n"
+        ),
+    ),
+    (
+        "svenska_konkret_extrahera_datum",
+        (
+            "Uppgift: Extrahera datumet för mötet.\n"
+            "Text: Projektmötet hålls den 18 september 2027 klockan 13:30.\n"
+            "Svara endast med datumet exakt som det står i texten.\n\n"
+            "Utdata:\n"
+        ),
+    ),
+    (
+        "svenska_konkret_extrahera_epost",
+        (
+            "Uppgift: Extrahera e-postadressen.\n"
+            "Text: Skicka kvittot till ekonomi@example.se senast på fredag.\n"
+            "Svara endast med e-postadressen.\n\n"
+            "Utdata:\n"
+        ),
+    ),
+    (
+        "svenska_konkret_klassificera_sentiment",
+        (
+            "Uppgift: Klassificera känslan i recensionen.\n"
+            "Recension: Leveransen kom snabbt och stolen var bekväm.\n"
+            "Välj exakt en etikett: positiv, neutral, negativ.\n\n"
+            "Etikett:\n"
+        ),
+    ),
+    (
+        "svenska_konkret_klassificera_avdelning",
+        (
+            "Uppgift: Välj rätt supportavdelning.\n"
+            "Meddelande: Jag kan inte logga in på mitt konto efter lösenordsbytet.\n"
+            "Välj exakt en avdelning: fakturering, teknik, försäljning.\n\n"
+            "Avdelning:\n"
+        ),
+    ),
+    (
+        "svenska_konkret_ja_nej",
+        (
+            "Uppgift: Besvara frågan med ja eller nej.\n"
+            "Regel: En faktura är sen om den betalas efter den 10 juni.\n"
+            "Betalningsdatum: 12 juni.\n"
+            "Fråga: Är fakturan sen?\n\n"
+            "Svar:\n"
+        ),
+    ),
+    (
+        "svenska_konkret_enhetsomvandling",
+        (
+            "Uppgift: Omvandla kilometer till meter.\n"
+            "Sträcka: 2,5 kilometer\n"
+            "Svara endast med antalet meter.\n\n"
+            "Svar:\n"
+        ),
+    ),
+    (
+        "svenska_konkret_initialer",
+        (
+            "Uppgift: Skriv initialerna för namnet.\n"
+            "Namn: Anna Karin Berg\n"
+            "Svara endast med initialerna med punkter och utan mellanslag.\n\n"
+            "Utdata:\n"
+        ),
+    ),
+    (
+        "svenska_konkret_gemener",
+        (
+            "Uppgift: Gör texten till gemener.\n"
+            "Text: SMÅ STEG BYGGER STARKA VANOR\n"
+            "Svara endast med texten i gemener.\n\n"
+            "Utdata:\n"
+        ),
+    ),
+    (
+        "svenska_konkret_ersatt_ord",
+        (
+            "Uppgift: Ersätt varje förekomst av blå med grön.\n"
+            "Text: Den blå koppen står bredvid den blå tallriken.\n"
+            "Svara endast med den uppdaterade meningen.\n\n"
+            "Utdata:\n"
+        ),
+    ),
+    (
+        "svenska_konkret_json_objekt",
+        (
+            "Uppgift: Skapa ett JSON-objekt från fälten.\n"
+            "Namn: Linnea Holm\n"
+            "Roll: Analytiker\n"
+            "Aktiv: true\n"
+            "Använd exakt nycklarna: namn, roll, aktiv.\n"
+            "Svara endast med giltig JSON på en rad.\n\n"
+            "JSON:\n"
+        ),
+    ),
+    (
+        "svenska_konkret_csv_rad",
+        (
+            "Uppgift: Skapa en CSV-rad.\n"
+            "Fält i ordning: produkt, antal, pris\n"
+            "Värden: suddgummi, 6, 12.50\n"
+            "Svara endast med CSV-raden med kommatecken och utan rubrik.\n\n"
+            "CSV:\n"
+        ),
+    ),
+    (
+        "svenska_konkret_kod_completion",
+        (
+            "def dubbla_talet(n: int) -> int:\n"
+            "    \"\"\"Returnera n multiplicerat med exakt 2.\"\"\"\n"
+        ),
+    ),
+]
+
+
 CHAT_TEST_PROMPTS = [
     # Factual / encyclopedic
     ("fact_photosynthesis",      "How does photosynthesis work?"),
