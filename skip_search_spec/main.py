@@ -37,7 +37,7 @@ def main() -> None:
         from skip_search_spec.experiments.dataset_mix import get_dataset_mix
         from skip_search_spec.training.train_skipping_layers import train_skipping_layers
 
-        number_of_windows = 100_000
+        number_of_windows = 70_000
         num_epochs = 1 # Ensure never get scores on data it has seen
 
         models = ["mistralai/Mistral-7B-Instruct-v0.3"]
