@@ -41,7 +41,7 @@ def main() -> None:
         number_of_windows = 70_000
         num_epochs = 1 # Ensure never get scores on data it has seen
 
-        models = ["meta-llama/Llama-3.2-3B-Instruct"]
+        models = ["meta-llama/Llama-3.1-8B-Instruct"]
         active_start_end_lengths = [(1, 2)]
 
         # SINGLE LAYER AT START
