@@ -44,10 +44,10 @@ def main() -> None:
         from skip_search_spec.experiments.dataset_mix import get_dataset_mix
         from skip_search_spec.training.train_skipping_layers import train_skipping_layers
 
-        number_of_windows = 70_000
+        number_of_windows = 200_000
         num_epochs = 1 # Ensure never get scores on data it has seen
 
-        models = ["meta-llama/Llama-3.1-8B-Instruct"]
+        models = ["mistralai/Mistral-7B-Instruct-v0.3"]
         active_start_end_lengths = [(1, 2)]
 
         # SINGLE LAYER AT START
@@ -60,7 +60,7 @@ def main() -> None:
                 train_skipping_layers(
                     model_name=model,
                     dataset_mix=get_dataset_mix_prompt_aligned(number_of_windows),
-                    context_len=100,
+                    context_len=128,
                     num_windows_to_use=number_of_windows,
                     batch_size=10,
                     active_start_layers=active_start_layers, 
