@@ -180,7 +180,7 @@ def save_mean_similarity_plot(
 
 def build_flashhead_head(store_path: str, model_name: str) -> None:
     git_commit = get_git_revision().commit
-    num_clusters = 5344
+    num_clusters = 8016
     print(f"git_commit={git_commit}")
 
     loaded = load_flashhead_base(model_name)
