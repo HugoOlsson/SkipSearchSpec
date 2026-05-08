@@ -10,6 +10,7 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader, ConcatDataset
 from datasets import Dataset
 
+from skip_search_spec.helpers.dataset_formatting import maybe_format_dataset_to_text
 from skip_search_spec.helpers.tooling import (
     distribution_similarity_metrics,
     load_dataset,
@@ -447,6 +448,8 @@ def build_fixed_window_dataloader(
     shuffle: bool,
 ) -> DataLoader:
     dataset: Dataset = load_dataset(dataset_spec)
+    dataset = maybe_format_dataset_to_text(dataset, dataset_spec)
+
     window_settings = WindowSettings(C1=context_len)
 
     tokenized_examples = tokenize_dataset_to_examples(
