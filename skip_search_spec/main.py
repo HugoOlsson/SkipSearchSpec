@@ -7,6 +7,7 @@ from pprint import pprint
 
 import torch
 
+from skip_search_spec.experiments.dataset_mix import get_dataset_mix_prompt_aligned, get_dataset_mix_question_answer_only
 from skip_search_spec.experiments.inference_prompts import CHAT_TEST_PROMPTS, INFERENCE_TEST_PROMPTS_EASY, INFERENCE_TEST_PROMPTS_HARD
 
 
@@ -52,7 +53,7 @@ def main() -> None:
 
                 train_skipping_layers(
                     model_name=model,
-                    dataset_mix=get_dataset_mix(number_of_windows),
+                    dataset_mix=get_dataset_mix_prompt_aligned(number_of_windows),
                     context_len=200,
                     num_windows_to_use=number_of_windows,
                     batch_size=10,

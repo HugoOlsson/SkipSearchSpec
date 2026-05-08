@@ -129,11 +129,100 @@ def format_math_qa_row(row: dict[str, Any]) -> str | None:
     )
 
 
+def format_sciq_row(row: dict[str, Any]) -> str | None:
+    question = _clean(row.get("question"))
+    support = _clean(row.get("support"))
+    answer = _clean(row.get("correct_answer"))
+
+    if not question or not answer:
+        return None
+
+    if support:
+        return (
+            f"Science question:\n{question}\n\n"
+            f"Context:\n{support}\n\n"
+            f"Answer:\n{answer}"
+        )
+
+    return f"Science question:\n{question}\n\nAnswer:\n{answer}"
+
+
+def format_squad_row(row: dict[str, Any]) -> str | None:
+    title = _clean(row.get("title"))
+    context = _clean(row.get("context"))
+    question = _clean(row.get("question"))
+    answers = row.get("answers")
+
+    answer = ""
+    if isinstance(answers, dict):
+        texts = answers.get("text")
+        if isinstance(texts, list) and texts:
+            answer = _clean(texts[0])
+
+    if not context or not question or not answer:
+        return None
+
+    header = f"Article: {title}\n\n" if title else ""
+    return (
+        f"{header}"
+        f"Passage:\n{context}\n\n"
+        f"Question:\n{question}\n\n"
+        f"Answer:\n{answer}"
+    )
+
+
+def format_gsm8k_row(row: dict[str, Any]) -> str | None:
+    question = _clean(row.get("question"))
+    answer = _clean(row.get("answer"))
+
+    if not question or not answer:
+        return None
+
+    return f"Problem:\n{question}\n\nSolution:\n{answer}"
+
+
+def format_mbpp_row(row: dict[str, Any]) -> str | None:
+    text = _clean(row.get("text"))
+    code = _clean(row.get("code"))
+    test_list = row.get("test_list")
+
+    tests = ""
+    if isinstance(test_list, list) and test_list:
+        tests = "\n".join(str(x) for x in test_list)
+
+    if not text or not code:
+        return None
+
+    if tests:
+        return (
+            f"Python task:\n{text}\n\n"
+            f"Tests:\n{tests}\n\n"
+            f"Solution:\n```python\n{code}\n```"
+        )
+
+    return f"Python task:\n{text}\n\nSolution:\n```python\n{code}\n```"
+
+
+def format_dialogsum_row(row: dict[str, Any]) -> str | None:
+    dialogue = _clean(row.get("dialogue"))
+    summary = _clean(row.get("summary"))
+
+    if not dialogue or not summary:
+        return None
+
+    return f"Dialogue:\n{dialogue}\n\nSummary:\n{summary}"
+
+
 DATASET_ROW_FORMATTERS_BY_NAME: dict[str, DatasetRowFormatter] = {
     "Dolly-15k-formatted": format_instruction_qa_row,
     "MetaMathQA-40K-formatted": format_math_qa_row,
+    "Alpaca-52k-formatted": format_instruction_qa_row,
+    "SciQ-formatted": format_sciq_row,
+    "SQuAD-formatted": format_squad_row,
+    "GSM8K-formatted": format_gsm8k_row,
+    "MBPP-formatted": format_mbpp_row,
+    "DialogSum-formatted": format_dialogsum_row,
 }
-
 
 def maybe_format_dataset_to_text(
     dataset: Dataset,
