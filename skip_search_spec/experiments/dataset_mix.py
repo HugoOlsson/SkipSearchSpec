@@ -42,9 +42,18 @@ DATASET_SPEC_PYTHON_CODES_25K = DatasetSpec(
     text_field="text",
 )
 
+# IMPORTANT:
+# Do not load intfloat/multilingual_cc_news directly with:
+#   huggingface_path="intfloat/multilingual_cc_news"
+#
+# That repo uses a dataset script, and newer versions of `datasets` error with:
+#   RuntimeError: Dataset scripts are no longer supported
+#
+# Instead, use the generic parquet loader and point directly to selected Parquet
+# files from the repo.
 DATASET_SPEC_MULTILINGUAL_CC_NEWS = DatasetSpec(
     name="Multilingual-CC-News-en-es-fr-de-sv",
-    huggingface_path="intfloat/multilingual_cc_news",
+    huggingface_path="parquet",
     config_name=None,
     split="train",
     # The dataset has fields like: title, maintext, url, date_publish.
@@ -59,10 +68,26 @@ DATASET_SPEC_MULTILINGUAL_CC_NEWS = DatasetSpec(
 # DatasetSpec does not appear to have a place for custom load_dataset kwargs,
 # so keep them in a side table keyed by DatasetSpec.name.
 #
-# sv = Swedish.
+# Languages:
+#   en = English
+#   es = Spanish
+#   fr = French
+#   de = German
+#   sv = Swedish
+#
+# We load only the first shard for each language to keep the non-streaming
+# download smaller and avoid the custom dataset script.
 DATASET_LOAD_KWARGS_BY_NAME: dict[str, dict[str, Any]] = {
     "Multilingual-CC-News-en-es-fr-de-sv": {
-        "languages": ["en", "es", "fr", "de", "sv"],
+        "data_files": {
+            "train": [
+                "hf://datasets/intfloat/multilingual_cc_news/en/train/0000.parquet",
+                "hf://datasets/intfloat/multilingual_cc_news/es/train/0000.parquet",
+                "hf://datasets/intfloat/multilingual_cc_news/fr/train/0000.parquet",
+                "hf://datasets/intfloat/multilingual_cc_news/de/train/0000.parquet",
+                "hf://datasets/intfloat/multilingual_cc_news/sv/train/0000.parquet",
+            ],
+        },
     },
 }
 
@@ -70,14 +95,15 @@ DATASET_LOAD_KWARGS_BY_NAME: dict[str, dict[str, Any]] = {
 # -----------------------------------------------------------------------------
 # Loader patch
 # -----------------------------------------------------------------------------
-# Replace your current load_dataset helper with this version if you want the
-# multilingual dataset to load correctly.
+# Replace your current load_dataset helper with this version if this file owns
+# dataset loading. If your project imports load_dataset from
+# skip_search_spec.helpers.tooling instead, apply this same change there too.
 def load_dataset(dataset: DatasetSpec, **load_kwargs: Any):
     """
     Load a Hugging Face dataset using DatasetSpec defaults.
 
     Supports extra per-dataset kwargs such as:
-      load_dataset("intfloat/multilingual_cc_news", languages=[...])
+      load_dataset("parquet", data_files={...})
     """
     resolved_kwargs: dict[str, Any] = {}
 
@@ -108,13 +134,6 @@ def _max_examples_for_source(
 def get_dataset_mix(num_windows: int = 10_000) -> list[tuple[DatasetSpec, float, int]]:
     """
     Non-streaming, English-first mix with a small multilingual component.
-
-    Languages in multilingual_cc_news:
-      en = English
-      es = Spanish
-      fr = French
-      de = German
-      sv = Swedish
 
     Suggested purpose:
       - FineWeb-Edu-1B: broad educational prose
