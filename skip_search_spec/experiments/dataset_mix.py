@@ -223,6 +223,7 @@ def get_dataset_mix_question_answer_only(
         for spec, fraction, examples_per_window in mix
     ]
 
+buffer_adjuster = 1.5
 
 def get_dataset_mix_prompt_aligned(
     num_windows: int = 10_000,
@@ -239,27 +240,27 @@ def get_dataset_mix_prompt_aligned(
     """
     mix: list[tuple[DatasetSpec, float, float]] = [
         # Article/prose/procedure/comparison continuation.
-        (DATASET_SPEC_COSMOPEDIA_100K, 0.25, 1.5),
-        (DATASET_SPEC_FINEWEB_EDU_1B, 0.15, 1.3),
+        (DATASET_SPEC_COSMOPEDIA_100K, 0.25, 1.5*buffer_adjuster),
+        (DATASET_SPEC_FINEWEB_EDU_1B, 0.15, 1.3*buffer_adjuster),
 
         # General instruction / answer formatting.
-        (DATASET_SPEC_ALPACA_FORMATTED, 0.15, 6),
-        (DATASET_SPEC_DOLLY_15K_FORMATTED, 0.10, 6.0),
+        (DATASET_SPEC_ALPACA_FORMATTED, 0.15, 6*buffer_adjuster),
+        (DATASET_SPEC_DOLLY_15K_FORMATTED, 0.10, 6.0*buffer_adjuster),
 
         # Science / factual QA.
-        (DATASET_SPEC_SCIQ_FORMATTED, 0.08, 6.0),
-        (DATASET_SPEC_SQUAD_FORMATTED, 0.07, 6.0),
+        (DATASET_SPEC_SCIQ_FORMATTED, 0.08, 6.0*buffer_adjuster),
+        (DATASET_SPEC_SQUAD_FORMATTED, 0.07, 6.0*buffer_adjuster),
 
         # Math solution formatting.
-        (DATASET_SPEC_GSM8K_FORMATTED, 0.08, 6.0),
-        (DATASET_SPEC_METAMATHQA_40K_FORMATTED, 0.07, 6.0),
+        (DATASET_SPEC_GSM8K_FORMATTED, 0.08, 6.0*buffer_adjuster),
+        (DATASET_SPEC_METAMATHQA_40K_FORMATTED, 0.07, 6.0*buffer_adjuster),
 
         # Code completion / small Python tasks.
-        (DATASET_SPEC_PYTHON_CODES_25K, 0.05, 6.8),
+        (DATASET_SPEC_PYTHON_CODES_25K, 0.05, 6.8*buffer_adjuster),
 
         # Summarization and story style.
-        (DATASET_SPEC_DIALOGSUM_FORMATTED, 0.05, 6.0),
-        (DATASET_SPEC_TINYSTORIES, 0.05, 6.0),
+        (DATASET_SPEC_DIALOGSUM_FORMATTED, 0.05, 6.0*buffer_adjuster),
+        (DATASET_SPEC_TINYSTORIES, 0.05, 6.0*buffer_adjuster),
     ]
 
     return [
