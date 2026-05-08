@@ -8,7 +8,12 @@ from pprint import pprint
 import torch
 
 from skip_search_spec.experiments.dataset_mix import get_dataset_mix_prompt_aligned, get_dataset_mix_question_answer_only
-from skip_search_spec.experiments.inference_prompts import CHAT_TEST_PROMPTS, INFERENCE_TEST_PROMPTS_EASY, INFERENCE_TEST_PROMPTS_HARD
+from skip_search_spec.experiments.inference_prompts import (
+    CHAT_TEST_PROMPTS,
+    INFERENCE_TEST_PROMPTS_CONCRETE,
+    INFERENCE_TEST_PROMPTS_EASY,
+    INFERENCE_TEST_PROMPTS_HARD,
+)
 
 
 
@@ -231,7 +236,7 @@ def main() -> None:
         )
         parser.add_argument(
             "--prompt-set",
-            choices=("completion-style", "chat-style"),
+            choices=("completion-style", "chat-style", "concrete-completion-style"),
             default="completion-style",
             help="Prompt set to run. completion-style preserves the old behavior.",
         )
@@ -248,6 +253,7 @@ def main() -> None:
         prompt_sets = {
             "chat-style": (CHAT_TEST_PROMPTS, True),
             "completion-style": (INFERENCE_TEST_PROMPTS_EASY, False),
+            "concrete-completion-style": (INFERENCE_TEST_PROMPTS_CONCRETE, False),
         }
         test_prompts, use_chat_template = prompt_sets[args.prompt_set]
 
@@ -579,7 +585,12 @@ def main() -> None:
         parser = argparse.ArgumentParser(add_help=False)
         parser.add_argument(
             "--prompt-set",
-            choices=("completion-style", "chat-style", "hard-completion-style"),
+            choices=(
+                "completion-style",
+                "chat-style",
+                "hard-completion-style",
+                "concrete-completion-style",
+            ),
             default="chat-style",
             help="Prompt set to run.",
         )
@@ -626,6 +637,7 @@ def main() -> None:
             "chat-style": (CHAT_TEST_PROMPTS, True),
             "completion-style": (INFERENCE_TEST_PROMPTS_EASY, False),
             "hard-completion-style": (INFERENCE_TEST_PROMPTS_HARD, False),
+            "concrete-completion-style": (INFERENCE_TEST_PROMPTS_CONCRETE, False),
         }
         test_prompts, use_chat_template = prompt_sets[args.prompt_set]
         if args.limit is not None:

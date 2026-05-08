@@ -630,6 +630,199 @@ INFERENCE_TEST_PROMPTS_EASY = [
 ]
 
 
+INFERENCE_TEST_PROMPTS_CONCRETE = [
+    # -------------------------------------------------------------------------
+    # Concrete completion tasks with narrow, unambiguous outputs
+    # -------------------------------------------------------------------------
+    (
+        "concrete_math_total_price",
+        (
+            "Task: Compute the total cost.\n"
+            "A notebook costs 4 dollars. A pen costs 2 dollars. Buy 3 notebooks "
+            "and 5 pens.\n"
+            "Return only the total number of dollars.\n\n"
+            "Answer:\n"
+        ),
+    ),
+    (
+        "concrete_math_remaining_pages",
+        (
+            "Task: Compute the remaining pages.\n"
+            "A book has 240 pages. Lina has read 85 pages on Monday and 70 pages "
+            "on Tuesday.\n"
+            "Return only the number of pages left unread.\n\n"
+            "Answer:\n"
+        ),
+    ),
+    (
+        "concrete_math_average",
+        (
+            "Task: Compute the arithmetic mean.\n"
+            "Numbers: 6, 10, 14, 18\n"
+            "Return only the mean as an integer.\n\n"
+            "Answer:\n"
+        ),
+    ),
+    (
+        "concrete_sort_numbers",
+        (
+            "Task: Sort the numbers in ascending order.\n"
+            "Numbers: 42, 7, 19, 3, 28\n"
+            "Return only a comma-separated list of numbers.\n\n"
+            "Output:\n"
+        ),
+    ),
+    (
+        "concrete_find_largest",
+        (
+            "Task: Find the largest number.\n"
+            "Numbers: 18, 73, 41, 9, 55\n"
+            "Return only the largest number.\n\n"
+            "Answer:\n"
+        ),
+    ),
+    (
+        "concrete_count_words",
+        (
+            "Task: Count the words in the sentence.\n"
+            "Sentence: The quiet train arrived before noon.\n"
+            "Return only the word count as a number.\n\n"
+            "Answer:\n"
+        ),
+    ),
+    (
+        "concrete_extract_name",
+        (
+            "Task: Extract the customer's full name.\n"
+            "Record: Customer: Maya Chen; Order: 3 notebooks; City: Boston.\n"
+            "Return only the full name.\n\n"
+            "Output:\n"
+        ),
+    ),
+    (
+        "concrete_extract_date",
+        (
+            "Task: Extract the event date.\n"
+            "Text: The safety inspection is scheduled for March 14, 2027 at 09:00.\n"
+            "Return only the date exactly as written.\n\n"
+            "Output:\n"
+        ),
+    ),
+    (
+        "concrete_extract_email",
+        (
+            "Task: Extract the email address.\n"
+            "Text: Please send the invoice to billing@example.com before Friday.\n"
+            "Return only the email address.\n\n"
+            "Output:\n"
+        ),
+    ),
+    (
+        "concrete_classify_sentiment",
+        (
+            "Task: Classify the sentiment of the review.\n"
+            "Review: The headphones arrived on time and the sound quality is excellent.\n"
+            "Choose exactly one label: positive, neutral, negative.\n\n"
+            "Label:\n"
+        ),
+    ),
+    (
+        "concrete_classify_department",
+        (
+            "Task: Choose the correct support department.\n"
+            "Message: I was charged twice for the same subscription renewal.\n"
+            "Choose exactly one department: billing, technical, sales.\n\n"
+            "Department:\n"
+        ),
+    ),
+    (
+        "concrete_yes_no",
+        (
+            "Task: Answer the question with yes or no.\n"
+            "Rule: A package is late if it arrives after May 10.\n"
+            "Package arrival date: May 12.\n"
+            "Question: Is the package late?\n\n"
+            "Answer:\n"
+        ),
+    ),
+    (
+        "concrete_unit_conversion",
+        (
+            "Task: Convert kilometers to meters.\n"
+            "Distance: 3.5 kilometers\n"
+            "Return only the number of meters.\n\n"
+            "Answer:\n"
+        ),
+    ),
+    (
+        "concrete_temperature_conversion",
+        (
+            "Task: Convert Celsius to Fahrenheit.\n"
+            "Formula: F = C * 9 / 5 + 32\n"
+            "Celsius: 20\n"
+            "Return only the Fahrenheit value as an integer.\n\n"
+            "Answer:\n"
+        ),
+    ),
+    (
+        "concrete_format_initials",
+        (
+            "Task: Write the initials for the name.\n"
+            "Name: Sofia Maria Alvarez\n"
+            "Return only the initials with periods and no spaces.\n\n"
+            "Output:\n"
+        ),
+    ),
+    (
+        "concrete_lowercase",
+        (
+            "Task: Convert the text to lowercase.\n"
+            "Text: SMALL STEPS BUILD STRONG HABITS\n"
+            "Return only the lowercase text.\n\n"
+            "Output:\n"
+        ),
+    ),
+    (
+        "concrete_replace_word",
+        (
+            "Task: Replace every occurrence of blue with green.\n"
+            "Text: The blue cup is beside the blue plate.\n"
+            "Return only the updated sentence.\n\n"
+            "Output:\n"
+        ),
+    ),
+    (
+        "concrete_json_object",
+        (
+            "Task: Create a JSON object from the fields.\n"
+            "Name: Omar Patel\n"
+            "Role: Designer\n"
+            "Active: true\n"
+            "Use keys exactly: name, role, active.\n"
+            "Return only valid JSON on one line.\n\n"
+            "JSON:\n"
+        ),
+    ),
+    (
+        "concrete_csv_row",
+        (
+            "Task: Create one CSV row.\n"
+            "Fields in order: product, quantity, price\n"
+            "Values: pencil, 12, 1.50\n"
+            "Return only the CSV row with commas and no header.\n\n"
+            "CSV:\n"
+        ),
+    ),
+    (
+        "concrete_code_completion",
+        (
+            "def multiply_by_three(n: int) -> int:\n"
+            "    \"\"\"Return n multiplied by exactly 3.\"\"\"\n"
+        ),
+    ),
+]
+
+
 CHAT_TEST_PROMPTS = [
     # Factual / encyclopedic
     ("fact_photosynthesis",      "How does photosynthesis work?"),
