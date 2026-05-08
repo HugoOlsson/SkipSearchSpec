@@ -48,7 +48,6 @@ class TrainingSectionsBatch:
     student_logits: torch.Tensor
     teacher_logits: torch.Tensor
     train_mask: torch.Tensor
-    section_offsets: torch.Tensor
     student_hidden: torch.Tensor | None
     teacher_hidden: torch.Tensor | None
 
@@ -108,7 +107,6 @@ def run_drafter_on_training_sections(
     student_logits_parts: list[torch.Tensor] = []
     teacher_logits_parts: list[torch.Tensor] = []
     train_mask_parts: list[torch.Tensor] = []
-    section_offset_parts: list[torch.Tensor] = []
     student_hidden_parts: list[torch.Tensor] = []
     teacher_hidden_parts: list[torch.Tensor] = []
 
@@ -141,12 +139,6 @@ def run_drafter_on_training_sections(
         train_mask_parts.append(
             attention_mask[:, section_start:section_end].bool()
         )
-        section_offset_parts.append(
-            torch.arange(
-                section_end - section_start,
-                device=input_ids.device,
-            ).unsqueeze(0).expand(input_ids.size(0), -1)
-        )
 
         if include_hidden_targets:
             assert teacher_target_hidden is not None
@@ -172,7 +164,6 @@ def run_drafter_on_training_sections(
         student_logits=torch.cat(student_logits_parts, dim=1),
         teacher_logits=torch.cat(teacher_logits_parts, dim=1),
         train_mask=torch.cat(train_mask_parts, dim=1),
-        section_offsets=torch.cat(section_offset_parts, dim=1),
         student_hidden=student_hidden,
         teacher_hidden=teacher_hidden,
     )
@@ -251,18 +242,18 @@ def train_skipping_layers(
     num_epochs: int = 1, # Always one to maximize data exposure per compute
     max_steps: int | None = 100_000_000, # just something big
     lr: float = 1e-4,
-    weight_decay: float = 0.0,
+    weight_decay = 0.01,
     max_grad_norm: float | None = None,
     kl_loss_weight: float = 1.0,
     ce_loss_weight: float = 1.0,
-    hidden_loss_weight: float = 0.0,
+    hidden_loss_weight: float = 0.01,
     teacher_temperature: float = 1.0,
     reference_hidden_source: ReferenceHiddenSource = "final",
     model_kwargs: dict[str, Any] | None = None,
     checkpoint_every_steps: int | None = None,
     log_every: int = 100,
     measurement_save_interval_seconds: float = 60.0,
-    num_draft_sections: int = 4,
+    num_draft_sections: int = 5,
 ) -> TrainGapBridgeOutput:
     stage("train_gap_bridge: start")
 
@@ -457,8 +448,6 @@ def train_skipping_layers(
 
             student_train_logits = section_batch.student_logits
             teacher_train_logits = section_batch.teacher_logits
-            train_mask = section_batch.train_mask
-            section_offsets = section_batch.section_offsets
 
             losses = compute_bridge_training_losses(
                 section_batch=section_batch,
@@ -509,19 +498,6 @@ def train_skipping_layers(
                     MetricEvent.create(phase="train", name="p_drafter_on_verifier_top1", value=sim["p_drafter_on_verifier_top1"].item(), step=step),
                 ]
 
-                top1_matches = (
-                    student_train_logits.argmax(dim=-1)
-                    == teacher_train_logits.argmax(dim=-1)
-                ).float()
-
-                top1_by_offset = []
-                for offset in range(6):
-                    offset_mask = train_mask & (section_offsets == offset)
-                    if offset_mask.any():
-                        value = masked_mean(top1_matches, offset_mask).item()
-                        top1_by_offset.append(round(value, 4))
-                    else:
-                        top1_by_offset.append(None)
 
                 metric_events.extend(batch_metrics)
 
@@ -534,7 +510,6 @@ def train_skipping_layers(
                     end="",
                 )
                 print_metric_events_line(batch_metrics, decimals=4)
-                print(f"top1_by_draft_offset={top1_by_offset}", flush=True)
 
                 run = MeasurementRun(
                     context=run_context,

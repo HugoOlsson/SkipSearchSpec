@@ -40,11 +40,11 @@ def main() -> None:
         number_of_windows = 100_000
         num_epochs = 1 # Ensure never get scores on data it has seen
 
-        models = ["meta-llama/Llama-3.2-1B-Instruct"]
-        active_start_end_lengths = [(1, 1)]
+        models = ["mistralai/Mistral-7B-Instruct-v0.3"]
+        active_start_end_lengths = [(1, 2)]
 
         # SINGLE LAYER AT START
-        print("Version: 2.12")
+        print("Version: 2.13")
 
         for active_start_layers, active_end_layers in active_start_end_lengths: 
 
@@ -62,7 +62,7 @@ def main() -> None:
                     lr=1e-4,
                     max_steps=1000000, #just something big
                     kl_loss_weight=1.0,
-                    hidden_loss_weight=0.0,
+                    hidden_loss_weight=0.01,
                     ce_loss_weight=1.0,
                     checkpoint_every_steps=None,
                     log_every=100,
