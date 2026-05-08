@@ -62,9 +62,9 @@ def main() -> None:
                     num_epochs=num_epochs,
                     lr=1e-4,
                     max_steps=1000000, #just something big
-                    kl_loss_weight=0.25,
-                    hidden_loss_weight=0.01,
-                    ce_loss_weight=1.0,
+                    kl_loss_weight=1.0,
+                    hidden_loss_weight=0.2,
+                    ce_loss_weight=0.0,
                     checkpoint_every_steps=None,
                     log_every=100,
                     num_draft_sections=5,
