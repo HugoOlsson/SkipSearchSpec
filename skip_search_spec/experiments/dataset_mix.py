@@ -250,24 +250,24 @@ def get_dataset_mix_prompt_aligned(
         (DATASET_SPEC_FINEWEB_EDU_1B, 0.15, 1.3),
 
         # General instruction / answer formatting.
-        (DATASET_SPEC_ALPACA_FORMATTED, 0.15, 2.5),
-        (DATASET_SPEC_DOLLY_15K_FORMATTED, 0.10, 3.0),
+        (DATASET_SPEC_ALPACA_FORMATTED, 0.15, 6),
+        (DATASET_SPEC_DOLLY_15K_FORMATTED, 0.10, 6.0),
 
         # Science / factual QA.
-        (DATASET_SPEC_SCIQ_FORMATTED, 0.08, 4.0),
-        (DATASET_SPEC_SQUAD_FORMATTED, 0.07, 4.0),
+        (DATASET_SPEC_SCIQ_FORMATTED, 0.08, 6.0),
+        (DATASET_SPEC_SQUAD_FORMATTED, 0.07, 6.0),
 
         # Math solution formatting.
-        (DATASET_SPEC_GSM8K_FORMATTED, 0.08, 4.0),
-        (DATASET_SPEC_METAMATHQA_40K_FORMATTED, 0.07, 3.0),
+        (DATASET_SPEC_GSM8K_FORMATTED, 0.08, 6.0),
+        (DATASET_SPEC_METAMATHQA_40K_FORMATTED, 0.07, 6.0),
 
         # Code completion / small Python tasks.
-        (DATASET_SPEC_MBPP_FORMATTED, 0.05, 5.0),
-        (DATASET_SPEC_PYTHON_CODES_25K, 0.05, 4.8),
+        (DATASET_SPEC_MBPP_FORMATTED, 0.05, 6.0),
+        (DATASET_SPEC_PYTHON_CODES_25K, 0.05, 6.8),
 
         # Summarization and story style.
-        (DATASET_SPEC_DIALOGSUM_FORMATTED, 0.05, 3.0),
-        (DATASET_SPEC_TINYSTORIES, 0.05, 2.0),
+        (DATASET_SPEC_DIALOGSUM_FORMATTED, 0.05, 6.0),
+        (DATASET_SPEC_TINYSTORIES, 0.05, 6.0),
     ]
 
     return [
