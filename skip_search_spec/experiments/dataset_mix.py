@@ -262,7 +262,7 @@ def get_dataset_mix_prompt_aligned(
         (DATASET_SPEC_METAMATHQA_40K_FORMATTED, 0.07, 6.0),
 
         # Code completion / small Python tasks.
-        (DATASET_SPEC_MBPP_FORMATTED, 0.05, 6.0),
+        (DATASET_SPEC_MBPP_FORMATTED, 0.05, 8.0),
         (DATASET_SPEC_PYTHON_CODES_25K, 0.05, 6.8),
 
         # Summarization and story style.
