@@ -128,13 +128,13 @@ def get_dataset_mix(num_windows: int = 10_000) -> list[tuple[DatasetSpec, float,
         (DATASET_SPEC_FINEWEB_EDU_1B, 0.38, 1.3),
 
         # Synthetic educational prose, stories, and guides.
-        (DATASET_SPEC_COSMOPEDIA_100K, 0.28, 1.5),
+        (DATASET_SPEC_COSMOPEDIA_100K, 0.32, 1.5),
 
         # Math/reasoning text.
         (DATASET_SPEC_FINEMATH_4PLUS, 0.10, 2.0),
 
         # Python instruction/code examples.
-        (DATASET_SPEC_PYTHON_CODES_25K, 0.14, 3.0),
+        (DATASET_SPEC_PYTHON_CODES_25K, 0.10, 4.8),
 
         # Multilingual article/news prose.
         (DATASET_SPEC_MULTILINGUAL_CC_NEWS, 0.10, 1.5),
