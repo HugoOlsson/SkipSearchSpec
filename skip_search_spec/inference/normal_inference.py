@@ -89,6 +89,14 @@ def generate_normal(
             use_cache=use_cache,
             pad_token_id=tokenizer.pad_token_id,
             eos_token_id=tokenizer.eos_token_id,
+            # Self-speculation verifies with raw argmax logits. Some instruct
+            # models, notably Qwen2.5, ship non-neutral generation_config
+            # values like repetition_penalty=1.1; do_sample=False does not
+            # disable those logits processors.
+            repetition_penalty=1.0,
+            temperature=None,
+            top_p=None,
+            top_k=None,
         )
 
     prompt_token_count = int(inputs["input_ids"].shape[-1])
