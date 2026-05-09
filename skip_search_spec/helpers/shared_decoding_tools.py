@@ -16,7 +16,7 @@ from skip_search_spec.helpers.tooling import (
     load_dataset,
 )
 from skip_search_spec.helpers.window_building import (
-    WindowDataset,
+    PackedWindowDataset,
     build_window_index,
     collate_windows,
     tokenize_dataset_to_examples,
@@ -435,7 +435,6 @@ def kl_teacher_to_student_next_token(
 # Dataset/window/dataloader helper
 # =============================================================================
 
-
 def build_fixed_window_dataloader(
     *,
     dataset_spec: DatasetSpec,
@@ -450,8 +449,6 @@ def build_fixed_window_dataloader(
     dataset: Dataset = load_dataset(dataset_spec)
     dataset = maybe_format_dataset_to_text(dataset, dataset_spec)
 
-    window_settings = WindowSettings(C1=context_len)
-
     tokenized_examples = tokenize_dataset_to_examples(
         dataset,
         model_and_tokenizer.tokenizer,
@@ -459,23 +456,28 @@ def build_fixed_window_dataloader(
         max_examples=max_examples,
     )
 
-    window_index = build_window_index(
+    separator_token_ids: Any = model_and_tokenizer.tokenizer(
+        "\n\n",
+        add_special_tokens=False,
+    )["input_ids"]
+    
+
+    packed_windows = pack_tokenized_examples_to_windows(
         tokenized_examples,
-        window_settings,
+        context_len=context_len,
+        separator_token_ids=separator_token_ids,
     )
 
-    if len(window_index) < num_windows_to_use:
+    if len(packed_windows) < num_windows_to_use:
         raise ValueError(
-            f"Requested {num_windows_to_use} windows, but only built {len(window_index)}."
+            f"Requested {num_windows_to_use} packed windows, "
+            f"but only built {len(packed_windows)}."
         )
 
-    selected_window_index = window_index[:num_windows_to_use]
-
-    window_dataset = WindowDataset(
-        tokenized_examples=tokenized_examples,
-        window_index=selected_window_index,
-        window_settings=window_settings,
+    window_dataset = PackedWindowDataset(
+        packed_windows[:num_windows_to_use]
     )
+
 
     return DataLoader(
         window_dataset,
@@ -521,6 +523,66 @@ def split_count_by_weights(
             counts[i] = 1
 
     return counts
+
+
+def pack_tokenized_examples_to_windows(
+    tokenized_examples: list[torch.Tensor],
+    *,
+    context_len: int,
+    separator_token_ids: list[int] | None = None,
+) -> list[torch.Tensor]:
+    """
+    Build fixed-length packed windows.
+
+    Policy:
+      - Every window starts at the beginning of a fresh example.
+      - Additional examples are appended with a separator before them.
+      - Once the buffer reaches context_len, cut the final added example.
+      - Overflow from the final added example is discarded.
+    """
+    if context_len <= 0:
+        raise ValueError(f"context_len must be > 0, got {context_len}")
+
+    if separator_token_ids is None:
+        separator_token_ids = []
+
+    windows: list[torch.Tensor] = []
+    idx = 0
+
+    while idx < len(tokenized_examples):
+        buffer: list[int] = []
+        is_first_example_in_window = True
+
+        while idx < len(tokenized_examples) and len(buffer) < context_len:
+            example = tokenized_examples[idx]
+
+            if example.ndim != 1:
+                raise ValueError(
+                    f"Expected each tokenized example to be 1D, "
+                    f"got {tuple(example.shape)}"
+                )
+
+            ids = example.tolist()
+
+            if is_first_example_in_window:
+                ids_to_add = ids
+            else:
+                ids_to_add = separator_token_ids + ids
+
+            needed = context_len - len(buffer)
+
+            if len(ids_to_add) <= needed:
+                buffer.extend(ids_to_add)
+            else:
+                buffer.extend(ids_to_add[:needed])
+
+            idx += 1
+            is_first_example_in_window = False
+
+        if len(buffer) == context_len:
+            windows.append(torch.tensor(buffer, dtype=torch.long))
+
+    return windows
 
 def build_mixed_fixed_window_dataloader(
     *,

@@ -137,42 +137,15 @@ def build_window_index(
     return window_index
 
 
-class WindowDataset(TorchDataset[torch.Tensor]):
-    """
-    Lazy window dataset backed by:
-      - tokenized_examples: list of 1D LongTensor examples
-      - window_index: list of (example_idx, start) pairs
-
-    __getitem__ returns a 1D LongTensor of shape [C1].
-    """
-
-    def __init__(
-        self,
-        tokenized_examples: list[torch.Tensor],
-        window_index: list[tuple[int, int]],
-        window_settings: WindowSettings,
-    ) -> None:
-        self.tokenized_examples = tokenized_examples
-        self.window_index = window_index
-        self.c1 = window_settings.C1
-
-        if self.c1 <= 0:
-            raise ValueError(f"window_settings.C1 must be > 0, got {self.c1}")
+class PackedWindowDataset(TorchDataset[torch.Tensor]):
+    def __init__(self, windows: list[torch.Tensor]) -> None:
+        self.windows = windows
 
     def __len__(self) -> int:
-        return len(self.window_index)
+        return len(self.windows)
 
     def __getitem__(self, idx: int) -> torch.Tensor:
-        example_idx, start = self.window_index[idx]
-        example_tokens = self.tokenized_examples[example_idx]
-        window = example_tokens[start : start + self.c1]
-
-        if window.numel() != self.c1:
-            raise RuntimeError(
-                f"Window at idx={idx} has length {window.numel()} but expected {self.c1}."
-            )
-
-        return window
+        return self.windows[idx]
 
 
 def collate_windows(batch: list[torch.Tensor]) -> tuple[torch.Tensor, torch.Tensor]:
