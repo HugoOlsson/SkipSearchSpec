@@ -57,7 +57,7 @@ def main() -> None:
         number_of_windows = 100_000
         num_epochs = 1 # Ensure never get scores on data it has seen
 
-        models = ["Qwen/Qwen2.5-14B-Instruct"]
+        models = ["Qwen/Qwen3-8B"]
         active_start_end_lengths = [(1, 1)]
 
         for active_start_layers, active_end_layers in active_start_end_lengths: 
