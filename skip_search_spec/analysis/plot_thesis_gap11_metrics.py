@@ -62,6 +62,7 @@ THESIS_COLORS = [
 
 DEFAULT_SMOOTH_WINDOW = 5
 RAW_PREFIX_POINTS = 5
+FINAL_AVG_POINTS = 20
 LINE_WIDTH = 1.35
 
 
@@ -192,6 +193,13 @@ def _moving_average(values: list[float], window: int) -> list[float]:
     return [*raw_prefix, *smoothed]
 
 
+def _mean_last_n(values: list[float], n: int) -> float:
+    if n <= 0:
+        raise ValueError(f"n must be positive, got {n}")
+    tail = values[-n:]
+    return sum(tail) / len(tail)
+
+
 def _format_axes(ax: plt.Axes, *, metric_name: str, log_y: bool) -> None:
     ax.set_xlabel("Training step", labelpad=7)
     ax.set_ylabel(METRIC_Y_LABELS[metric_name], labelpad=7)
@@ -207,6 +215,65 @@ def _format_axes(ax: plt.Axes, *, metric_name: str, log_y: bool) -> None:
 
     if log_y:
         ax.set_yscale("log")
+
+
+def _format_final_value(value: float, *, metric_name: str) -> str:
+    if metric_name == "top1_drafter_matches_verifier":
+        return f"{100.0 * value:.1f}%"
+    return f"{value:.2f}"
+
+
+def _format_final_panel(
+    ax: plt.Axes,
+    *,
+    series_list: list[MetricSeries],
+    metric_name: str,
+) -> None:
+    final_values = [_mean_last_n(series.values, FINAL_AVG_POINTS) for series in series_list]
+    y_positions = list(range(len(series_list)))
+    colors = [THESIS_COLORS[i % len(THESIS_COLORS)] for i in y_positions]
+
+    ax.scatter(final_values, y_positions, s=26, color=colors, zorder=3)
+
+    for y, value, color in zip(y_positions, final_values, colors):
+        ax.plot(
+            [min(final_values), value],
+            [y, y],
+            color=color,
+            linewidth=1.0,
+            alpha=0.55,
+            solid_capstyle="round",
+        )
+        ax.annotate(
+            _format_final_value(value, metric_name=metric_name),
+            xy=(value, y),
+            xytext=(5, 0),
+            textcoords="offset points",
+            ha="left",
+            va="center",
+            fontsize=8.0,
+            color="#222222",
+        )
+
+    ax.set_title(f"Final avg.\nlast {FINAL_AVG_POINTS}", fontsize=9.4, pad=8)
+    ax.set_yticks(y_positions)
+    ax.set_yticklabels([])
+    ax.tick_params(axis="y", length=0)
+    ax.tick_params(axis="x", labelsize=8, pad=2)
+    ax.grid(True, axis="x", color="#E1E1E1", linewidth=0.6)
+    ax.grid(False, axis="y")
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.spines["left"].set_visible(False)
+    ax.invert_yaxis()
+
+    x_min = min(final_values)
+    x_max = max(final_values)
+    x_span = max(x_max - x_min, 1e-12)
+    ax.set_xlim(x_min - 0.08 * x_span, x_max + 0.28 * x_span)
+
+    if metric_name == "top1_drafter_matches_verifier":
+        ax.xaxis.set_major_formatter(PercentFormatter(xmax=1.0, decimals=0))
 
 
 def plot_thesis_gap11_metric(
@@ -244,8 +311,11 @@ def plot_thesis_gap11_metric(
         }
     )
 
-    fig, ax = plt.subplots(figsize=(8.7, 5.75))
-    fig.subplots_adjust(top=0.83, bottom=0.34, left=0.105, right=0.985)
+    fig = plt.figure(figsize=(9.2, 5.75))
+    gs = fig.add_gridspec(nrows=1, ncols=2, width_ratios=[4.6, 1.15], wspace=0.1)
+    ax = fig.add_subplot(gs[0, 0])
+    final_ax = fig.add_subplot(gs[0, 1])
+    fig.subplots_adjust(top=0.83, bottom=0.34, left=0.095, right=0.975)
 
     subtitle = ""
     if smooth_window > 1:
@@ -281,6 +351,7 @@ def plot_thesis_gap11_metric(
         )
 
     _format_axes(ax, metric_name=metric_name, log_y=log_y)
+    _format_final_panel(final_ax, series_list=series_list, metric_name=metric_name)
 
     ax.legend(
         loc="upper center",
