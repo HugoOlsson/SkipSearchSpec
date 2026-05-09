@@ -58,7 +58,7 @@ def main() -> None:
         num_epochs = 1 # Ensure never get scores on data it has seen
 
         models = ["meta-llama/Llama-3.2-1B-Instruct"]
-        active_start_end_lengths = [(1, 2)]
+        active_start_end_lengths = [(1, 1)]
 
         for active_start_layers, active_end_layers in active_start_end_lengths: 
 
