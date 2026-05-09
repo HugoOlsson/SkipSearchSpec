@@ -642,6 +642,16 @@ def build_mixed_fixed_window_dataloader(
             shuffle=shuffle,
         )
 
+        actual_windows = len(source_loader.dataset)
+
+
+        stage(
+            f"source built: {dataset_spec.name} "
+            f"requested_windows={source_num_windows} "
+            f"actual_windows={actual_windows} "
+            f"actual_share_of_requested_total={actual_windows / num_windows_to_use:.6%}"
+        )
+
         datasets.append(source_loader.dataset)
 
         if collate_fn is None:

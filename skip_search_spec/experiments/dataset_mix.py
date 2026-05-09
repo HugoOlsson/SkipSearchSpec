@@ -355,7 +355,7 @@ def get_dataset_mix_v2(
         (DATASET_SPEC_LAMINI_INSTRUCTION_FORMATTED, 0.41, 15.0),
 
         # Code.
-        (DATASET_SPEC_PYTHON_CODES_25K, 0.12, 6.0),
+        (DATASET_SPEC_PYTHON_CODES_25K, 0.22, 6.0),
 
         # Story style.
         (DATASET_SPEC_TINYSTORIES, 0.03, 3.0),

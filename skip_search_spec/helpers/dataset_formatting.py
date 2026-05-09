@@ -258,6 +258,28 @@ def format_lamini_row(row: dict[str, Any]) -> str | None:
     )
 
 
+def format_python_codes_25k_row(row: dict[str, Any]) -> str | None:
+    instruction = _clean(row.get("instruction"))
+    code = _clean(row.get("output"))
+
+    if not instruction or not code:
+        return None
+
+    # Most rows already store code inside ```python ... ```.
+    # Avoid double-wrapping if it is already fenced.
+    if code.startswith("```"):
+        solution = code
+    else:
+        solution = f"```python\n{code}\n```"
+
+    return (
+        "# Python task\n"
+        f"{instruction}\n\n"
+        "# Solution\n"
+        f"{solution}"
+    )
+
+
 
 DATASET_ROW_FORMATTERS_BY_NAME: dict[str, DatasetRowFormatter] = {
     # "Dolly-15k-formatted": format_instruction_qa_row,
@@ -270,6 +292,7 @@ DATASET_ROW_FORMATTERS_BY_NAME: dict[str, DatasetRowFormatter] = {
     # "DialogSum-formatted": format_dialogsum_row,
     # "OpenOrca-formatted": format_openorca_row,
     "LaMini-instruction-formatted": format_lamini_row,
+    "Python-Codes-25k": format_python_codes_25k_row,
 }
 
 def maybe_format_dataset_to_text(
