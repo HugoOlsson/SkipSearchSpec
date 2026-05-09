@@ -309,6 +309,7 @@ def maybe_format_dataset_to_text(
         format_batch,
         batched=True,
         desc=f"Formatting {dataset_spec.name} into '{output_field}'",
+        load_from_cache_file=False,
     )
 
     columns_to_remove = [

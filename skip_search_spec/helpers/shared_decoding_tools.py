@@ -457,7 +457,7 @@ def build_fixed_window_dataloader(
     )
 
     separator_token_ids: Any = model_and_tokenizer.tokenizer(
-        "\n\n",
+        "\n\n# New example\n\n",
         add_special_tokens=False,
     )["input_ids"]
     
