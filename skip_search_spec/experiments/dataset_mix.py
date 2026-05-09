@@ -348,17 +348,17 @@ def get_dataset_mix_v2(
     """
     mix: list[tuple[DatasetSpec, float, float]] = [
         # Educational prose / continuation.
-        (DATASET_SPEC_COSMOPEDIA_100K, 0.17, 2.5),
-        (DATASET_SPEC_FINEWEB_EDU_1B, 0.17, 2.2),
+        (DATASET_SPEC_COSMOPEDIA_100K, 0.18, 2.5),
+        (DATASET_SPEC_FINEWEB_EDU_1B, 0.18, 2.2),
 
         # Shorter instruction / Q&A style.
         (DATASET_SPEC_LAMINI_INSTRUCTION_FORMATTED, 0.41, 15.0),
 
         # Code.
-        (DATASET_SPEC_PYTHON_CODES_25K, 0.22, 6.0),
+        (DATASET_SPEC_PYTHON_CODES_25K, 0.18, 6.0),
 
         # Story style.
-        (DATASET_SPEC_TINYSTORIES, 0.03, 3.0),
+        (DATASET_SPEC_TINYSTORIES, 0.05, 3.0),
     ]
 
     return [
