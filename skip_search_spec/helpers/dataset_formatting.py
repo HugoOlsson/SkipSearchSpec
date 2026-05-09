@@ -249,8 +249,6 @@ def format_lamini_row(row: dict[str, Any]) -> str | None:
 
     if not instruction or not response:
         return None
-    
-    print("Did call lamini")
 
     return (
         "# Instruction\n"
