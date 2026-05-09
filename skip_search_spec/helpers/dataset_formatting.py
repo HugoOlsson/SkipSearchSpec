@@ -237,6 +237,28 @@ def format_openorca_row(row: dict[str, Any]) -> str | None:
         f"{response}"
     )
 
+def format_lamini_row(row: dict[str, Any]) -> str | None:
+    instruction = _first_nonempty(
+        row,
+        ["instruction", "question", "prompt", "input"],
+    )
+    response = _first_nonempty(
+        row,
+        ["response", "answer", "output", "completion"],
+    )
+
+    if not instruction or not response:
+        return None
+
+    return (
+        "### Instruction\n"
+        f"{instruction}\n\n"
+        "### Response\n"
+        f"{response}"
+    )
+
+
+
 DATASET_ROW_FORMATTERS_BY_NAME: dict[str, DatasetRowFormatter] = {
     "Dolly-15k-formatted": format_instruction_qa_row,
     "MetaMathQA-40K-formatted": format_math_qa_row,
@@ -247,6 +269,7 @@ DATASET_ROW_FORMATTERS_BY_NAME: dict[str, DatasetRowFormatter] = {
     "MBPP-formatted": format_mbpp_row,
     "DialogSum-formatted": format_dialogsum_row,
     "OpenOrca-formatted": format_openorca_row,
+    "LaMini-instruction-formatted": format_lamini_row,
 }
 
 def maybe_format_dataset_to_text(

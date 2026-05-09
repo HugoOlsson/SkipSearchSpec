@@ -114,6 +114,15 @@ DATASET_SPEC_OPENORCA_FORMATTED = DatasetSpec(
     text_field="text",
 )
 
+
+DATASET_SPEC_LAMINI_INSTRUCTION_FORMATTED = DatasetSpec(
+    name="LaMini-instruction-formatted",
+    huggingface_path="MBZUAI/LaMini-instruction",
+    config_name=None,
+    split="train",
+    text_field="text",
+)
+
 # -----------------------------------------------------------------------------
 # Mix helpers
 # -----------------------------------------------------------------------------
@@ -312,6 +321,43 @@ def get_dataset_mix_openorca(
         (DATASET_SPEC_PYTHON_CODES_25K, 0.10, 6.0),
 
         # Story style, exactly 3%.
+        (DATASET_SPEC_TINYSTORIES, 0.03, 3.0),
+    ]
+
+    return [
+        (
+            spec,
+            fraction,
+            _max_examples_for_source(
+                num_windows=num_windows,
+                fraction=fraction,
+                examples_per_window=examples_per_window,
+            ),
+        )
+        for spec, fraction, examples_per_window in mix
+    ]
+
+def get_dataset_mix_v2(
+    num_windows: int = 200_000,
+) -> list[tuple[DatasetSpec, float, int]]:
+    """
+    Mix for ~200k windows at C1=128.
+
+    Uses shorter instruction/Q&A examples from LaMini instead of OpenOrca.
+    Includes exactly 3% TinyStories.
+    """
+    mix: list[tuple[DatasetSpec, float, float]] = [
+        # Educational prose / continuation.
+        (DATASET_SPEC_COSMOPEDIA_100K, 0.17, 2.5),
+        (DATASET_SPEC_FINEWEB_EDU_1B, 0.17, 2.2),
+
+        # Shorter instruction / Q&A style.
+        (DATASET_SPEC_LAMINI_INSTRUCTION_FORMATTED, 0.41, 15.0),
+
+        # Code.
+        (DATASET_SPEC_PYTHON_CODES_25K, 0.12, 6.0),
+
+        # Story style.
         (DATASET_SPEC_TINYSTORIES, 0.03, 3.0),
     ]
 

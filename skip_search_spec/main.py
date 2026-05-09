@@ -7,7 +7,7 @@ from pprint import pprint
 
 import torch
 
-from skip_search_spec.experiments.dataset_mix import get_dataset_mix_openorca, get_dataset_mix_prompt_aligned, get_dataset_mix_question_answer_only
+from skip_search_spec.experiments.dataset_mix import get_dataset_mix_v2, get_dataset_mix_openorca, get_dataset_mix_prompt_aligned, get_dataset_mix_question_answer_only
 from skip_search_spec.experiments.inference_prompts import (
     CHAT_TEST_PROMPTS,
     INFERENCE_TEST_PROMPTS_CONCRETE,
@@ -44,7 +44,7 @@ def main() -> None:
         from skip_search_spec.experiments.dataset_mix import get_dataset_mix
         from skip_search_spec.training.train_skipping_layers import train_skipping_layers
 
-        number_of_windows = 200_000
+        number_of_windows = 70_000
         num_epochs = 1 # Ensure never get scores on data it has seen
 
         models = ["mistralai/Mistral-7B-Instruct-v0.3"]
@@ -59,7 +59,7 @@ def main() -> None:
 
                 train_skipping_layers(
                     model_name=model,
-                    dataset_mix=get_dataset_mix_openorca(number_of_windows),
+                    dataset_mix=get_dataset_mix_v2(number_of_windows),
                     context_len=128,
                     num_windows_to_use=number_of_windows,
                     batch_size=10,
