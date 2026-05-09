@@ -54,14 +54,11 @@ def main() -> None:
         )
         args = parser.parse_args(sys.argv[2:])
 
-        number_of_windows = 70_000
+        number_of_windows = 100_000
         num_epochs = 1 # Ensure never get scores on data it has seen
 
-        models = ["mistralai/Mistral-7B-Instruct-v0.3"]
+        models = ["meta-llama/Llama-3.2-1B-Instruct"]
         active_start_end_lengths = [(1, 2)]
-
-        # SINGLE LAYER AT START
-        print("Version: 2.14")
 
         for active_start_layers, active_end_layers in active_start_end_lengths: 
 
@@ -70,7 +67,7 @@ def main() -> None:
                 train_skipping_layers(
                     model_name=model,
                     dataset_mix=get_dataset_mix_v2(number_of_windows),
-                    context_len=384,
+                    context_len=256,
                     num_windows_to_use=number_of_windows,
                     batch_size=10,
                     active_start_layers=active_start_layers, 
