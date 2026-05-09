@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 from dataclasses import dataclass
 from pathlib import Path
+import time
 from typing import Any, cast
 
 import torch
@@ -256,6 +257,8 @@ def train_skipping_layers(
     num_draft_sections: int = 5,
     name_comment: str | None = None,
 ) -> TrainGapBridgeOutput:
+    started_at_monotonic = time.monotonic()
+
     stage("train_gap_bridge: start")
 
     bridged = build_bridged_gap_model(
@@ -531,6 +534,17 @@ def train_skipping_layers(
 
     if checkpoint_path is not None:
         stage(f"saved final bridge checkpoint to {checkpoint_path}")
+
+    total_duration_seconds = time.monotonic() - started_at_monotonic
+    duration_metric = MetricEvent.create(
+        phase="train",
+        name="total_duration_seconds",
+        value=total_duration_seconds,
+        step=step,
+        unit="seconds",
+    )
+    metric_events.append(duration_metric)
+    print_metric_events_line([duration_metric], decimals=2)
 
     measurement_path = MeasurementRun(
         context=run_context,
