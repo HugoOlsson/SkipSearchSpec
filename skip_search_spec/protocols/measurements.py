@@ -57,6 +57,7 @@ class RunContext:
     model_names: tuple[str, ...] = ()
     dataset_name: str | None = None
     run_config: dict[str, Any] = field(default_factory=dict)
+    name_comment: str | None = None
 
     @classmethod
     def create(
@@ -70,6 +71,7 @@ class RunContext:
         model_names: tuple[str, ...] = (),
         dataset_name: str | None = None,
         run_config: Mapping[str, Any] | None = None,
+        name_comment: str | None = None,
     ) -> "RunContext":
         resolved_commit = git_commit
         resolved_tag = git_tag
@@ -97,6 +99,7 @@ class RunContext:
             model_names=model_names,
             dataset_name=dataset_name,
             run_config=dict(run_config or {}),
+            name_comment=name_comment,
         )
 
     @classmethod
@@ -111,6 +114,7 @@ class RunContext:
             model_names=tuple(str(x) for x in list(data.get("model_names", []))),
             dataset_name=_opt_str(data.get("dataset_name")),
             run_config=dict(data.get("run_config", {})),
+            name_comment=_opt_str(data.get("name_comment")),
         )
 
     def print(self) -> None:
@@ -201,6 +205,11 @@ class MeasurementRun:
             f"{self.context.run_id}"
             f"__{safe_path_part(self.context.run_name)}"
         )
+        name_comment = self.context.name_comment
+        if name_comment:
+            safe_comment = safe_path_part(name_comment).strip("_")
+            if safe_comment:
+                run_dir_name = f"{safe_comment}_{run_dir_name}"
 
         return (
             Path(root)

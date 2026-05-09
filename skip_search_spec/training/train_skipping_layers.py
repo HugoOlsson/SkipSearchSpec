@@ -254,6 +254,7 @@ def train_skipping_layers(
     log_every: int = 100,
     measurement_save_interval_seconds: float = 60.0,
     num_draft_sections: int = 5,
+    name_comment: str | None = None,
 ) -> TrainGapBridgeOutput:
     stage("train_gap_bridge: start")
 
@@ -362,7 +363,9 @@ def train_skipping_layers(
             "checkpoint_every_steps": checkpoint_every_steps,
             "log_every": log_every,
             "num_draft_sections": num_draft_sections,
+            "name_comment": name_comment,
         },
+        name_comment=name_comment,
     )
 
     run_context.print()

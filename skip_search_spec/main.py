@@ -41,8 +41,18 @@ def main() -> None:
 
 
     if mode == "train_skipping_layers":
+        import argparse
+
         from skip_search_spec.experiments.dataset_mix import get_dataset_mix
         from skip_search_spec.training.train_skipping_layers import train_skipping_layers
+
+        parser = argparse.ArgumentParser(prog=f"{sys.argv[0]} train_skipping_layers")
+        parser.add_argument(
+            "--name-comment",
+            default=None,
+            help="Optional comment to prefix the measurement run directory name.",
+        )
+        args = parser.parse_args(sys.argv[2:])
 
         number_of_windows = 70_000
         num_epochs = 1 # Ensure never get scores on data it has seen
@@ -74,7 +84,8 @@ def main() -> None:
                     checkpoint_every_steps=None,
                     log_every=100,
                     num_draft_sections=5,
-                    reference_hidden_source="final"
+                    reference_hidden_source="final",
+                    name_comment=args.name_comment,
                 )
 
        
