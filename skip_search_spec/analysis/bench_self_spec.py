@@ -7,6 +7,7 @@ import json
 import math
 import os
 from pathlib import Path
+import textwrap
 from typing import Any, Literal
 
 import torch
@@ -30,6 +31,8 @@ PromptSetName = Literal[
     "concrete-completion-style",
     "swedish-concrete-completion-style",
 ]
+VariantMode = Literal["auto", "flashhead", "no-flashhead", "both"]
+VariantOrder = Literal["no-flashhead-first", "flashhead-first"]
 
 
 PROMPT_SETS: dict[PromptSetName, tuple[list[tuple[str, str]], bool]] = {
@@ -131,6 +134,21 @@ def run_cli(argv: list[str]) -> None:
         default=100,
     )
     parser.add_argument(
+        "--variants",
+        choices=("auto", "flashhead", "no-flashhead", "both"),
+        default="auto",
+        help=(
+            "Which self-spec variants to run. auto runs both when a flashhead "
+            "path is supplied, otherwise no-flashhead only."
+        ),
+    )
+    parser.add_argument(
+        "--variant-order",
+        choices=("no-flashhead-first", "flashhead-first"),
+        default="no-flashhead-first",
+        help="Order used when --variants=both or auto resolves to both.",
+    )
+    parser.add_argument(
         "--bridge-dtype",
         choices=("float32", "float16", "bfloat16", "model"),
         default="float32",
@@ -156,6 +174,8 @@ def run_cli(argv: list[str]) -> None:
         compare_to_normal=args.compare_to_normal,
         measure_internal_timings=args.measure_internal_timings,
         flashhead_top_k_clusters=args.flashhead_top_k_clusters,
+        variants=args.variants,
+        variant_order=args.variant_order,
         bridge_dtype=args.bridge_dtype,
         output_dir=args.output_dir,
         output_prefix=args.output_prefix,
@@ -205,6 +225,8 @@ def bench_self_spec(
     compare_to_normal: bool = True,
     measure_internal_timings: bool = True,
     flashhead_top_k_clusters: int = 100,
+    variants: VariantMode = "auto",
+    variant_order: VariantOrder = "no-flashhead-first",
     bridge_dtype: str = "float32",
     output_dir: str | Path = "benchmarks/self_spec",
     output_prefix: str | None = None,
@@ -231,19 +253,137 @@ def bench_self_spec(
         bridge_checkpoint_path=bridge_path,
         bridge_dtype=_parse_bridge_dtype(bridge_dtype),
     )
+
+    variant_specs = _resolve_variant_specs(
+        flash_path=flash_path,
+        variants=variants,
+        variant_order=variant_order,
+    )
+    normal_cache: dict[int, Any] = {}
+    variant_results = []
+
+    for variant in variant_specs:
+        print()
+        print(f"Running variant: {variant['label']}")
+        variant_results.append(
+            _run_bench_variant(
+                bridged=bridged,
+                variant=variant,
+                prompts=prompts,
+                normal_cache=normal_cache,
+                use_chat_template=use_chat_template,
+                warmup_prompts=warmup_prompts,
+                max_new_tokens=max_new_tokens,
+                draft_block_size=draft_block_size,
+                compare_to_normal=compare_to_normal,
+                measure_internal_timings=measure_internal_timings,
+                flashhead_top_k_clusters=flashhead_top_k_clusters,
+                bridge_path=bridge_path,
+                prompt_set=prompt_set,
+                bridge_dtype=bridge_dtype,
+            )
+        )
+
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    run_stem = output_prefix or _default_run_stem(
+        bridge_path=bridge_path,
+        prompt_set=prompt_set,
+    )
+    json_path = output_dir / f"{run_stem}.json"
+
+    payload = {
+        "schema_version": 2,
+        "common_metadata": {
+            "created_at": datetime.now().isoformat(timespec="seconds"),
+            "bridge_checkpoint_path": str(bridge_path.resolve(strict=False)),
+            "prompt_set": prompt_set,
+            "variant_order": [variant["key"] for variant in variant_specs],
+        },
+        "variant_results": variant_results,
+    }
+    if len(variant_results) == 1:
+        payload["metadata"] = variant_results[0]["metadata"]
+        payload["summary"] = variant_results[0]["summary"]
+        payload["prompt_results"] = variant_results[0]["prompt_results"]
+
+    with json_path.open("w", encoding="utf-8") as f:
+        json.dump(payload, f, indent=2)
+
+    print()
+    print("Saved benchmark JSON:", json_path)
+    print(
+        "Plot with:",
+        f"poetry run skip_search_spec plot_self_spec_bench {json_path}",
+    )
+    return json_path
+
+
+def _resolve_variant_specs(
+    *,
+    flash_path: Path | None,
+    variants: VariantMode,
+    variant_order: VariantOrder,
+) -> list[dict[str, Any]]:
+    if variants == "auto":
+        variants = "both" if flash_path is not None else "no-flashhead"
+
+    if variants in {"flashhead", "both"} and flash_path is None:
+        raise ValueError("A flashhead_path is required for FlashHead benchmarking.")
+
+    no_flashhead = {
+        "key": "no_flashhead",
+        "label": "Without FH",
+        "flash_path": None,
+    }
+    with_flashhead = {
+        "key": "flashhead",
+        "label": "With FH",
+        "flash_path": flash_path,
+    }
+
+    if variants == "no-flashhead":
+        return [no_flashhead]
+    if variants == "flashhead":
+        return [with_flashhead]
+    if variant_order == "flashhead-first":
+        return [with_flashhead, no_flashhead]
+    return [no_flashhead, with_flashhead]
+
+
+def _run_bench_variant(
+    *,
+    bridged: BridgedGapModel,
+    variant: dict[str, Any],
+    prompts: list[tuple[str, str]],
+    normal_cache: dict[int, Any],
+    use_chat_template: bool,
+    warmup_prompts: int,
+    max_new_tokens: int,
+    draft_block_size: int,
+    compare_to_normal: bool,
+    measure_internal_timings: bool,
+    flashhead_top_k_clusters: int,
+    bridge_path: Path,
+    prompt_set: str,
+    bridge_dtype: str,
+) -> dict[str, Any]:
+    flash_path = variant["flash_path"]
     speculator = BridgeSelfSpeculator(
         bridged_model=bridged,
         flashhead_path=flash_path,
         flashhead_top_k_clusters=flashhead_top_k_clusters,
     )
-
     prompt_results: list[PromptBenchResult] = []
 
     for prompt_index, (prompt_name, prompt) in enumerate(prompts, start=1):
         included = prompt_index > warmup_prompts
         phase = "measure" if included else "warmup"
         print()
-        print(f"[{phase}] Prompt {prompt_index}/{len(prompts)}: {prompt_name}")
+        print(
+            f"[{variant['label']} / {phase}] "
+            f"Prompt {prompt_index}/{len(prompts)}: {prompt_name}"
+        )
 
         self_spec_result = speculator.generate(
             prompt=prompt,
@@ -266,15 +406,19 @@ def bench_self_spec(
         first_mismatch_index: int | None = None
 
         if compare_to_normal:
-            normal_result = generate_normal(
-                prompt=prompt,
-                max_new_tokens=max_new_tokens,
-                use_chat_template=use_chat_template,
-                use_cache=True,
-                model=bridged.model,
-                tokenizer=bridged.tokenizer,
-                device=bridged.device,
-            )
+            normal_result = normal_cache.get(prompt_index)
+            if normal_result is None:
+                normal_result = generate_normal(
+                    prompt=prompt,
+                    max_new_tokens=max_new_tokens,
+                    use_chat_template=use_chat_template,
+                    use_cache=True,
+                    model=bridged.model,
+                    tokenizer=bridged.tokenizer,
+                    device=bridged.device,
+                )
+                normal_cache[prompt_index] = normal_result
+
             normal_seconds = normal_result.inference_seconds
             normal_generated_tokens = normal_result.num_generated_tokens
             exact_match = self_spec_result.text == normal_result.text
@@ -342,30 +486,13 @@ def bench_self_spec(
         measure_internal_timings=measure_internal_timings,
     )
 
-    output_dir = Path(output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
-    run_stem = output_prefix or _default_run_stem(
-        bridge_path=bridge_path,
-        prompt_set=prompt_set,
-    )
-    json_path = output_dir / f"{run_stem}.json"
-
-    payload = {
-        "schema_version": 1,
+    return {
+        "variant_key": variant["key"],
+        "variant_label": variant["label"],
         "metadata": metadata,
         "summary": asdict(summary),
         "prompt_results": [asdict(result) for result in prompt_results],
     }
-    with json_path.open("w", encoding="utf-8") as f:
-        json.dump(payload, f, indent=2)
-
-    print()
-    print("Saved benchmark JSON:", json_path)
-    print(
-        "Plot with:",
-        f"poetry run skip_search_spec plot_self_spec_bench {json_path}",
-    )
-    return json_path
 
 
 def _parse_bridge_dtype(value: str) -> torch.dtype | Literal["model"]:
@@ -551,12 +678,509 @@ def plot_self_spec_bench_json(
     if output_path is None:
         output_path = json_path.with_suffix(".png")
     plot_path = Path(output_path)
-    _ = (title, bins)
-    print(
-        "Plot creation is intentionally empty for now. "
-        f"Input JSON: {json_path}; requested output: {plot_path}"
+
+    with json_path.open("r", encoding="utf-8") as f:
+        payload = json.load(f)
+
+    variants = _variant_payloads(payload)
+    _plot_variant_distribution(
+        variants=variants,
+        output_path=plot_path,
+        title=title,
+        bins=bins,
     )
+    print("Saved benchmark plot:", plot_path)
     return plot_path
+
+
+def _variant_payloads(payload: dict[str, Any]) -> list[dict[str, Any]]:
+    if "variant_results" in payload:
+        return list(payload["variant_results"])
+    return [
+        {
+            "variant_key": "flashhead"
+            if payload.get("metadata", {}).get("flashhead_enabled")
+            else "no_flashhead",
+            "variant_label": "With FH"
+            if payload.get("metadata", {}).get("flashhead_enabled")
+            else "Without FH",
+            "metadata": payload["metadata"],
+            "summary": payload["summary"],
+            "prompt_results": payload["prompt_results"],
+        }
+    ]
+
+
+def _plot_variant_distribution(
+    *,
+    variants: list[dict[str, Any]],
+    output_path: Path,
+    title: str | None,
+    bins: int | None,
+) -> None:
+    os.environ.setdefault("MPLCONFIGDIR", str(output_path.parent / ".matplotlib"))
+    os.environ.setdefault("XDG_CACHE_HOME", str(output_path.parent / ".cache"))
+    Path(os.environ["MPLCONFIGDIR"]).mkdir(parents=True, exist_ok=True)
+    Path(os.environ["XDG_CACHE_HOME"]).mkdir(parents=True, exist_ok=True)
+
+    import matplotlib.pyplot as plt
+    from matplotlib.patches import FancyBboxPatch
+    from matplotlib.ticker import FuncFormatter, MultipleLocator
+
+    styled_variants = [
+        _styled_variant_payload(variant) for variant in _ordered_plot_variants(variants)
+    ]
+    all_speedups = [
+        speedup for variant in styled_variants for speedup in variant["speedups"]
+    ]
+    if not all_speedups:
+        raise ValueError(
+            "No speedup values found. Run the benchmark with normal comparison."
+        )
+
+    common_metadata = styled_variants[0]["metadata"]
+    model_name = str(common_metadata.get("model_name", ""))
+    fig = plt.figure(figsize=(11.25, 6.25))
+    fig.patch.set_facecolor("white")
+
+    fig.text(
+        0.5,
+        0.955,
+        title or "Self-speculation inference speedup",
+        ha="center",
+        va="top",
+        fontsize=20,
+        fontweight="bold",
+    )
+    fig.text(
+        0.5,
+        0.905,
+        _model_display_name(model_name),
+        ha="center",
+        va="top",
+        fontsize=12.5,
+        fontweight="bold",
+        color="#4A4A4A",
+    )
+
+    ax = fig.add_axes([0.055, 0.385, 0.89, 0.44])
+    rounded_panel = FancyBboxPatch(
+        (0, 0),
+        1,
+        1,
+        boxstyle="round,pad=0.012",
+        transform=ax.transAxes,
+        facecolor="white",
+        edgecolor="#DCDCDC",
+        linewidth=0.9,
+        zorder=-10,
+        clip_on=False,
+    )
+    ax.add_patch(rounded_panel)
+
+    bin_edges = _histogram_bin_edges(all_speedups, bins)
+    max_count = 0
+    for variant in styled_variants:
+        counts, _, _ = ax.hist(
+            variant["speedups"],
+            bins=bin_edges,
+            histtype="bar",
+            color=variant["fill"],
+            edgecolor=variant["edge"],
+            linewidth=2.0,
+            alpha=0.34,
+            label=variant["label"],
+        )
+        max_count = max(max_count, int(max(counts)) if len(counts) else 0)
+    _plot_normal_fit_curves(ax, styled_variants, bin_edges, max_count)
+
+    ax.set_axisbelow(True)
+    ax.xaxis.set_major_locator(MultipleLocator(0.1))
+    ax.xaxis.set_minor_locator(MultipleLocator(0.02))
+    ax.xaxis.set_major_formatter(FuncFormatter(lambda value, _: f"{value:g}x"))
+    ax.grid(axis="x", which="major", color="#E7E7E7", linewidth=1.0)
+    ax.grid(axis="x", which="minor", color="#EFEFEF", linewidth=0.65)
+    ax.grid(axis="y", color="#ECECEC", linewidth=0.8)
+    ax.tick_params(axis="y", length=0, labelsize=12)
+    ax.tick_params(axis="x", length=0, labelsize=12, pad=8)
+    ax.set_yticks([])
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+
+    x_min = min(bin_edges)
+    x_max = max(bin_edges)
+    ax.set_xlim(x_min - 0.03, x_max + 0.03)
+    ax.set_ylim(0, max(max_count * 1.42, 1.0))
+
+    _annotate_variant_means(ax, styled_variants, max_count)
+
+    info_ax = fig.add_axes([0.055, 0.105, 0.89, 0.205])
+    _draw_info_strip(info_ax, _info_sections(styled_variants))
+    file_ax = fig.add_axes([0.055, 0.025, 0.89, 0.055])
+    _draw_file_strip(file_ax, _file_rows(styled_variants))
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(output_path, dpi=300)
+    plt.close(fig)
+
+
+def _ordered_plot_variants(variants: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    order = {"no_flashhead": 0, "flashhead": 1}
+    return sorted(
+        variants,
+        key=lambda variant: order.get(str(variant.get("variant_key")), 10),
+    )
+
+
+def _styled_variant_payload(variant: dict[str, Any]) -> dict[str, Any]:
+    key = str(variant.get("variant_key", ""))
+    metadata = variant["metadata"]
+    summary = variant["summary"]
+    prompt_results = variant["prompt_results"]
+    if key == "flashhead" or metadata.get("flashhead_enabled"):
+        colors = {
+            "edge": "#9B0079",
+            "fill": "#D790C6",
+            "text": "#9B0079",
+        }
+        label = "With FH"
+    else:
+        colors = {
+            "edge": "#007399",
+            "fill": "#7FB6C8",
+            "text": "#174C56",
+        }
+        label = "Without FH"
+
+    speedups = [
+        float(result["speedup_per_generated_token"])
+        for result in prompt_results
+        if result.get("included_in_metrics")
+        and result.get("speedup_per_generated_token") is not None
+    ]
+    return {
+        "key": key,
+        "label": label,
+        "metadata": metadata,
+        "summary": summary,
+        "speedups": speedups,
+        **colors,
+    }
+
+
+def _histogram_bin_edges(values: list[float], bins: int | None) -> list[float]:
+    value_min = min(values)
+    value_max = max(values)
+    if value_min == value_max:
+        value_min -= 0.05
+        value_max += 0.05
+    padding = max((value_max - value_min) * 0.18, 0.04)
+    lower = math.floor((value_min - padding) / 0.02) * 0.02
+    upper = math.ceil((value_max + padding) / 0.02) * 0.02
+    bin_count = bins or min(14, max(6, int(math.sqrt(len(values))) + 4))
+    width = (upper - lower) / bin_count
+    return [lower + width * i for i in range(bin_count + 1)]
+
+
+def _annotate_variant_means(
+    ax: Any,
+    variants: list[dict[str, Any]],
+    max_count: int,
+) -> None:
+    y_top = max(max_count * 1.22, 1.0)
+    for index, variant in enumerate(variants):
+        summary = variant["summary"]
+        mean = summary.get("mean_prompt_speedup_per_generated_token")
+        if mean is None:
+            continue
+        y = y_top - index * max(max_count * 0.16, 0.2)
+        ax.text(
+            float(mean),
+            y,
+            f"{variant['label']} avg speedup = {_fmt_x(float(mean))}",
+            ha="center",
+            va="bottom",
+            fontsize=10.8,
+            fontweight="semibold",
+            color=variant["text"],
+        )
+
+
+def _plot_normal_fit_curves(
+    ax: Any,
+    variants: list[dict[str, Any]],
+    bin_edges: list[float],
+    max_count: int,
+) -> None:
+    if len(bin_edges) < 2:
+        return
+    bin_width = bin_edges[1] - bin_edges[0]
+    x_min = bin_edges[0]
+    x_max = bin_edges[-1]
+    xs = [x_min + (x_max - x_min) * i / 399 for i in range(400)]
+    for variant in variants:
+        speedups = variant["speedups"]
+        if len(speedups) < 2:
+            continue
+        mean = sum(speedups) / len(speedups)
+        std = _sample_std_or_none(speedups)
+        if std is None or std <= 0:
+            continue
+        ys = [
+            len(speedups)
+            * bin_width
+            * (1.0 / (std * math.sqrt(2.0 * math.pi)))
+            * math.exp(-0.5 * ((x - mean) / std) ** 2)
+            for x in xs
+        ]
+        if max_count > 0 and max(ys) > max_count * 1.08:
+            scale = (max_count * 1.08) / max(ys)
+            ys = [y * scale for y in ys]
+        ax.plot(
+            xs,
+            ys,
+            color=variant["edge"],
+            linewidth=2.0,
+            alpha=0.9,
+        )
+
+
+def _info_sections(
+    variants: list[dict[str, Any]],
+) -> list[tuple[str, list[tuple[str, str]]]]:
+    first = variants[0]
+    metadata = first["metadata"]
+    setup = [
+        ("prompt set", _value(metadata.get("prompt_set"))),
+        ("block size", _value(metadata.get("draft_block_size"))),
+        ("warmup prompts", _value(first["summary"].get("warmup_prompts"))),
+        ("measured prompts", _value(first["summary"].get("prompt_count_included"))),
+    ]
+    runtime = [
+        ("backend", _value(metadata.get("attention_backend"))),
+        ("model dtype", _dtype_label(metadata.get("model_dtype"))),
+        ("bridge dtype", _dtype_label(metadata.get("loaded_bridge_dtype"))),
+        (
+            "internal timing",
+            _yes_no(bool(metadata.get("measure_internal_timings"))),
+        ),
+    ]
+
+    results: list[tuple[str, str]] = []
+    timings: list[tuple[str, str]] = []
+    flashhead_meta = next(
+        (variant["metadata"] for variant in variants if variant["metadata"].get("flashhead_enabled")),
+        None,
+    )
+    for variant in variants:
+        summary = variant["summary"]
+        prefix = "FH" if variant["metadata"].get("flashhead_enabled") else "No FH"
+        results.extend(
+            [
+                (
+                    f"{prefix} speedup",
+                    _fmt_x(summary.get("mean_prompt_speedup_per_generated_token")),
+                ),
+                (f"{prefix} acceptance", _fmt_pct(summary.get("total_acceptance_rate"))),
+                (f"{prefix} exact match", _fmt_pct(summary.get("exact_match_rate"))),
+            ]
+        )
+        timings.append(
+            (
+                f"{prefix} head/body",
+                (
+                    f"{_fmt_seconds(summary.get('internal_head_seconds'))} / "
+                    f"{_fmt_seconds(summary.get('internal_body_seconds_estimate'))}"
+                ),
+            )
+        )
+
+    if flashhead_meta:
+        timings.extend(
+            [
+                (
+                    "FH index",
+                    (
+                        f"{_value(flashhead_meta.get('flashhead_loaded_num_clusters'))} "
+                        f"clusters; top-k "
+                        f"{_value(flashhead_meta.get('flashhead_top_k_clusters'))}"
+                    ),
+                ),
+            ]
+        )
+
+    return [
+        ("Setup", setup),
+        ("Runtime", runtime),
+        ("Results", results),
+        ("Head", timings),
+    ]
+
+
+def _file_rows(variants: list[dict[str, Any]]) -> list[tuple[str, str]]:
+    metadata = variants[0]["metadata"]
+    rows = [("bridge file", _value(metadata.get("bridge_checkpoint_path")))]
+    flashhead_path = next(
+        (
+            variant["metadata"].get("flashhead_path")
+            for variant in variants
+            if variant["metadata"].get("flashhead_path")
+        ),
+        None,
+    )
+    if flashhead_path:
+        rows.append(("flashhead file", _value(flashhead_path)))
+    return rows
+
+
+def _draw_info_strip(
+    ax: Any,
+    sections: list[tuple[str, list[tuple[str, str]]]],
+) -> None:
+    ax.set_axis_off()
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
+
+    title_color = "#173F46"
+    label_color = "#587078"
+    value_color = "#243E45"
+    column_width = 0.238
+    column_gap = 0.016
+    y_top = 0.95
+    body_top = 0.73
+
+    for column, (title, rows) in enumerate(sections):
+        x = column * (column_width + column_gap)
+        ax.text(
+            x,
+            y_top,
+            title,
+            ha="left",
+            va="top",
+            fontsize=9.4,
+            fontweight="bold",
+            color=title_color,
+            clip_on=True,
+        )
+        ax.plot(
+            [x, x + column_width],
+            [0.79, 0.79],
+            color="#D9E1E3",
+            linewidth=0.8,
+            solid_capstyle="round",
+            clip_on=True,
+        )
+
+        y = body_top
+        crowded = len(rows) > 4
+        row_step = 0.15 if not crowded else 0.102
+        font_size = 7.95 if not crowded else 7.45
+        wrap_width = 48
+        for label, value in rows:
+            line = _metadata_line(label, value, width=wrap_width)
+            ax.text(
+                x,
+                y,
+                line,
+                ha="left",
+                va="top",
+                fontsize=font_size,
+                color=value_color,
+                linespacing=1.18,
+                clip_on=True,
+            )
+            label_text = line.split("=", 1)[0]
+            ax.text(
+                x,
+                y,
+                label_text,
+                ha="left",
+                va="top",
+                fontsize=font_size,
+                color=label_color,
+                linespacing=1.18,
+                clip_on=True,
+            )
+            y -= row_step * max(1, line.count("\n") + 1)
+
+
+def _draw_file_strip(ax: Any, rows: list[tuple[str, str]]) -> None:
+    ax.set_axis_off()
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
+
+    label_color = "#587078"
+    value_color = "#243E45"
+    max_line_length = max((len(label) + len(value) + 3 for label, value in rows), default=0)
+    font_size = 5.8
+    if max_line_length > 190:
+        font_size = 4.8
+    if max_line_length > 230:
+        font_size = 4.3
+    y = 0.82
+    for label, value in rows:
+        prefix = f"{label} = "
+        ax.text(
+            0,
+            y,
+            prefix,
+            ha="left",
+            va="top",
+            fontsize=font_size,
+            color=label_color,
+            clip_on=True,
+        )
+        ax.text(
+            0.071,
+            y,
+            value,
+            ha="left",
+            va="top",
+            fontsize=font_size,
+            color=value_color,
+            clip_on=True,
+        )
+        y -= 0.42
+
+
+def _model_display_name(model_name: str) -> str:
+    display = model_name.split("/")[-1].replace("_", ".")
+    return display.replace("-", " ")
+
+
+def _metadata_line(label: str, value: str, *, width: int) -> str:
+    prefix = f"{label} = "
+    wrapped = textwrap.fill(
+        prefix + value,
+        width=width,
+        subsequent_indent=" " * len(prefix),
+        break_long_words=False,
+        break_on_hyphens=False,
+    )
+    return wrapped
+
+
+def _dtype_label(value: Any) -> str:
+    text = _value(value)
+    return text.replace("torch.", "")
+
+
+def _value(value: Any) -> str:
+    if value is None:
+        return "n/a"
+    return str(value)
+
+
+def _shorten_path(value: Any, *, max_chars: int = 24) -> str:
+    if value is None:
+        return "n/a"
+    path = Path(str(value))
+    filename = path.name or str(value)
+    if len(filename) <= max_chars:
+        return filename
+    keep_left = max_chars // 2 - 1
+    keep_right = max_chars - keep_left - 3
+    return f"{filename[:keep_left]}...{filename[-keep_right:]}"
 
 
 def _first_mismatch_index(left: str, right: str) -> int:
