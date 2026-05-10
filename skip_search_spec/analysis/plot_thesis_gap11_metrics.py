@@ -87,6 +87,8 @@ MODEL_COLORS = {
     "meta-llama/Llama-3.2-3B-Instruct": "#6A51A3",
 }
 
+MODEL_ORDER = list(MODEL_COLORS)
+
 DEFAULT_SMOOTH_WINDOW = 5
 RAW_PREFIX_POINTS = 10
 FINAL_AVG_POINTS = 20
@@ -101,12 +103,14 @@ class MetricSeries:
         values: list[float],
         git_commit: str,
         color: str,
+        model_name: str,
     ) -> None:
         self.label = label
         self.steps = steps
         self.values = values
         self.git_commit = git_commit
         self.color = color
+        self.model_name = model_name
 
 
 def _resolve_metric(metric: str) -> str:
@@ -162,6 +166,13 @@ def _model_color(payload: dict[str, Any], path: Path) -> str:
     digest = hashlib.sha1(model_name.encode("utf-8")).hexdigest()
     color_index = int(digest[:8], 16) % len(THESIS_COLORS)
     return THESIS_COLORS[color_index]
+
+
+def _model_sort_key(series: MetricSeries) -> tuple[int, str]:
+    try:
+        return MODEL_ORDER.index(series.model_name), series.model_name
+    except ValueError:
+        return len(MODEL_ORDER), series.model_name
 
 
 def _git_commit_label(payload: dict[str, Any]) -> str:
@@ -250,6 +261,7 @@ def _load_metric_series(
 
     steps = sorted(points_by_step)
     values = [points_by_step[step] for step in steps]
+    model_name = _model_name(payload, path)
     label = f"{_model_label(payload, path)} ({_skipped_layers_label(payload, path)})"
     return MetricSeries(
         label=label,
@@ -257,6 +269,7 @@ def _load_metric_series(
         values=values,
         git_commit=_git_commit_label(payload),
         color=_model_color(payload, path),
+        model_name=model_name,
     )
 
 
@@ -408,6 +421,7 @@ def plot_thesis_gap11_metric(
         )
         for path in paths
     ]
+    series_list.sort(key=_model_sort_key)
 
     if smooth_window <= 0:
         raise ValueError(f"smooth_window must be positive, got {smooth_window}")
@@ -478,9 +492,9 @@ def plot_thesis_gap11_metric(
         borderaxespad=0.8,
     )
     fig.canvas.draw()
-    legend_bbox = legend.get_window_extent(
-        fig.canvas.get_renderer()
-    ).transformed(fig.transFigure.inverted())
+    legend_bbox = legend.get_window_extent(fig.canvas.get_renderer()).transformed(
+        fig.transFigure.inverted()
+    )
     fig.text(
         0.5,
         max(0.01, legend_bbox.y0 - 0.025),
