@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from argparse import ArgumentParser
+import hashlib
 import json
 from pathlib import Path
 import re
@@ -67,14 +68,24 @@ MODEL_LABELS = {
 }
 
 THESIS_COLORS = [
-    "#0072B2",
-    "#D55E00",
-    "#009E73",
-    "#CC79A7",
-    "#56B4E9",
-    "#E69F00",
-    "#332288",
+    "#2F6FB0",
+    "#E17C05",
+    "#1B9E77",
+    "#C04E8B",
+    "#4E9A9A",
+    "#C9A227",
+    "#6A51A3",
 ]
+
+MODEL_COLORS = {
+    "meta-llama/Llama-3.1-8B-Instruct": "#2F6FB0",
+    "mistralai/Mistral-7B-Instruct-v0.3": "#E17C05",
+    "meta-llama/Llama-3.2-1B-Instruct": "#1B9E77",
+    "Qwen/Qwen3-1.7B": "#C04E8B",
+    "Qwen/Qwen2.5-0.5B-Instruct": "#4E9A9A",
+    "Qwen/Qwen2.5-14B-Instruct": "#C9A227",
+    "meta-llama/Llama-3.2-3B-Instruct": "#6A51A3",
+}
 
 DEFAULT_SMOOTH_WINDOW = 5
 RAW_PREFIX_POINTS = 10
@@ -89,11 +100,13 @@ class MetricSeries:
         steps: list[int],
         values: list[float],
         git_commit: str,
+        color: str,
     ) -> None:
         self.label = label
         self.steps = steps
         self.values = values
         self.git_commit = git_commit
+        self.color = color
 
 
 def _resolve_metric(metric: str) -> str:
@@ -120,7 +133,7 @@ def _load_json(path: Path) -> dict[str, Any]:
     return payload
 
 
-def _model_label(payload: dict[str, Any], path: Path) -> str:
+def _model_name(payload: dict[str, Any], path: Path) -> str:
     context = payload.get("context", {})
     model_names = context.get("model_names") or []
     run_config = context.get("run_config", {})
@@ -133,7 +146,22 @@ def _model_label(payload: dict[str, Any], path: Path) -> str:
     if not isinstance(model_name, str):
         model_name = str(model_name)
 
+    return model_name
+
+
+def _model_label(payload: dict[str, Any], path: Path) -> str:
+    model_name = _model_name(payload, path)
     return MODEL_LABELS.get(model_name, model_name.split("/")[-1].replace("_", "."))
+
+
+def _model_color(payload: dict[str, Any], path: Path) -> str:
+    model_name = _model_name(payload, path)
+    if model_name in MODEL_COLORS:
+        return MODEL_COLORS[model_name]
+
+    digest = hashlib.sha1(model_name.encode("utf-8")).hexdigest()
+    color_index = int(digest[:8], 16) % len(THESIS_COLORS)
+    return THESIS_COLORS[color_index]
 
 
 def _git_commit_label(payload: dict[str, Any]) -> str:
@@ -228,6 +256,7 @@ def _load_metric_series(
         steps=steps,
         values=values,
         git_commit=_git_commit_label(payload),
+        color=_model_color(payload, path),
     )
 
 
@@ -289,7 +318,7 @@ def _format_final_panel(
         _mean_last_n(series.values, FINAL_AVG_POINTS) for series in series_list
     ]
     y_positions = list(range(len(series_list)))
-    colors = [THESIS_COLORS[i % len(THESIS_COLORS)] for i in y_positions]
+    colors = [series.color for series in series_list]
 
     x_min = min(final_values)
     x_max = max(final_values)
@@ -425,12 +454,12 @@ def plot_thesis_gap11_metric(
         color="#555555",
     )
 
-    for i, series in enumerate(series_list):
+    for series in series_list:
         values = _moving_average(series.values, smooth_window)
         ax.plot(
             series.steps,
             values,
-            color=THESIS_COLORS[i % len(THESIS_COLORS)],
+            color=series.color,
             linewidth=LINE_WIDTH,
             label=series.label,
         )
@@ -438,7 +467,7 @@ def plot_thesis_gap11_metric(
     _format_axes(ax, metric_name=metric_name, log_y=log_y)
     _format_final_panel(final_ax, series_list=series_list, metric_name=metric_name)
 
-    ax.legend(
+    legend = ax.legend(
         loc="upper center",
         bbox_to_anchor=(0.5, -0.18),
         ncol=2,
@@ -448,12 +477,16 @@ def plot_thesis_gap11_metric(
         labelspacing=0.55,
         borderaxespad=0.8,
     )
+    fig.canvas.draw()
+    legend_bbox = legend.get_window_extent(
+        fig.canvas.get_renderer()
+    ).transformed(fig.transFigure.inverted())
     fig.text(
         0.5,
-        0.135,
+        max(0.01, legend_bbox.y0 - 0.025),
         _git_commits_text(series_list),
         ha="center",
-        va="center",
+        va="top",
         fontsize=8.2,
         color="#666666",
     )
