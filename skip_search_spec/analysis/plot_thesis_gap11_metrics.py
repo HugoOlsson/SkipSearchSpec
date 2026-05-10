@@ -35,9 +35,17 @@ THESIS_GAP_2_2_JSON_PATHS = [
     "measurements/2026-05-10-7ad273/middle_gap_skip/for_thesis_day2_10081712_MY10__mistralai_Mistral-7B-Instruct-v0_3_2_28_2/run.json",
 ]
 
+THESIS_GAP_2_0_JSON_PATHS = [
+    "measurements/2026-05-10-123fc3/middle_gap_skip/for_thesis_day2_14180470_MY10__meta-llama_Llama-3_2-1B-Instruct_2_14_0/run.json",
+    "measurements/2026-05-10-123fc3/middle_gap_skip/for_thesis_day2_13554184_MY10__meta-llama_Llama-3_2-3B-Instruct_2_26_0/run.json",
+    "measurements/2026-05-10-123fc3/middle_gap_skip/for_thesis_day2_14591395_MY10__Qwen_Qwen3-1_7B_2_26_0/run.json",
+    "measurements/2026-05-10-123fc3/middle_gap_skip/for_thesis_day2_14312370_MY10__mistralai_Mistral-7B-Instruct-v0_3_2_30_0/run.json",
+]
+
 THESIS_GAP_JSON_PATHS: dict[tuple[int, int], list[str]] = {
     (1, 1): THESIS_GAP_1_1_JSON_PATHS,
     (2, 2): THESIS_GAP_2_2_JSON_PATHS,
+    (2, 0): THESIS_GAP_2_0_JSON_PATHS,
 }
 
 METRIC_ALIASES: dict[str, str] = {
