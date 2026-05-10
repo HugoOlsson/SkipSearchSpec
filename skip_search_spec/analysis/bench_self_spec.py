@@ -814,10 +814,10 @@ def _plot_variant_distribution(
 
     _annotate_variant_means(ax, styled_variants, max_count)
 
-    info_ax = fig.add_axes([0.055, 0.105, 0.89, 0.205])
+    info_ax = fig.add_axes([0.055, 0.035, 0.89, 0.275])
     _draw_info_strip(info_ax, _info_sections(styled_variants))
-    file_ax = fig.add_axes([0.055, 0.025, 0.89, 0.055])
-    _draw_file_strip(file_ax, _file_rows(styled_variants))
+    # file_ax = fig.add_axes([0.055, 0.025, 0.89, 0.055])
+    # _draw_file_strip(file_ax, _file_rows(styled_variants))
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(output_path, dpi=300)
