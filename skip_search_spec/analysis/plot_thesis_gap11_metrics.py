@@ -37,7 +37,7 @@ METRIC_Y_LABELS = {
 
 METRIC_TITLES = {
     "top1_drafter_matches_verifier": "Top-1 Agreement for Training (1, 1) Gap",
-    "kl_verifier_to_drafter": "Verifier-to-Drafter KL for Gap (1, 1) Training",
+    "kl_verifier_to_drafter": "Verifier-to-Drafter KL for Training (1, 1) Gap",
 }
 
 MODEL_LABELS = {
@@ -61,7 +61,7 @@ THESIS_COLORS = [
 ]
 
 DEFAULT_SMOOTH_WINDOW = 5
-RAW_PREFIX_POINTS = 5
+RAW_PREFIX_POINTS = 10
 FINAL_AVG_POINTS = 20
 LINE_WIDTH = 1.35
 
@@ -233,20 +233,26 @@ def _format_final_panel(
     y_positions = list(range(len(series_list)))
     colors = [THESIS_COLORS[i % len(THESIS_COLORS)] for i in y_positions]
 
-    ax.scatter(final_values, y_positions, s=26, color=colors, zorder=3)
+    x_min = min(final_values)
+    x_max = max(final_values)
+    x_span = max(x_max - x_min, 1e-12)
+    x_lower = max(0.0, x_min - 0.12 * x_span)
+    x_upper = x_max + 0.24 * x_span
 
-    for y, value, color in zip(y_positions, final_values, colors):
-        ax.plot(
-            [min(final_values), value],
-            [y, y],
-            color=color,
-            linewidth=1.0,
-            alpha=0.55,
-            solid_capstyle="round",
-        )
+    bars = ax.barh(
+        y_positions,
+        [value - x_lower for value in final_values],
+        left=x_lower,
+        height=0.48,
+        color=colors,
+        alpha=0.9,
+        zorder=3,
+    )
+
+    for bar, value in zip(bars, final_values):
         ax.annotate(
             _format_final_value(value, metric_name=metric_name),
-            xy=(value, y),
+            xy=(value, bar.get_y() + bar.get_height() / 2),
             xytext=(5, 0),
             textcoords="offset points",
             ha="left",
@@ -255,7 +261,11 @@ def _format_final_panel(
             color="#222222",
         )
 
-    ax.set_title(f"Final avg.\nlast {FINAL_AVG_POINTS}", fontsize=9.4, pad=8)
+    ax.set_title(
+        f"Final avg.\nlast {FINAL_AVG_POINTS} datapoints",
+        fontsize=9.4,
+        pad=8,
+    )
     ax.set_yticks(y_positions)
     ax.set_yticklabels([])
     ax.tick_params(axis="y", length=0)
@@ -267,10 +277,7 @@ def _format_final_panel(
     ax.spines["left"].set_visible(False)
     ax.invert_yaxis()
 
-    x_min = min(final_values)
-    x_max = max(final_values)
-    x_span = max(x_max - x_min, 1e-12)
-    ax.set_xlim(x_min - 0.08 * x_span, x_max + 0.28 * x_span)
+    ax.set_xlim(x_lower, x_upper)
 
     if metric_name == "top1_drafter_matches_verifier":
         ax.xaxis.set_major_formatter(PercentFormatter(xmax=1.0, decimals=0))
