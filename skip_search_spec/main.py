@@ -402,6 +402,12 @@ def main() -> None:
             print("Saved speedup histogram to speedups_per_token_histogram.png")
 
 
+    elif mode == "bench_self_spec":
+        from skip_search_spec.analysis.bench_self_spec import run_cli
+
+        run_cli(sys.argv[2:])
+
+
 
     elif mode == "test_normal_inference":
         from skip_search_spec.inference.normal_inference import generate_normal
