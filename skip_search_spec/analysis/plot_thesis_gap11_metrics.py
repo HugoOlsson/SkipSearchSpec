@@ -80,10 +80,17 @@ LINE_WIDTH = 1.35
 
 
 class MetricSeries:
-    def __init__(self, label: str, steps: list[int], values: list[float]) -> None:
+    def __init__(
+        self,
+        label: str,
+        steps: list[int],
+        values: list[float],
+        git_commit: str,
+    ) -> None:
         self.label = label
         self.steps = steps
         self.values = values
+        self.git_commit = git_commit
 
 
 def _resolve_metric(metric: str) -> str:
@@ -124,6 +131,13 @@ def _model_label(payload: dict[str, Any], path: Path) -> str:
         model_name = str(model_name)
 
     return MODEL_LABELS.get(model_name, model_name.split("/")[-1].replace("_", "."))
+
+
+def _git_commit_label(payload: dict[str, Any]) -> str:
+    git_commit = payload.get("context", {}).get("git_commit")
+    if not git_commit:
+        return "no_git"
+    return str(git_commit)[:8]
 
 
 def _gap_metadata(payload: dict[str, Any], path: Path) -> tuple[int, int, int]:
@@ -206,7 +220,12 @@ def _load_metric_series(
     steps = sorted(points_by_step)
     values = [points_by_step[step] for step in steps]
     label = f"{_model_label(payload, path)} ({_skipped_layers_label(payload, path)})"
-    return MetricSeries(label=label, steps=steps, values=values)
+    return MetricSeries(
+        label=label,
+        steps=steps,
+        values=values,
+        git_commit=_git_commit_label(payload),
+    )
 
 
 def _moving_average(values: list[float], window: int) -> list[float]:
@@ -319,6 +338,14 @@ def _format_final_panel(
         ax.xaxis.set_major_formatter(PercentFormatter(xmax=1.0, decimals=0))
 
 
+def _git_commits_text(series_list: list[MetricSeries]) -> str:
+    unique_commits: list[str] = []
+    for series in series_list:
+        if series.git_commit not in unique_commits:
+            unique_commits.append(series.git_commit)
+    return "Training git commits: " + ", ".join(unique_commits)
+
+
 def plot_thesis_gap11_metric(
     json_paths: Iterable[str | Path] | None = None,
     *,
@@ -417,6 +444,15 @@ def plot_thesis_gap11_metric(
         columnspacing=1.6,
         labelspacing=0.55,
         borderaxespad=0.8,
+    )
+    fig.text(
+        0.5,
+        0.135,
+        _git_commits_text(series_list),
+        ha="center",
+        va="center",
+        fontsize=8.2,
+        color="#666666",
     )
 
     output_dir = (
