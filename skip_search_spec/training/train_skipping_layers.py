@@ -310,7 +310,7 @@ def train_skipping_layers(
             dataloader=dataloader,
             tokenizer=bridged.tokenizer,
             output_path="debug_outputs/training_windows.txt",
-            max_batches=2,
+            max_batches=10,
             max_examples=100,
         )
 

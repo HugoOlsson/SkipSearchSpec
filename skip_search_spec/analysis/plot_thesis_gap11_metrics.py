@@ -28,6 +28,9 @@ THESIS_GAP_1_1_JSON_PATHS = [
 THESIS_GAP_2_2_JSON_PATHS = [
     "measurements/2026-05-10-f7dea8/middle_gap_skip/for_thesis_day2_10500516_MY10__meta-llama_Llama-3_2-1B-Instruct_2_12_2/run.json",
     "measurements/2026-05-10-076f2b/middle_gap_skip/for_thesis_day2_11122915_MY10__meta-llama_Llama-3_2-3B-Instruct_2_24_2/run.json",
+    "measurements/2026-05-10-215d9b/middle_gap_skip/for_thesis_day2_11401601_MY10__meta-llama_Llama-3_1-8B-Instruct_2_28_2/run.json",
+    "measurements/2026-05-10-381530/middle_gap_skip/for_thesis_day2_12422559_MY10__Qwen_Qwen2_5-0_5B-Instruct_2_20_2/run.json",
+    "measurements/2026-05-10-381530/middle_gap_skip/for_thesis_day2_12214343_MY10__Qwen_Qwen3-1_7B_2_24_2/run.json",
     "measurements/2026-05-10-7ad273/middle_gap_skip/for_thesis_day2_10081712_MY10__mistralai_Mistral-7B-Instruct-v0_3_2_28_2/run.json",
 ]
 
