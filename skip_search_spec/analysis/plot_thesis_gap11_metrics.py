@@ -10,7 +10,9 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import PercentFormatter
 
 
-MetricAlias = Literal["top1", "kl", "top1_drafter_matches_verifier", "kl_verifier_to_drafter"]
+MetricAlias = Literal[
+    "top1", "kl", "top1_drafter_matches_verifier", "kl_verifier_to_drafter"
+]
 
 
 THESIS_GAP_1_1_JSON_PATHS = [
@@ -22,6 +24,17 @@ THESIS_GAP_1_1_JSON_PATHS = [
     "measurements/2026-05-09-87166f/middle_gap_skip/for_thesis_16125454_MY09__Qwen_Qwen2_5-14B-Instruct_1_46_1/run.json",
     "measurements/2026-05-09-f9a0d3/middle_gap_skip/for_thesis_15154000_MY09__meta-llama_Llama-3_2-3B-Instruct_1_26_1/run.json",
 ]
+
+THESIS_GAP_2_2_JSON_PATHS = [
+    "measurements/2026-05-10-f7dea8/middle_gap_skip/for_thesis_day2_10500516_MY10__meta-llama_Llama-3_2-1B-Instruct_2_12_2/run.json",
+    "measurements/2026-05-10-076f2b/middle_gap_skip/for_thesis_day2_11122915_MY10__meta-llama_Llama-3_2-3B-Instruct_2_24_2/run.json",
+    "measurements/2026-05-10-7ad273/middle_gap_skip/for_thesis_day2_10081712_MY10__mistralai_Mistral-7B-Instruct-v0_3_2_28_2/run.json",
+]
+
+THESIS_GAP_JSON_PATHS: dict[tuple[int, int], list[str]] = {
+    (1, 1): THESIS_GAP_1_1_JSON_PATHS,
+    (2, 2): THESIS_GAP_2_2_JSON_PATHS,
+}
 
 METRIC_ALIASES: dict[str, str] = {
     "top1": "top1_drafter_matches_verifier",
@@ -35,9 +48,9 @@ METRIC_Y_LABELS = {
     "kl_verifier_to_drafter": "KL(verifier || drafter)",
 }
 
-METRIC_TITLES = {
-    "top1_drafter_matches_verifier": "Top-1 Agreement for Training (1, 1) Gap",
-    "kl_verifier_to_drafter": "Verifier-to-Drafter KL for Training (1, 1) Gap",
+METRIC_TITLE_PREFIXES = {
+    "top1_drafter_matches_verifier": "Top-1 Agreement",
+    "kl_verifier_to_drafter": "Verifier-to-Drafter KL",
 }
 
 MODEL_LABELS = {
@@ -126,12 +139,25 @@ def _gap_metadata(payload: dict[str, Any], path: Path) -> tuple[int, int, int]:
     return gap_start, gap_end, num_layers
 
 
-def _verify_gap_1_1(payload: dict[str, Any], path: Path) -> None:
+def _gap_shape_text(gap_shape: tuple[int, int]) -> str:
+    left_kept, right_kept = gap_shape
+    return f"({left_kept}, {right_kept})"
+
+
+def _gap_shape_slug(gap_shape: tuple[int, int]) -> str:
+    left_kept, right_kept = gap_shape
+    return f"gap{left_kept}{right_kept}"
+
+
+def _verify_gap_shape(
+    payload: dict[str, Any], path: Path, gap_shape: tuple[int, int]
+) -> None:
     gap_start, gap_end, num_layers = _gap_metadata(payload, path)
-    right_kept = num_layers - gap_end
-    if gap_start != 1 or right_kept != 1:
+    actual_gap_shape = (gap_start, num_layers - gap_end)
+    if actual_gap_shape != gap_shape:
         raise ValueError(
-            f"{path} is not a gap (1, 1) run: left_kept={gap_start}, right_kept={right_kept}"
+            f"{path} is not a gap {_gap_shape_text(gap_shape)} run: "
+            f"left_kept={actual_gap_shape[0]}, right_kept={actual_gap_shape[1]}"
         )
 
 
@@ -150,9 +176,15 @@ def _skipped_layers_label(payload: dict[str, Any], path: Path) -> str:
     return f"{num_skipped}/{num_layers} skipped, {skipped_percent:.0f}%"
 
 
-def _load_metric_series(path: Path, *, metric_name: str, phase: str) -> MetricSeries:
+def _load_metric_series(
+    path: Path,
+    *,
+    metric_name: str,
+    phase: str,
+    gap_shape: tuple[int, int],
+) -> MetricSeries:
     payload = _load_json(path)
-    _verify_gap_1_1(payload, path)
+    _verify_gap_shape(payload, path, gap_shape)
 
     points_by_step: dict[int, float] = {}
     for event in payload.get("metric_events", []):
@@ -167,7 +199,9 @@ def _load_metric_series(path: Path, *, metric_name: str, phase: str) -> MetricSe
         points_by_step[int(step)] = float(value)
 
     if not points_by_step:
-        raise ValueError(f"No {phase!r} metric events named {metric_name!r} found in {path}")
+        raise ValueError(
+            f"No {phase!r} metric events named {metric_name!r} found in {path}"
+        )
 
     steps = sorted(points_by_step)
     values = [points_by_step[step] for step in steps]
@@ -229,7 +263,9 @@ def _format_final_panel(
     series_list: list[MetricSeries],
     metric_name: str,
 ) -> None:
-    final_values = [_mean_last_n(series.values, FINAL_AVG_POINTS) for series in series_list]
+    final_values = [
+        _mean_last_n(series.values, FINAL_AVG_POINTS) for series in series_list
+    ]
     y_positions = list(range(len(series_list)))
     colors = [THESIS_COLORS[i % len(THESIS_COLORS)] for i in y_positions]
 
@@ -284,22 +320,33 @@ def _format_final_panel(
 
 
 def plot_thesis_gap11_metric(
-    json_paths: Iterable[str | Path] = THESIS_GAP_1_1_JSON_PATHS,
+    json_paths: Iterable[str | Path] | None = None,
     *,
     metric: MetricAlias = "top1",
     phase: str = "train",
-    output_dir: str | Path = "plots/thesis_gap11_metrics",
-    output_formats: Iterable[str] = ("png", "pdf"),
+    gap_shape: tuple[int, int] = (1, 1),
+    output_dir: str | Path | None = None,
     smooth_window: int = DEFAULT_SMOOTH_WINDOW,
     log_y: bool = False,
 ) -> list[Path]:
     metric_name = _resolve_metric(metric)
+    if json_paths is None:
+        try:
+            json_paths = THESIS_GAP_JSON_PATHS[gap_shape]
+        except KeyError as exc:
+            raise ValueError(f"No default run.json paths for gap {gap_shape}") from exc
+
     paths = [Path(path) for path in json_paths]
     if not paths:
         raise ValueError("Provide at least one run.json path.")
 
     series_list = [
-        _load_metric_series(path, metric_name=metric_name, phase=phase)
+        _load_metric_series(
+            path,
+            metric_name=metric_name,
+            phase=phase,
+            gap_shape=gap_shape,
+        )
         for path in paths
     ]
 
@@ -312,8 +359,6 @@ def plot_thesis_gap11_metric(
             "axes.titlesize": 14,
             "font.size": 10,
             "legend.fontsize": 8.2,
-            "pdf.fonttype": 42,
-            "ps.fonttype": 42,
             "savefig.bbox": "tight",
         }
     )
@@ -332,7 +377,10 @@ def plot_thesis_gap11_metric(
         )
 
     fig.suptitle(
-        METRIC_TITLES[metric_name],
+        (
+            f"{METRIC_TITLE_PREFIXES[metric_name]} "
+            f"for Training {_gap_shape_text(gap_shape)} Gap"
+        ),
         y=0.965,
         fontsize=15,
         fontweight="semibold",
@@ -371,26 +419,29 @@ def plot_thesis_gap11_metric(
         borderaxespad=0.8,
     )
 
-    output_dir = Path(output_dir)
+    output_dir = (
+        Path(output_dir)
+        if output_dir is not None
+        else Path("plots") / f"thesis_{_gap_shape_slug(gap_shape)}_metrics"
+    )
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    suffix = f"__smooth_{smooth_window}" if smooth_window != DEFAULT_SMOOTH_WINDOW else ""
-    output_stem = f"thesis_gap11__{_safe_path_part(metric_name)}__{phase}{suffix}"
+    suffix = (
+        f"__smooth_{smooth_window}" if smooth_window != DEFAULT_SMOOTH_WINDOW else ""
+    )
+    gap_part = _gap_shape_slug(gap_shape)
+    output_stem = f"thesis_{gap_part}__{_safe_path_part(metric_name)}__{phase}{suffix}"
 
-    output_paths: list[Path] = []
-    for output_format in output_formats:
-        output_format = output_format.lower().lstrip(".")
-        output_path = output_dir / f"{output_stem}.{output_format}"
-        fig.savefig(output_path, dpi=300)
-        output_paths.append(output_path)
+    output_path = output_dir / f"{output_stem}.png"
+    fig.savefig(output_path, dpi=300)
 
     plt.close(fig)
-    return output_paths
+    return [output_path]
 
 
 def main() -> None:
     parser = ArgumentParser(
-        description="Plot thesis-ready gap (1, 1) training metrics from run.json files."
+        description="Plot thesis-ready gap training metrics from run.json files."
     )
     parser.add_argument(
         "--metric",
@@ -399,28 +450,44 @@ def main() -> None:
         help="Metric to plot. Friendly aliases: top1, kl.",
     )
     parser.add_argument("--phase", default="train")
-    parser.add_argument("--output-dir", type=Path, default=Path("plots/thesis_gap11_metrics"))
     parser.add_argument(
-        "--format",
-        dest="output_formats",
+        "--gap-shape",
+        nargs=2,
+        type=int,
+        metavar=("LEFT_KEPT", "RIGHT_KEPT"),
+        default=(1, 1),
+        help="Gap shape to plot and verify. Defaults to 1 1. Use 2 2 for for_thesis_day2 runs.",
+    )
+    parser.add_argument(
+        "--json-path",
+        dest="json_paths",
         action="append",
         default=None,
-        help="Output format. Can be passed multiple times. Defaults to png and pdf.",
+        help=(
+            "Explicit run.json path. Can be passed multiple times. "
+            "Defaults to the configured paths for --gap-shape."
+        ),
     )
+    parser.add_argument("--output-dir", type=Path, default=None)
     parser.add_argument(
         "--smooth-window",
         type=int,
         default=DEFAULT_SMOOTH_WINDOW,
         help="Centered moving-average window over logged metric points. Use 1 for raw traces.",
     )
-    parser.add_argument("--log-y", action="store_true", help="Use a logarithmic y-axis.")
+    parser.add_argument(
+        "--log-y", action="store_true", help="Use a logarithmic y-axis."
+    )
     args = parser.parse_args()
 
+    gap_shape = tuple(args.gap_shape)
+
     output_paths = plot_thesis_gap11_metric(
+        json_paths=args.json_paths,
         metric=args.metric,
         phase=args.phase,
+        gap_shape=gap_shape,
         output_dir=args.output_dir,
-        output_formats=args.output_formats or ("png", "pdf"),
         smooth_window=args.smooth_window,
         log_y=args.log_y,
     )
