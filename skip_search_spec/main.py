@@ -57,7 +57,7 @@ def main() -> None:
         number_of_windows = 100_000
         num_epochs = 1 # Ensure never get scores on data it has seen
 
-        models = ["mistralai/Mistral-7B-Instruct-v0.3"]
+        models = ["meta-llama/Llama-3.2-1B-Instruct"]
         active_start_end_lengths = [(2, 2)]
 
         for active_start_layers, active_end_layers in active_start_end_lengths: 
