@@ -23,6 +23,8 @@ THESIS_GAP_1_1_JSON_PATHS = [
     "measurements/2026-05-09-99c392/middle_gap_skip/for_thesis_15465604_MY09__Qwen_Qwen3-1_7B_1_26_1/run.json",
     "measurements/2026-05-09-9af545/middle_gap_skip/for_thesis_17360671_MY09__Qwen_Qwen2_5-0_5B-Instruct_1_22_1/run.json",
     "measurements/2026-05-09-87166f/middle_gap_skip/for_thesis_16125454_MY09__Qwen_Qwen2_5-14B-Instruct_1_46_1/run.json",
+    "measurements/2026-05-10-d6c39c/middle_gap_skip/for_thesis_day2_16164811_MY10__Qwen_Qwen2_5-7B-Instruct_1_26_1/run.json",
+    "measurements/2026-05-10-605df1/middle_gap_skip/for_thesis_day2_18182995_MY10__Qwen_Qwen3-4B-Instruct-2507_1_34_1/run.json",
     "measurements/2026-05-09-f9a0d3/middle_gap_skip/for_thesis_15154000_MY09__meta-llama_Llama-3_2-3B-Instruct_1_26_1/run.json",
 ]
 
@@ -31,15 +33,20 @@ THESIS_GAP_2_2_JSON_PATHS = [
     "measurements/2026-05-10-076f2b/middle_gap_skip/for_thesis_day2_11122915_MY10__meta-llama_Llama-3_2-3B-Instruct_2_24_2/run.json",
     "measurements/2026-05-10-215d9b/middle_gap_skip/for_thesis_day2_11401601_MY10__meta-llama_Llama-3_1-8B-Instruct_2_28_2/run.json",
     "measurements/2026-05-10-381530/middle_gap_skip/for_thesis_day2_12422559_MY10__Qwen_Qwen2_5-0_5B-Instruct_2_20_2/run.json",
+    "measurements/2026-05-10-d6c39c/middle_gap_skip/for_thesis_day2_16511074_MY10__Qwen_Qwen2_5-7B-Instruct_2_24_2/run.json",
     "measurements/2026-05-10-381530/middle_gap_skip/for_thesis_day2_12214343_MY10__Qwen_Qwen3-1_7B_2_24_2/run.json",
+    "measurements/2026-05-10-605df1/middle_gap_skip/for_thesis_day2_18471135_MY10__Qwen_Qwen3-4B-Instruct-2507_2_32_2/run.json",
     "measurements/2026-05-10-7ad273/middle_gap_skip/for_thesis_day2_10081712_MY10__mistralai_Mistral-7B-Instruct-v0_3_2_28_2/run.json",
 ]
 
 THESIS_GAP_2_0_JSON_PATHS = [
+    "measurements/2026-05-10-a01d37/middle_gap_skip/for_thesis_day2_15384581_MY10__meta-llama_Llama-3_1-8B-Instruct_2_30_0/run.json",
     "measurements/2026-05-10-123fc3/middle_gap_skip/for_thesis_day2_14180470_MY10__meta-llama_Llama-3_2-1B-Instruct_2_14_0/run.json",
     "measurements/2026-05-10-123fc3/middle_gap_skip/for_thesis_day2_13554184_MY10__meta-llama_Llama-3_2-3B-Instruct_2_26_0/run.json",
     "measurements/2026-05-10-123fc3/middle_gap_skip/for_thesis_day2_15181164_MY10__Qwen_Qwen2_5-0_5B-Instruct_2_22_0/run.json",
+    "measurements/2026-05-10-d6c39c/middle_gap_skip/for_thesis_day2_17274084_MY10__Qwen_Qwen2_5-7B-Instruct_2_26_0/run.json",
     "measurements/2026-05-10-123fc3/middle_gap_skip/for_thesis_day2_14591395_MY10__Qwen_Qwen3-1_7B_2_26_0/run.json",
+    "measurements/2026-05-10-605df1/middle_gap_skip/for_thesis_day2_19172955_MY10__Qwen_Qwen3-4B-Instruct-2507_2_34_0/run.json",
     "measurements/2026-05-10-123fc3/middle_gap_skip/for_thesis_day2_14312370_MY10__mistralai_Mistral-7B-Instruct-v0_3_2_30_0/run.json",
 ]
 
@@ -72,8 +79,10 @@ MODEL_LABELS = {
     "meta-llama/Llama-3.2-3B-Instruct": "Llama 3.2 3B Instruct",
     "mistralai/Mistral-7B-Instruct-v0.3": "Mistral 7B v0.3 Instruct",
     "Qwen/Qwen2.5-0.5B-Instruct": "Qwen2.5 0.5B Instruct",
+    "Qwen/Qwen2.5-7B-Instruct": "Qwen2.5 7B Instruct",
     "Qwen/Qwen2.5-14B-Instruct": "Qwen2.5 14B Instruct",
     "Qwen/Qwen3-1.7B": "Qwen3 1.7B Instruct",
+    "Qwen/Qwen3-4B-Instruct-2507": "Qwen3 4B Instruct",
 }
 
 THESIS_COLORS = [
@@ -82,7 +91,9 @@ THESIS_COLORS = [
     "#1B9E77",
     "#C04E8B",
     "#4E9A9A",
+    "#D95F5F",
     "#C9A227",
+    "#7A9A3E",
     "#6A51A3",
 ]
 
@@ -92,7 +103,9 @@ MODEL_COLORS = {
     "meta-llama/Llama-3.2-1B-Instruct": "#1B9E77",
     "Qwen/Qwen3-1.7B": "#C04E8B",
     "Qwen/Qwen2.5-0.5B-Instruct": "#4E9A9A",
+    "Qwen/Qwen2.5-7B-Instruct": "#D95F5F",
     "Qwen/Qwen2.5-14B-Instruct": "#C9A227",
+    "Qwen/Qwen3-4B-Instruct-2507": "#7A9A3E",
     "meta-llama/Llama-3.2-3B-Instruct": "#6A51A3",
 }
 
