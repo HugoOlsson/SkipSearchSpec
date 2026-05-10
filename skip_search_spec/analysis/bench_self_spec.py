@@ -798,9 +798,29 @@ def _plot_variant_distribution(
         )
         max_count = max(max_count, int(max(counts)) if len(counts) else 0)
 
-    y_max = max(max_count * 1.65, 1.0)
+    normal_curves = _normal_fit_curves(
+        variants=plot_variants,
+        bin_edges=bin_edges,
+        x_min=x_min,
+        x_max=x_max,
+    )
+    max_curve_y = max(
+        (max(curve["ys"]) for curve in normal_curves if curve["ys"]),
+        default=0.0,
+    )
+    y_max = max(max(max_count, max_curve_y) * 1.65, 1.0)
     ax.set_xlim(x_min, x_max)
     ax.set_ylim(0, y_max)
+    for curve in normal_curves:
+        ax.plot(
+            curve["xs"],
+            curve["ys"],
+            color=curve["color"],
+            linewidth=1.8,
+            alpha=0.9,
+            solid_capstyle="round",
+        )
+
     for variant in plot_variants:
         speedup = variant["aggregate_speedup"]
         if speedup is None:
@@ -939,6 +959,44 @@ def _speedup_tick_label(value: float, _: Any) -> str:
     return f"{value:.1f}x"
 
 
+def _normal_fit_curves(
+    *,
+    variants: list[dict[str, Any]],
+    bin_edges: list[float],
+    x_min: float,
+    x_max: float,
+) -> list[dict[str, Any]]:
+    if len(bin_edges) < 2:
+        return []
+
+    bin_width = bin_edges[1] - bin_edges[0]
+    xs = [x_min + (x_max - x_min) * index / 399 for index in range(400)]
+    curves: list[dict[str, Any]] = []
+    for variant in variants:
+        speedups = variant["speedups"]
+        std = _sample_std_or_none(speedups)
+        if std is None or std <= 0.0:
+            continue
+
+        mean = _mean(speedups)
+        normalizer = 1.0 / (std * math.sqrt(2.0 * math.pi))
+        ys = [
+            len(speedups)
+            * bin_width
+            * normalizer
+            * math.exp(-0.5 * ((x - mean) / std) ** 2)
+            for x in xs
+        ]
+        curves.append(
+            {
+                "xs": xs,
+                "ys": ys,
+                "color": variant["edge"],
+            }
+        )
+    return curves
+
+
 def _draw_inline_legend(ax: Any, variants: list[dict[str, Any]]) -> None:
     for index, variant in enumerate(variants):
         speedup = variant["aggregate_speedup"]
@@ -951,7 +1009,7 @@ def _draw_inline_legend(ax: Any, variants: list[dict[str, Any]]) -> None:
             ha="left",
             va="top",
             fontsize=15.5,
-            fontweight="bold",
+            fontweight="semibold",
             color=variant["edge"],
         )
 
@@ -1064,7 +1122,7 @@ def _draw_report_footer(
             color=title_color,
         )
         y = 0.72
-        row_step = 0.145 if len(rows) > 4 else 0.18
+        row_step = 0.145
         for label, value in rows:
             _draw_labeled_value(
                 ax,
