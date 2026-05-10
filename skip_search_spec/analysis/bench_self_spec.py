@@ -725,99 +725,111 @@ def _plot_variant_distribution(
 
     import matplotlib.pyplot as plt
     from matplotlib.patches import FancyBboxPatch
-    from matplotlib.ticker import FuncFormatter, MultipleLocator
+    from matplotlib.ticker import FixedLocator, FuncFormatter, MultipleLocator
 
-    styled_variants = [
+    plot_variants = [
         _styled_variant_payload(variant) for variant in _ordered_plot_variants(variants)
     ]
-    all_speedups = [
-        speedup for variant in styled_variants for speedup in variant["speedups"]
-    ]
+    all_speedups = [value for variant in plot_variants for value in variant["speedups"]]
     if not all_speedups:
         raise ValueError(
             "No speedup values found. Run the benchmark with normal comparison."
         )
 
-    common_metadata = styled_variants[0]["metadata"]
-    model_name = str(common_metadata.get("model_name", ""))
-    fig = plt.figure(figsize=(11.25, 6.25))
+    plt.rcParams.update(
+        {
+            "font.family": "DejaVu Sans",
+            "axes.unicode_minus": False,
+        }
+    )
+
+    metadata = plot_variants[0]["metadata"]
+    fig = plt.figure(figsize=(14.6, 9.0))
     fig.patch.set_facecolor("white")
 
     fig.text(
         0.5,
-        0.955,
+        0.945,
         title or "Self-speculation inference speedup",
         ha="center",
         va="top",
-        fontsize=20,
+        fontsize=28,
         fontweight="bold",
+        color="#050505",
     )
     fig.text(
         0.5,
-        0.905,
-        _model_display_name(model_name),
+        0.883,
+        _model_display_name(str(metadata.get("model_name", ""))),
         ha="center",
         va="top",
-        fontsize=12.5,
+        fontsize=17,
         fontweight="bold",
         color="#4A4A4A",
     )
 
-    ax = fig.add_axes([0.055, 0.385, 0.89, 0.44])
-    rounded_panel = FancyBboxPatch(
-        (0, 0),
-        1,
-        1,
-        boxstyle="round,pad=0.012",
+    ax = fig.add_axes([0.075, 0.39, 0.85, 0.445])
+    ax.set_facecolor("none")
+    panel = FancyBboxPatch(
+        (0.0, 0.0),
+        1.0,
+        1.0,
+        boxstyle="round,pad=0.0,rounding_size=0.009",
         transform=ax.transAxes,
         facecolor="white",
-        edgecolor="#DCDCDC",
-        linewidth=0.9,
-        zorder=-10,
+        edgecolor="#DDDDDD",
+        linewidth=1.0,
+        zorder=-20,
         clip_on=False,
     )
-    ax.add_patch(rounded_panel)
+    ax.add_patch(panel)
 
-    bin_edges = _histogram_bin_edges(all_speedups, bins)
+    x_min, x_max = _plot_x_limits(all_speedups)
+    bin_edges = _histogram_bin_edges(all_speedups, bins, lower=x_min, upper=x_max)
     max_count = 0
-    for variant in styled_variants:
+    for variant in plot_variants:
         counts, _, _ = ax.hist(
             variant["speedups"],
             bins=bin_edges,
-            histtype="bar",
             color=variant["fill"],
             edgecolor=variant["edge"],
-            linewidth=2.0,
-            alpha=0.34,
-            label=variant["label"],
+            linewidth=2.2,
+            alpha=0.56,
         )
         max_count = max(max_count, int(max(counts)) if len(counts) else 0)
-    _plot_normal_fit_curves(ax, styled_variants, bin_edges, max_count)
+
+    y_max = max(max_count * 1.65, 1.0)
+    ax.set_xlim(x_min, x_max)
+    ax.set_ylim(0, y_max)
+    for variant in plot_variants:
+        speedup = variant["aggregate_speedup"]
+        if speedup is None:
+            continue
+        ax.vlines(
+            speedup,
+            0,
+            y_max * 0.94,
+            color=variant["edge"],
+            linewidth=1.15,
+            linestyles=(0, (4, 5)),
+            alpha=0.72,
+        )
 
     ax.set_axisbelow(True)
-    ax.xaxis.set_major_locator(MultipleLocator(0.1))
-    ax.xaxis.set_minor_locator(MultipleLocator(0.02))
-    ax.xaxis.set_major_formatter(FuncFormatter(lambda value, _: f"{value:g}x"))
-    ax.grid(axis="x", which="major", color="#E7E7E7", linewidth=1.0)
-    ax.grid(axis="x", which="minor", color="#EFEFEF", linewidth=0.65)
-    ax.grid(axis="y", color="#ECECEC", linewidth=0.8)
-    ax.tick_params(axis="y", length=0, labelsize=12)
-    ax.tick_params(axis="x", length=0, labelsize=12, pad=8)
+    ax.xaxis.set_major_locator(FixedLocator(_major_ticks(x_min, x_max)))
+    ax.xaxis.set_minor_locator(MultipleLocator(0.05))
+    ax.xaxis.set_major_formatter(FuncFormatter(_speedup_tick_label))
+    ax.grid(axis="x", which="major", color="#E8E8E8", linewidth=1.05)
+    ax.grid(axis="x", which="minor", color="#F0F0F0", linewidth=0.75)
+    ax.tick_params(axis="x", length=0, labelsize=15, pad=12, colors="#050505")
+    ax.tick_params(axis="y", length=0)
     ax.set_yticks([])
     for spine in ax.spines.values():
         spine.set_visible(False)
 
-    x_min = min(bin_edges)
-    x_max = max(bin_edges)
-    ax.set_xlim(x_min - 0.03, x_max + 0.03)
-    ax.set_ylim(0, max(max_count * 1.42, 1.0))
-
-    _annotate_variant_means(ax, styled_variants, max_count)
-
-    info_ax = fig.add_axes([0.055, 0.035, 0.89, 0.275])
-    _draw_info_strip(info_ax, _info_sections(styled_variants))
-    # file_ax = fig.add_axes([0.055, 0.025, 0.89, 0.055])
-    # _draw_file_strip(file_ax, _file_rows(styled_variants))
+    _draw_inline_legend(ax, plot_variants)
+    footer_ax = fig.add_axes([0.085, 0.075, 0.83, 0.225])
+    _draw_report_footer(footer_ax, _info_sections(plot_variants))
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(output_path, dpi=300)
@@ -839,18 +851,18 @@ def _styled_variant_payload(variant: dict[str, Any]) -> dict[str, Any]:
     prompt_results = variant["prompt_results"]
     if key == "flashhead" or metadata.get("flashhead_enabled"):
         colors = {
-            "edge": "#9B0079",
-            "fill": "#D790C6",
-            "text": "#9B0079",
+            "edge": "#9B007F",
+            "fill": "#DCA6D2",
         }
-        label = "With FH"
+        label = "With FlashHead"
+        short_label = "w FH"
     else:
         colors = {
-            "edge": "#007399",
-            "fill": "#7FB6C8",
-            "text": "#174C56",
+            "edge": "#006E90",
+            "fill": "#86BDCB",
         }
-        label = "Without FH"
+        label = "Without FlashHead"
+        short_label = "w/o FH"
 
     speedups = [
         float(result["speedup_per_generated_token"])
@@ -861,87 +873,86 @@ def _styled_variant_payload(variant: dict[str, Any]) -> dict[str, Any]:
     return {
         "key": key,
         "label": label,
+        "short_label": short_label,
         "metadata": metadata,
         "summary": summary,
         "speedups": speedups,
+        "aggregate_speedup": _summary_speedup(summary),
         **colors,
     }
 
 
-def _histogram_bin_edges(values: list[float], bins: int | None) -> list[float]:
-    value_min = min(values)
-    value_max = max(values)
-    if value_min == value_max:
-        value_min -= 0.05
-        value_max += 0.05
-    padding = max((value_max - value_min) * 0.18, 0.04)
-    lower = math.floor((value_min - padding) / 0.02) * 0.02
-    upper = math.ceil((value_max + padding) / 0.02) * 0.02
-    bin_count = bins or min(14, max(6, int(math.sqrt(len(values))) + 4))
+def _summary_speedup(summary: dict[str, Any]) -> float | None:
+    for key in (
+        "total_speedup_per_generated_token",
+        "mean_prompt_speedup_per_generated_token",
+        "total_speedup_seconds",
+    ):
+        value = summary.get(key)
+        if value is not None:
+            return float(value)
+    return None
+
+
+def _plot_x_limits(values: list[float]) -> tuple[float, float]:
+    lower = math.floor((min(values) - 0.16) / 0.1) * 0.1
+    upper = math.ceil((max(values) + 0.12) / 0.1) * 0.1
+    lower = min(lower, 0.5)
+    upper = max(upper, 1.4)
+    if upper - lower < 0.7:
+        midpoint = (upper + lower) / 2.0
+        lower = math.floor((midpoint - 0.35) / 0.1) * 0.1
+        upper = math.ceil((midpoint + 0.35) / 0.1) * 0.1
+    return lower, upper
+
+
+def _histogram_bin_edges(
+    _values: list[float],
+    bins: int | None,
+    *,
+    lower: float,
+    upper: float,
+) -> list[float]:
+    if bins is not None:
+        bin_count = max(1, bins)
+    else:
+        span = upper - lower
+        bin_count = max(8, min(16, round(span / 0.06)))
     width = (upper - lower) / bin_count
-    return [lower + width * i for i in range(bin_count + 1)]
+    return [lower + width * index for index in range(bin_count + 1)]
 
 
-def _annotate_variant_means(
-    ax: Any,
-    variants: list[dict[str, Any]],
-    max_count: int,
-) -> None:
-    y_top = max(max_count * 1.22, 1.0)
+def _major_ticks(lower: float, upper: float) -> list[float]:
+    start = math.ceil((lower + 0.001) * 10.0) / 10.0
+    stop = math.floor((upper - 0.001) * 10.0) / 10.0
+    ticks: list[float] = []
+    current = start
+    while current <= stop + 0.0001:
+        ticks.append(round(current, 1))
+        current += 0.1
+    return ticks
+
+
+def _speedup_tick_label(value: float, _: Any) -> str:
+    if abs(value - round(value)) < 0.001:
+        return f"{int(round(value))}x"
+    return f"{value:.1f}x"
+
+
+def _draw_inline_legend(ax: Any, variants: list[dict[str, Any]]) -> None:
     for index, variant in enumerate(variants):
-        summary = variant["summary"]
-        mean = summary.get("mean_prompt_speedup_per_generated_token")
-        if mean is None:
-            continue
-        y = y_top - index * max(max_count * 0.16, 0.2)
+        speedup = variant["aggregate_speedup"]
+        suffix = "" if speedup is None else f" {_fmt_x(speedup)}"
         ax.text(
-            float(mean),
-            y,
-            f"{variant['label']} avg speedup = {_fmt_x(float(mean))}",
-            ha="center",
-            va="bottom",
-            fontsize=10.8,
-            fontweight="semibold",
-            color=variant["text"],
-        )
-
-
-def _plot_normal_fit_curves(
-    ax: Any,
-    variants: list[dict[str, Any]],
-    bin_edges: list[float],
-    max_count: int,
-) -> None:
-    if len(bin_edges) < 2:
-        return
-    bin_width = bin_edges[1] - bin_edges[0]
-    x_min = bin_edges[0]
-    x_max = bin_edges[-1]
-    xs = [x_min + (x_max - x_min) * i / 399 for i in range(400)]
-    for variant in variants:
-        speedups = variant["speedups"]
-        if len(speedups) < 2:
-            continue
-        mean = sum(speedups) / len(speedups)
-        std = _sample_std_or_none(speedups)
-        if std is None or std <= 0:
-            continue
-        ys = [
-            len(speedups)
-            * bin_width
-            * (1.0 / (std * math.sqrt(2.0 * math.pi)))
-            * math.exp(-0.5 * ((x - mean) / std) ** 2)
-            for x in xs
-        ]
-        if max_count > 0 and max(ys) > max_count * 1.08:
-            scale = (max_count * 1.08) / max(ys)
-            ys = [y * scale for y in ys]
-        ax.plot(
-            xs,
-            ys,
+            0.016,
+            0.955 - index * 0.064,
+            f"{variant['label']}{suffix}",
+            transform=ax.transAxes,
+            ha="left",
+            va="top",
+            fontsize=15.5,
+            fontweight="bold",
             color=variant["edge"],
-            linewidth=2.0,
-            alpha=0.9,
         )
 
 
@@ -951,17 +962,17 @@ def _info_sections(
     first = variants[0]
     metadata = first["metadata"]
     setup = [
-        ("prompt set", _value(metadata.get("prompt_set"))),
-        ("block size", _value(metadata.get("draft_block_size"))),
-        ("warmup prompts", _value(first["summary"].get("warmup_prompts"))),
-        ("measured prompts", _value(first["summary"].get("prompt_count_included"))),
+        ("Prompt set", _prompt_set_display_name(metadata.get("prompt_set"))),
+        ("Block size", _value(metadata.get("draft_block_size"))),
+        ("Warmup prompts", _value(first["summary"].get("warmup_prompts"))),
+        ("Measured prompts", _value(first["summary"].get("prompt_count_included"))),
     ]
     runtime = [
-        ("backend", _value(metadata.get("attention_backend"))),
-        ("model dtype", _dtype_label(metadata.get("model_dtype"))),
-        ("bridge dtype", _dtype_label(metadata.get("loaded_bridge_dtype"))),
+        ("Backend", _value(metadata.get("attention_backend"))),
+        ("Model dtype", _dtype_label(metadata.get("model_dtype"))),
+        ("Bridge dtype", _dtype_label(metadata.get("loaded_bridge_dtype"))),
         (
-            "internal timing",
+            "Internal timing",
             _yes_no(bool(metadata.get("measure_internal_timings"))),
         ),
     ]
@@ -969,28 +980,37 @@ def _info_sections(
     results: list[tuple[str, str]] = []
     timings: list[tuple[str, str]] = []
     flashhead_meta = next(
-        (variant["metadata"] for variant in variants if variant["metadata"].get("flashhead_enabled")),
+        (
+            variant["metadata"]
+            for variant in variants
+            if variant["metadata"].get("flashhead_enabled")
+        ),
         None,
     )
     for variant in variants:
         summary = variant["summary"]
-        prefix = "FH" if variant["metadata"].get("flashhead_enabled") else "No FH"
+        prefix = variant["short_label"]
         results.extend(
             [
                 (
-                    f"{prefix} speedup",
-                    _fmt_x(summary.get("mean_prompt_speedup_per_generated_token")),
+                    f"Speedup ({prefix})",
+                    _fmt_x(_summary_speedup(summary)),
                 ),
-                (f"{prefix} acceptance", _fmt_pct(summary.get("total_acceptance_rate"))),
-                (f"{prefix} exact match", _fmt_pct(summary.get("exact_match_rate"))),
+                (
+                    f"Acceptance rate ({prefix})",
+                    _fmt_pct(summary.get("total_acceptance_rate")),
+                ),
+                (f"Exact match ({prefix})", _fmt_pct(summary.get("exact_match_rate"))),
             ]
         )
         timings.append(
             (
-                f"{prefix} head/body",
+                f"Head/Body ({prefix})",
                 (
-                    f"{_fmt_seconds(summary.get('internal_head_seconds'))} / "
-                    f"{_fmt_seconds(summary.get('internal_body_seconds_estimate'))}"
+                    _fmt_head_body(
+                        summary.get("internal_head_seconds"),
+                        summary.get("internal_body_seconds_estimate"),
+                    )
                 ),
             )
         )
@@ -1017,23 +1037,7 @@ def _info_sections(
     ]
 
 
-def _file_rows(variants: list[dict[str, Any]]) -> list[tuple[str, str]]:
-    metadata = variants[0]["metadata"]
-    rows = [("bridge file", _value(metadata.get("bridge_checkpoint_path")))]
-    flashhead_path = next(
-        (
-            variant["metadata"].get("flashhead_path")
-            for variant in variants
-            if variant["metadata"].get("flashhead_path")
-        ),
-        None,
-    )
-    if flashhead_path:
-        rows.append(("flashhead file", _value(flashhead_path)))
-    return rows
-
-
-def _draw_info_strip(
+def _draw_report_footer(
     ax: Any,
     sections: list[tuple[str, list[tuple[str, str]]]],
 ) -> None:
@@ -1041,106 +1045,100 @@ def _draw_info_strip(
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
 
-    title_color = "#173F46"
-    label_color = "#587078"
+    column_xs = [0.0, 0.265, 0.495, 0.755]
+    column_rights = [0.23, 0.455, 0.715, 1.0]
+    title_color = "#050505"
+    label_color = "#526D73"
     value_color = "#243E45"
-    column_width = 0.238
-    column_gap = 0.016
-    y_top = 0.95
-    body_top = 0.73
-
-    for column, (title, rows) in enumerate(sections):
-        x = column * (column_width + column_gap)
+    for section_index, (heading, rows) in enumerate(sections):
+        x = column_xs[min(section_index, len(column_xs) - 1)]
+        right = column_rights[min(section_index, len(column_rights) - 1)]
         ax.text(
             x,
-            y_top,
-            title,
+            0.98,
+            heading,
             ha="left",
             va="top",
-            fontsize=9.4,
+            fontsize=17.5,
             fontweight="bold",
             color=title_color,
-            clip_on=True,
         )
-        ax.plot(
-            [x, x + column_width],
-            [0.79, 0.79],
-            color="#D9E1E3",
-            linewidth=0.8,
-            solid_capstyle="round",
-            clip_on=True,
-        )
-
-        y = body_top
-        crowded = len(rows) > 4
-        row_step = 0.15 if not crowded else 0.102
-        font_size = 7.95 if not crowded else 7.45
-        wrap_width = 48
+        y = 0.72
+        row_step = 0.145 if len(rows) > 4 else 0.18
         for label, value in rows:
-            line = _metadata_line(label, value, width=wrap_width)
-            ax.text(
+            _draw_labeled_value(
+                ax,
                 x,
                 y,
-                line,
-                ha="left",
-                va="top",
-                fontsize=font_size,
-                color=value_color,
-                linespacing=1.18,
-                clip_on=True,
+                label,
+                value,
+                label_color=label_color,
+                value_color=value_color,
+                right=right,
             )
-            label_text = line.split("=", 1)[0]
-            ax.text(
-                x,
-                y,
-                label_text,
-                ha="left",
-                va="top",
-                fontsize=font_size,
-                color=label_color,
-                linespacing=1.18,
-                clip_on=True,
-            )
-            y -= row_step * max(1, line.count("\n") + 1)
+            y -= row_step
 
 
-def _draw_file_strip(ax: Any, rows: list[tuple[str, str]]) -> None:
-    ax.set_axis_off()
-    ax.set_xlim(0, 1)
-    ax.set_ylim(0, 1)
+def _draw_labeled_value(
+    ax: Any,
+    x: float,
+    y: float,
+    label: str,
+    value: str,
+    *,
+    label_color: str,
+    value_color: str,
+    right: float,
+) -> None:
+    prefix = f"{label} = "
+    fontsize = _footer_font_size(ax, x, right, prefix + value)
+    prefix_artist = ax.text(
+        x,
+        y,
+        prefix,
+        ha="left",
+        va="top",
+        fontsize=fontsize,
+        color=label_color,
+    )
+    ax.figure.canvas.draw()
+    renderer = ax.figure.canvas.get_renderer()
+    prefix_box = prefix_artist.get_window_extent(renderer=renderer)
+    axes_box = ax.get_window_extent(renderer=renderer)
+    value_x = x + prefix_box.width / axes_box.width
+    ax.text(
+        value_x,
+        y,
+        value,
+        ha="left",
+        va="top",
+        fontsize=fontsize,
+        fontweight="bold",
+        color=value_color,
+    )
 
-    label_color = "#587078"
-    value_color = "#243E45"
-    max_line_length = max((len(label) + len(value) + 3 for label, value in rows), default=0)
-    font_size = 5.8
-    if max_line_length > 190:
-        font_size = 4.8
-    if max_line_length > 230:
-        font_size = 4.3
-    y = 0.82
-    for label, value in rows:
-        prefix = f"{label} = "
-        ax.text(
-            0,
-            y,
-            prefix,
-            ha="left",
-            va="top",
+
+def _footer_font_size(ax: Any, x: float, right: float, text: str) -> float:
+    font_size = 11.2
+    minimum = 7.8
+    while font_size > minimum:
+        probe = ax.text(
+            x,
+            0.5,
+            text,
             fontsize=font_size,
-            color=label_color,
-            clip_on=True,
+            fontweight="bold",
+            alpha=0.0,
         )
-        ax.text(
-            0.071,
-            y,
-            value,
-            ha="left",
-            va="top",
-            fontsize=font_size,
-            color=value_color,
-            clip_on=True,
-        )
-        y -= 0.42
+        ax.figure.canvas.draw()
+        renderer = ax.figure.canvas.get_renderer()
+        text_width = probe.get_window_extent(renderer=renderer).width
+        axes_width = ax.get_window_extent(renderer=renderer).width
+        probe.remove()
+        if x + text_width / axes_width <= right:
+            return font_size
+        font_size -= 0.4
+    return minimum
 
 
 def _model_display_name(model_name: str) -> str:
@@ -1163,6 +1161,18 @@ def _metadata_line(label: str, value: str, *, width: int) -> str:
 def _dtype_label(value: Any) -> str:
     text = _value(value)
     return text.replace("torch.", "")
+
+
+def _prompt_set_display_name(value: Any) -> str:
+    labels = {
+        "chat-style": "chat",
+        "completion-style": "completion",
+        "hard-completion-style": "hard completion",
+        "concrete-completion-style": "concrete",
+        "swedish-concrete-completion-style": "swedish concrete",
+    }
+    text = _value(value)
+    return labels.get(text, text[:18] + "..." if len(text) > 21 else text)
 
 
 def _value(value: Any) -> str:
@@ -1260,16 +1270,30 @@ def _fmt_seconds(value: float | None) -> str:
     return f"{value:.3f}s"
 
 
+def _fmt_seconds_compact(value: float | None) -> str:
+    if value is None:
+        return "n/a"
+    if abs(value) >= 1.0:
+        return f"{value:.1f}s"
+    return f"{value:.3f}s"
+
+
+def _fmt_head_body(head_seconds: Any, body_seconds: Any) -> str:
+    head = float(head_seconds) if head_seconds is not None else None
+    body = float(body_seconds) if body_seconds is not None else None
+    return f"{_fmt_seconds_compact(head)}/{_fmt_seconds_compact(body)}"
+
+
 def _fmt_x(value: float | None) -> str:
     if value is None:
         return "n/a"
-    return f"{value:.3f}x"
+    return f"{value:.2f}x"
 
 
 def _fmt_pct(value: float | None) -> str:
     if value is None:
         return "n/a"
-    return f"{100.0 * value:.2f}%"
+    return f"{100.0 * value:.1f}%"
 
 
 def _fmt_count(value: int | None, total: int) -> str:
