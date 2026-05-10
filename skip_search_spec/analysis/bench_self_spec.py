@@ -98,7 +98,7 @@ class BenchSummary:
 def run_cli(argv: list[str]) -> None:
     parser = argparse.ArgumentParser(
         prog="skip_search_spec bench_self_spec",
-        description="Benchmark self-speculation and save a rigorous report plot.",
+        description="Benchmark self-speculation and save results as JSON.",
     )
     parser.add_argument("draft_block_size", type=int)
     parser.add_argument("bridge_checkpoint_path")
@@ -143,7 +143,7 @@ def run_cli(argv: list[str]) -> None:
     parser.add_argument(
         "--output-prefix",
         default=None,
-        help="Optional basename prefix for the saved PNG and JSON files.",
+        help="Optional basename prefix for the saved JSON file.",
     )
 
     args = parser.parse_args(argv)
@@ -163,6 +163,38 @@ def run_cli(argv: list[str]) -> None:
     )
 
 
+def plot_cli(argv: list[str]) -> None:
+    parser = argparse.ArgumentParser(
+        prog="skip_search_spec plot_self_spec_bench",
+        description="Plot a self-spec benchmark distribution from a saved JSON file.",
+    )
+    parser.add_argument("json_path")
+    parser.add_argument(
+        "--output-path",
+        default=None,
+        help="PNG path. Defaults to the JSON path with a .png suffix.",
+    )
+    parser.add_argument(
+        "--title",
+        default=None,
+        help="Optional figure title. Defaults to a title derived from the JSON metadata.",
+    )
+    parser.add_argument(
+        "--bins",
+        type=int,
+        default=None,
+        help="Optional fixed number of histogram bins.",
+    )
+    args = parser.parse_args(argv)
+
+    plot_self_spec_bench_json(
+        json_path=args.json_path,
+        output_path=args.output_path,
+        title=args.title,
+        bins=args.bins,
+    )
+
+
 def bench_self_spec(
     *,
     draft_block_size: int,
@@ -177,7 +209,7 @@ def bench_self_spec(
     bridge_dtype: str = "float32",
     output_dir: str | Path = "benchmarks/self_spec",
     output_prefix: str | None = None,
-) -> tuple[Path, Path]:
+) -> Path:
     if draft_block_size < 1:
         raise ValueError("draft_block_size must be >= 1.")
     if warmup_prompts < 0:
@@ -318,7 +350,6 @@ def bench_self_spec(
         prompt_set=prompt_set,
     )
     json_path = output_dir / f"{run_stem}.json"
-    plot_path = output_dir / f"{run_stem}.png"
 
     payload = {
         "schema_version": 1,
@@ -329,17 +360,13 @@ def bench_self_spec(
     with json_path.open("w", encoding="utf-8") as f:
         json.dump(payload, f, indent=2)
 
-    _plot_report(
-        plot_path=plot_path,
-        metadata=metadata,
-        summary=summary,
-        prompt_results=prompt_results,
-    )
-
     print()
     print("Saved benchmark JSON:", json_path)
-    print("Saved benchmark plot:", plot_path)
-    return json_path, plot_path
+    print(
+        "Plot with:",
+        f"poetry run skip_search_spec plot_self_spec_bench {json_path}",
+    )
+    return json_path
 
 
 def _parse_bridge_dtype(value: str) -> torch.dtype | Literal["model"]:
@@ -514,12 +541,47 @@ def _build_metadata(
     }
 
 
+def plot_self_spec_bench_json(
+    *,
+    json_path: str | Path,
+    output_path: str | Path | None = None,
+    title: str | None = None,
+    bins: int | None = None,
+) -> Path:
+    json_path = Path(json_path)
+    with json_path.open("r", encoding="utf-8") as f:
+        payload = json.load(f)
+
+    metadata = payload["metadata"]
+    summary = BenchSummary(**payload["summary"])
+    prompt_results = [
+        PromptBenchResult(**result) for result in payload["prompt_results"]
+    ]
+
+    if output_path is None:
+        output_path = json_path.with_suffix(".png")
+    plot_path = Path(output_path)
+
+    _plot_report(
+        plot_path=plot_path,
+        metadata=metadata,
+        summary=summary,
+        prompt_results=prompt_results,
+        title=title,
+        bins=bins,
+    )
+    print("Saved benchmark plot:", plot_path)
+    return plot_path
+
+
 def _plot_report(
     *,
     plot_path: Path,
     metadata: dict[str, Any],
     summary: BenchSummary,
     prompt_results: list[PromptBenchResult],
+    title: str | None = None,
+    bins: int | None = None,
 ) -> None:
     os.environ.setdefault("MPLCONFIGDIR", str(plot_path.parent / ".matplotlib"))
     os.environ.setdefault("XDG_CACHE_HOME", str(plot_path.parent / ".cache"))
@@ -528,37 +590,34 @@ def _plot_report(
     import matplotlib.pyplot as plt
 
     included = [result for result in prompt_results if result.included_in_metrics]
-    speedup_results = [
-        result for result in included if result.speedup_per_generated_token is not None
-    ]
     speedups = [
         float(result.speedup_per_generated_token)
-        for result in speedup_results
+        for result in included
         if result.speedup_per_generated_token is not None
     ]
 
-    fig = plt.figure(figsize=(18, 11), constrained_layout=True)
-    grid = fig.add_gridspec(
-        nrows=2,
-        ncols=3,
-        width_ratios=[1.4, 1.4, 1.1],
-        height_ratios=[1.0, 1.15],
-    )
-    ax_hist = fig.add_subplot(grid[0, 0:2])
-    ax_bars = fig.add_subplot(grid[1, 0:2])
-    ax_metrics = fig.add_subplot(grid[:, 2])
-
-    fig.suptitle(
-        f"Self-Spec Benchmark: {metadata['model_name']}",
-        fontsize=17,
-        fontweight="bold",
+    plt.rcParams.update(
+        {
+            "font.size": 13,
+            "axes.titlesize": 17,
+            "axes.labelsize": 15,
+            "xtick.labelsize": 13,
+            "ytick.labelsize": 13,
+            "legend.fontsize": 12,
+        }
     )
 
-    _plot_speedup_histogram(ax_hist, speedups, summary)
-    _plot_prompt_speedups(ax_bars, speedup_results)
-    _plot_metric_panel(ax_metrics, metadata, summary)
+    fig, ax_hist = plt.subplots(figsize=(8.2, 5.2), constrained_layout=True)
+    plot_title = title or _default_plot_title(metadata)
+    _plot_speedup_histogram(
+        ax_hist,
+        speedups,
+        summary,
+        title=plot_title,
+        bins=bins,
+    )
 
-    fig.savefig(plot_path, dpi=220, bbox_inches="tight")
+    fig.savefig(plot_path, dpi=300, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -566,11 +625,15 @@ def _plot_speedup_histogram(
     ax: Any,
     speedups: list[float],
     summary: BenchSummary,
+    *,
+    title: str,
+    bins: int | None,
 ) -> None:
-    ax.set_title("Distribution of Speedup Per Generated Token")
-    ax.set_xlabel("Self-spec tokens/sec divided by normal tokens/sec")
+    ax.set_title(title, pad=10)
+    ax.set_xlabel("Speedup per generated token")
     ax.set_ylabel("Prompt count")
-    ax.grid(axis="y", alpha=0.25)
+    ax.grid(axis="y", alpha=0.22, linewidth=0.8)
+    ax.set_axisbelow(True)
 
     if not speedups:
         ax.text(
@@ -583,19 +646,25 @@ def _plot_speedup_histogram(
         )
         return
 
-    bin_count = min(20, max(3, int(math.sqrt(len(speedups))) + 1))
+    bin_count = bins or min(14, max(4, int(math.sqrt(len(speedups))) + 2))
     counts, bins, _ = ax.hist(
         speedups,
         bins=bin_count,
-        color="#2f6f73",
+        color="#467f83",
         edgecolor="white",
-        alpha=0.86,
+        linewidth=1.2,
+        alpha=0.9,
     )
 
     mean = summary.mean_prompt_speedup_per_generated_token
     std = summary.std_prompt_speedup_per_generated_token
     if mean is not None:
-        ax.axvline(mean, color="#101820", linewidth=2, label=f"mean={mean:.3f}x")
+        ax.axvline(
+            mean,
+            color="#121212",
+            linewidth=2.3,
+            label=f"Mean: {mean:.3f}x",
+        )
 
     if mean is not None and std is not None and std > 0:
         x_min = min(bins[0], mean - 4 * std)
@@ -612,9 +681,9 @@ def _plot_speedup_histogram(
         ax.plot(
             xs,
             ys,
-            color="#c8553d",
-            linewidth=2.2,
-            label=f"normal fit std={std:.3f}",
+            color="#b54837",
+            linewidth=2.6,
+            label=f"Normal fit: sigma={std:.3f}",
         )
     elif mean is not None:
         ax.text(
@@ -630,13 +699,37 @@ def _plot_speedup_histogram(
     if summary.total_speedup_per_generated_token is not None:
         ax.axvline(
             summary.total_speedup_per_generated_token,
-            color="#8c1c13",
+            color="#7d1f1a",
             linestyle="--",
-            linewidth=1.8,
-            label=f"total={summary.total_speedup_per_generated_token:.3f}x",
+            linewidth=2.1,
+            label=f"Aggregate: {summary.total_speedup_per_generated_token:.3f}x",
         )
     ax.set_ylim(0, max(max_count * 1.25, 1.0))
-    ax.legend(loc="best", frameon=False)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+
+    stats_lines = [
+        f"n = {summary.prompt_count_included}",
+        f"warmup skipped = {summary.warmup_prompts}",
+    ]
+    if summary.exact_match_rate is not None:
+        stats_lines.append(f"exact match = {_fmt_pct(summary.exact_match_rate)}")
+    ax.text(
+        0.02,
+        0.98,
+        "\n".join(stats_lines),
+        transform=ax.transAxes,
+        ha="left",
+        va="top",
+        fontsize=11.5,
+        bbox={
+            "boxstyle": "round,pad=0.35",
+            "facecolor": "white",
+            "edgecolor": "#d8d8d8",
+            "alpha": 0.94,
+        },
+    )
+    ax.legend(loc="upper right", frameon=False)
 
 
 def _plot_prompt_speedups(
@@ -869,6 +962,11 @@ def _sample_std_or_none(values: list[float]) -> float | None:
 def _default_run_stem(*, bridge_path: Path, prompt_set: str) -> str:
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     return f"bench_self_spec__{bridge_path.stem}__{prompt_set}__{timestamp}"
+
+
+def _default_plot_title(metadata: dict[str, Any]) -> str:
+    prompt_set = str(metadata.get("prompt_set", "unknown prompt set"))
+    return f"Self-spec speedup distribution ({prompt_set})"
 
 
 def _shorten_label(label: str, max_len: int = 42) -> str:

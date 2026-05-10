@@ -58,8 +58,8 @@ def main() -> None:
         num_epochs = 1 # Ensure never get scores on data it has seen
 
         # models = ["meta-llama/Llama-3.2-3B-Instruct", "meta-llama/Llama-3.2-1B-Instruct", "mistralai/Mistral-7B-Instruct-v0.3", "Qwen/Qwen3-1.7B", "Qwen/Qwen2.5-0.5B-Instruct"]
-        models = ["meta-llama/Llama-3.1-8B-Instruct"]
-        active_start_end_lengths = [(2, 0)]
+        models = ["Qwen/Qwen2.5-7B-Instruct"]
+        active_start_end_lengths = [(1,1), (2,2), (2, 0)]
 
         for active_start_layers, active_end_layers in active_start_end_lengths: 
 
@@ -406,6 +406,12 @@ def main() -> None:
         from skip_search_spec.analysis.bench_self_spec import run_cli
 
         run_cli(sys.argv[2:])
+
+
+    elif mode == "plot_self_spec_bench":
+        from skip_search_spec.analysis.bench_self_spec import plot_cli
+
+        plot_cli(sys.argv[2:])
 
 
 
