@@ -21,6 +21,7 @@ class FlashHeadInferenceResult:
     inference_seconds: float
     head_seconds: float
     num_generated_tokens: int
+    flashhead_profile: dict[str, Any] | None = None
 
 
 def sync_device_for_timing(device: torch.device) -> None:
@@ -97,6 +98,10 @@ def generate_with_flashhead(
     enable_thinking: bool = False,
     stop_on_eos: bool = True,
     measure_internal_timings: bool = True,
+    profile_flashhead: bool | None = None,
+    profile_print_every: int | None = None,
+    profile_sync_device: bool | None = None,
+    triton_stage2: bool | None = None,
     head_mode: Literal["flashhead", "lm_head"] = "flashhead",
     model: Any | None = None,
     tokenizer: Any | None = None,
@@ -142,6 +147,22 @@ def generate_with_flashhead(
         )
 
     if flashhead is not None:
+        if (
+            profile_flashhead is not None
+            or profile_print_every is not None
+            or profile_sync_device is not None
+        ):
+            flashhead.set_profile_enabled(
+                profile_flashhead
+                if profile_flashhead is not None
+                else flashhead.profile_enabled,
+                print_every=profile_print_every,
+                sync_device=profile_sync_device,
+            )
+        if triton_stage2 is not None:
+            flashhead.set_triton_stage2_enabled(triton_stage2)
+        if flashhead.profile_enabled:
+            flashhead.reset_profile()
         flashhead.eval()
     backbone = get_causal_lm_backbone(model)
     lm_head = get_output_lm_head(model)
@@ -232,10 +253,17 @@ def generate_with_flashhead(
     )
 
     text = cast(str, tokenizer.decode(accepted_ids[0], skip_special_tokens=True))
+    flashhead_profile = (
+        flashhead.profile_summary()
+        if flashhead is not None
+        and getattr(flashhead, "profile_call_count", 0) > 0
+        else None
+    )
 
     return FlashHeadInferenceResult(
         text=text,
         inference_seconds=inference_seconds,
         head_seconds=head_seconds,
         num_generated_tokens=int(accepted_ids.size(1) - input_ids.size(1)),
+        flashhead_profile=flashhead_profile,
     )

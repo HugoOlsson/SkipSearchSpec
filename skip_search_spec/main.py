@@ -456,6 +456,27 @@ def main() -> None:
             action="store_true",
             help="Compare flashhead to the same custom backbone loop with the dense LM head.",
         )
+        parser.add_argument(
+            "--profile-flashhead",
+            action="store_true",
+            help="Profile the FlashHead find_token stages during FlashHead-only inference.",
+        )
+        parser.add_argument(
+            "--profile-print-every",
+            type=int,
+            default=0,
+            help="Print the accumulated FlashHead profile every N find_token calls.",
+        )
+        parser.add_argument(
+            "--profile-no-sync",
+            action="store_true",
+            help="Do not synchronize CUDA/MPS between profiled FlashHead stages.",
+        )
+        parser.add_argument(
+            "--triton-stage2",
+            action="store_true",
+            help="Use the experimental CUDA Triton candidate-scoring path.",
+        )
 
         args, remaining_argv = parser.parse_known_args(sys.argv[2:])
 
@@ -507,6 +528,14 @@ def main() -> None:
                 max_new_tokens=INFERENCE_TEST_MAX_NEW_TOKENS,
                 use_chat_template=True,
                 measure_internal_timings=True,
+                profile_flashhead=True if args.profile_flashhead else None,
+                profile_print_every=(
+                    args.profile_print_every
+                    if args.profile_print_every > 0
+                    else None
+                ),
+                profile_sync_device=False if args.profile_no_sync else None,
+                triton_stage2=True if args.triton_stage2 else None,
                 head_mode="flashhead",
                 model=model,
                 tokenizer=tokenizer,
@@ -523,6 +552,7 @@ def main() -> None:
                     "inference_seconds": result.inference_seconds,
                     "head_seconds": result.head_seconds,
                     "num_generated_tokens": result.num_generated_tokens,
+                    "flashhead_profile": result.flashhead_profile,
                 }
             )
 
