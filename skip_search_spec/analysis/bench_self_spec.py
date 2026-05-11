@@ -116,6 +116,12 @@ def run_cli(argv: list[str]) -> None:
         default=5,
         help="Run but exclude the first N prompts from all aggregate metrics.",
     )
+    parser.add_argument(
+        "--max-prompts",
+        type=int,
+        default=None,
+        help="Optional maximum number of prompts to run from the selected prompt set.",
+    )
     parser.add_argument("--max-new-tokens", type=int, default=200)
     parser.add_argument(
         "--compare-to-normal",
@@ -170,6 +176,7 @@ def run_cli(argv: list[str]) -> None:
         flashhead_path=args.flashhead_path,
         prompt_set=args.prompt_set,
         warmup_prompts=args.warmup_prompts,
+        max_prompts=args.max_prompts,
         max_new_tokens=args.max_new_tokens,
         compare_to_normal=args.compare_to_normal,
         measure_internal_timings=args.measure_internal_timings,
@@ -221,6 +228,7 @@ def bench_self_spec(
     flashhead_path: str | Path | None = None,
     prompt_set: PromptSetName = "completion-style",
     warmup_prompts: int = 0,
+    max_prompts: int | None = None,
     max_new_tokens: int = 200,
     compare_to_normal: bool = True,
     measure_internal_timings: bool = True,
@@ -235,10 +243,15 @@ def bench_self_spec(
         raise ValueError("draft_block_size must be >= 1.")
     if warmup_prompts < 0:
         raise ValueError("warmup_prompts must be >= 0.")
+    if max_prompts is not None and max_prompts < 1:
+        raise ValueError("max_prompts must be >= 1.")
     if max_new_tokens < 1:
         raise ValueError("max_new_tokens must be >= 1.")
 
     prompts, use_chat_template = PROMPT_SETS[prompt_set]
+    original_prompt_count = len(prompts)
+    if max_prompts is not None:
+        prompts = prompts[:max_prompts]
     if warmup_prompts >= len(prompts):
         raise ValueError(
             "warmup_prompts must be smaller than the number of prompts "
@@ -281,6 +294,8 @@ def bench_self_spec(
                 bridge_path=bridge_path,
                 prompt_set=prompt_set,
                 bridge_dtype=bridge_dtype,
+                requested_max_prompts=max_prompts,
+                available_prompt_count=original_prompt_count,
             )
         )
 
@@ -298,6 +313,9 @@ def bench_self_spec(
             "created_at": datetime.now().isoformat(timespec="seconds"),
             "bridge_checkpoint_path": str(bridge_path.resolve(strict=False)),
             "prompt_set": prompt_set,
+            "max_prompts": max_prompts,
+            "available_prompt_count": original_prompt_count,
+            "run_prompt_count": len(prompts),
             "variant_order": [variant["key"] for variant in variant_specs],
         },
         "variant_results": variant_results,
@@ -367,6 +385,8 @@ def _run_bench_variant(
     bridge_path: Path,
     prompt_set: str,
     bridge_dtype: str,
+    requested_max_prompts: int | None,
+    available_prompt_count: int,
 ) -> dict[str, Any]:
     flash_path = variant["flash_path"]
     speculator = BridgeSelfSpeculator(
@@ -480,6 +500,9 @@ def _run_bench_variant(
         measure_internal_timings=measure_internal_timings,
         flashhead_top_k_clusters=flashhead_top_k_clusters,
         bridge_dtype=bridge_dtype,
+        requested_max_prompts=requested_max_prompts,
+        available_prompt_count=available_prompt_count,
+        run_prompt_count=len(prompts),
     )
     summary = _summarize(
         prompt_results=prompt_results,
@@ -619,6 +642,9 @@ def _build_metadata(
     measure_internal_timings: bool,
     flashhead_top_k_clusters: int,
     bridge_dtype: str,
+    requested_max_prompts: int | None,
+    available_prompt_count: int,
+    run_prompt_count: int,
 ) -> dict[str, Any]:
     model_config = getattr(bridged.model, "config", None)
     backend = (
@@ -636,6 +662,9 @@ def _build_metadata(
         "bridge_checkpoint_path": str(bridge_path.resolve(strict=False)),
         "flashhead_path": str(flash_path.resolve(strict=False)) if flash_path else None,
         "prompt_set": prompt_set,
+        "max_prompts": requested_max_prompts,
+        "available_prompt_count": available_prompt_count,
+        "run_prompt_count": run_prompt_count,
         "use_chat_template": use_chat_template,
         "draft_block_size": draft_block_size,
         "max_new_tokens": max_new_tokens,
