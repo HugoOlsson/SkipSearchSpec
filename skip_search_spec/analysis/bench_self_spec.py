@@ -1259,6 +1259,25 @@ def _fmt_pct_2(value: float | None) -> str:
         return "n/a"
     return f"{100.0 * value:.2f}%"
 
+def _fmt_bytes(value: Any) -> str:
+    if value is None:
+        return "n/a"
+
+    value = float(value)
+    gib = value / (1024 ** 3)
+    if gib >= 1.0:
+        return f"{gib:.2f} GiB"
+
+    mib = value / (1024 ** 2)
+    if mib >= 1.0:
+        return f"{mib:.1f} MiB"
+
+    kib = value / 1024
+    if kib >= 1.0:
+        return f"{kib:.1f} KiB"
+
+    return f"{int(value)} B"
+
 def _gap_label(metadata: dict[str, Any]) -> str:
     gap_start = metadata.get("gap_start")
     gap_end = metadata.get("gap_end")
@@ -1317,7 +1336,6 @@ def _info_sections(
         ("Measured prompts", _value(first["summary"].get("prompt_count_included"))),
     ]
 
-    results: list[tuple[str, str]] = []
     head_rows: list[tuple[str, str]] = []
     flashhead_meta = next(
         (
@@ -1327,9 +1345,22 @@ def _info_sections(
         ),
         None,
     )
+    results: list[tuple[str, str]] = []
+    normal_peak_memory = first["metadata"].get("mean_normal_peak_allocated_bytes")
+
+    if normal_peak_memory is not None:
+        results.append(
+            (
+                "Peak mem normal",
+                _fmt_bytes(normal_peak_memory),
+            )
+        )
+
     for variant in variants:
         summary = variant["summary"]
+        variant_metadata = variant["metadata"]
         prefix = variant["short_label"]
+
         results.extend(
             [
                 (
@@ -1340,7 +1371,16 @@ def _info_sections(
                     f"Acceptance rate ({prefix})",
                     _fmt_pct(summary.get("total_acceptance_rate")),
                 ),
-                (f"Exact match ({prefix})", _fmt_pct(summary.get("exact_match_rate"))),
+                (
+                    f"Exact match ({prefix})",
+                    _fmt_pct(summary.get("exact_match_rate")),
+                ),
+                (
+                    f"Peak mem self ({prefix})",
+                    _fmt_bytes(
+                        variant_metadata.get("mean_self_spec_peak_allocated_bytes")
+                    ),
+                ),
             ]
         )
         head_seconds = summary.get("internal_head_seconds")
@@ -1393,7 +1433,7 @@ def _draw_report_footer(
     ax.set_ylim(0, 1)
 
     column_xs = [0.0, 0.265, 0.495, 0.755]
-    column_rights = [0.23, 0.455, 0.715, 1.0]
+    column_rights = [0.23, 0.455, 0.745, 1.0]
     title_color = "#050505"
     label_color = "#526D73"
     value_color = "#243E45"
