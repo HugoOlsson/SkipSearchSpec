@@ -820,6 +820,957 @@ INFERENCE_TEST_PROMPTS_CONCRETE = [
             "    \"\"\"Return n multiplied by exactly 3.\"\"\"\n"
         ),
     ),
+    (
+        "concrete_math_invoice_total",
+        (
+            "Task: Compute the invoice total after discount.\n"
+            "Items: 4 lamps at 18 dollars each, 2 chairs at 45 dollars each. "
+            "Apply a 10 dollar discount to the combined price.\n"
+            "Return only the final number of dollars.\n\n"
+            "Answer:\n"
+        ),
+    ),
+    (
+        "concrete_math_split_bill",
+        (
+            "Task: Compute each person's share.\n"
+            "A restaurant bill is 96 dollars. Add a 20 percent tip, then split the "
+            "total equally among 4 people.\n"
+            "Return only the number of dollars per person.\n\n"
+            "Answer:\n"
+        ),
+    ),
+    (
+        "concrete_math_percent_remaining",
+        (
+            "Task: Compute the percentage remaining.\n"
+            "A battery has 80 watt-hours when full. It has used 26 watt-hours.\n"
+            "Return only the remaining percentage as a number.\n\n"
+            "Answer:\n"
+        ),
+    ),
+    (
+        "concrete_math_weighted_score",
+        (
+            "Task: Compute the weighted score.\n"
+            "Homework is worth 40 percent and exam is worth 60 percent. "
+            "Homework score: 85. Exam score: 70.\n"
+            "Return only the final weighted score as a number.\n\n"
+            "Answer:\n"
+        ),
+    ),
+    (
+        "concrete_math_inventory_after_sales",
+        (
+            "Task: Compute the final inventory.\n"
+            "Start with 125 mugs. Receive 48 more mugs. Sell 37 mugs in the morning "
+            "and 29 mugs in the afternoon.\n"
+            "Return only the number of mugs left.\n\n"
+            "Answer:\n"
+        ),
+    ),
+    (
+        "concrete_math_recipe_scaling",
+        (
+            "Task: Scale the recipe ingredient.\n"
+            "A recipe for 6 servings uses 450 grams of rice. Scale it to 10 servings.\n"
+            "Return only the number of grams of rice.\n\n"
+            "Answer:\n"
+        ),
+    ),
+    (
+        "concrete_math_speed_distance",
+        (
+            "Task: Compute the travel distance.\n"
+            "A cyclist rides at 18 kilometers per hour for 2.5 hours.\n"
+            "Return only the number of kilometers traveled.\n\n"
+            "Answer:\n"
+        ),
+    ),
+    (
+        "concrete_math_train_arrival",
+        (
+            "Task: Compute the arrival time.\n"
+            "A train leaves at 14:35. The trip takes 2 hours and 48 minutes.\n"
+            "Return only the arrival time in 24-hour HH:MM format.\n\n"
+            "Answer:\n"
+        ),
+    ),
+    (
+        "concrete_math_meeting_duration",
+        (
+            "Task: Compute the meeting duration.\n"
+            "A meeting starts at 09:15 and ends at 11:05.\n"
+            "Return only the duration in minutes.\n\n"
+            "Answer:\n"
+        ),
+    ),
+    (
+        "concrete_math_monthly_savings",
+        (
+            "Task: Compute the number of months needed.\n"
+            "Target savings: 900 dollars. Already saved: 180 dollars. Saves 120 "
+            "dollars per month.\n"
+            "Return only the number of full months needed to reach the target.\n\n"
+            "Answer:\n"
+        ),
+    ),
+    (
+        "concrete_math_box_volume",
+        (
+            "Task: Compute the box volume.\n"
+            "A box is 12 cm long, 8 cm wide, and 5 cm tall.\n"
+            "Return only the volume in cubic centimeters.\n\n"
+            "Answer:\n"
+        ),
+    ),
+    (
+        "concrete_math_rectangle_perimeter",
+        (
+            "Task: Compute the perimeter.\n"
+            "A rectangle has length 17 meters and width 9 meters.\n"
+            "Return only the perimeter in meters.\n\n"
+            "Answer:\n"
+        ),
+    ),
+    (
+        "concrete_math_average_with_new_value",
+        (
+            "Task: Compute the new average.\n"
+            "The current average of 5 tests is 82. A sixth test score is 94.\n"
+            "Return only the new average as a number.\n\n"
+            "Answer:\n"
+        ),
+    ),
+    (
+        "concrete_math_unit_price",
+        (
+            "Task: Compute the unit price.\n"
+            "A 750 gram bag of coffee costs 12 dollars.\n"
+            "Return only the price per kilogram in dollars.\n\n"
+            "Answer:\n"
+        ),
+    ),
+    (
+        "concrete_math_change_due",
+        (
+            "Task: Compute the change due.\n"
+            "A customer buys items costing 13.75 dollars and pays with a 20 dollar bill.\n"
+            "Return only the change in dollars with two decimal places.\n\n"
+            "Answer:\n"
+        ),
+    ),
+    (
+        "concrete_sort_dates",
+        (
+            "Task: Sort the dates from earliest to latest.\n"
+            "Dates: 2026-03-12, 2025-11-04, 2026-01-20, 2025-12-31\n"
+            "Return only a comma-separated list of dates.\n\n"
+            "Output:\n"
+        ),
+    ),
+    (
+        "concrete_sort_names_by_last_name",
+        (
+            "Task: Sort the full names alphabetically by last name.\n"
+            "Names: Priya Nair, Lucas Berg, Emma Chen, Noah Alvarez\n"
+            "Return only the names as a comma-separated list.\n\n"
+            "Output:\n"
+        ),
+    ),
+    (
+        "concrete_filter_even_numbers",
+        (
+            "Task: Keep only the even numbers, preserving the original order.\n"
+            "Numbers: 15, 22, 8, 31, 44, 57, 60\n"
+            "Return only a comma-separated list of numbers.\n\n"
+            "Output:\n"
+        ),
+    ),
+    (
+        "concrete_filter_over_threshold",
+        (
+            "Task: Keep only values greater than 50, preserving the original order.\n"
+            "Values: 48, 72, 50, 91, 13, 65\n"
+            "Return only a comma-separated list of values.\n\n"
+            "Output:\n"
+        ),
+    ),
+    (
+        "concrete_find_second_largest",
+        (
+            "Task: Find the second largest number.\n"
+            "Numbers: 14, 89, 52, 89, 73, 41\n"
+            "Treat repeated values as one value. Return only the second largest number.\n\n"
+            "Answer:\n"
+        ),
+    ),
+    (
+        "concrete_count_unique_words",
+        (
+            "Task: Count the unique words, ignoring case.\n"
+            "Sentence: Red fish blue fish red bird.\n"
+            "Return only the number of unique words.\n\n"
+            "Answer:\n"
+        ),
+    ),
+    (
+        "concrete_count_letter_occurrences",
+        (
+            "Task: Count how many times the letter a appears, ignoring case.\n"
+            "Text: A calm canal ran past Anita's garden.\n"
+            "Return only the count as a number.\n\n"
+            "Answer:\n"
+        ),
+    ),
+    (
+        "concrete_find_missing_number",
+        (
+            "Task: Find the missing number in the sequence.\n"
+            "Sequence: 4, 8, 12, 16, __, 24\n"
+            "Return only the missing number.\n\n"
+            "Answer:\n"
+        ),
+    ),
+    (
+        "concrete_find_duplicate_id",
+        (
+            "Task: Find the duplicate ID.\n"
+            "IDs: T104, T211, T305, T104, T480\n"
+            "Return only the duplicate ID.\n\n"
+            "Output:\n"
+        ),
+    ),
+    (
+        "concrete_extract_phone_number",
+        (
+            "Task: Extract the phone number.\n"
+            "Text: For urgent delivery questions, call +1-415-555-0198 after 08:00.\n"
+            "Return only the phone number.\n\n"
+            "Output:\n"
+        ),
+    ),
+    (
+        "concrete_extract_postal_code",
+        (
+            "Task: Extract the postal code.\n"
+            "Address: 18 Cedar Lane, Portland, OR 97205, USA.\n"
+            "Return only the postal code.\n\n"
+            "Output:\n"
+        ),
+    ),
+    (
+        "concrete_extract_order_id",
+        (
+            "Task: Extract the order ID.\n"
+            "Message: Shipment for order ORD-7842-A has been delayed by one day.\n"
+            "Return only the order ID.\n\n"
+            "Output:\n"
+        ),
+    ),
+    (
+        "concrete_extract_currency_amount",
+        (
+            "Task: Extract the refund amount.\n"
+            "Text: The customer will receive a refund of $47.90 within five business days.\n"
+            "Return only the amount including the currency symbol.\n\n"
+            "Output:\n"
+        ),
+    ),
+    (
+        "concrete_extract_city",
+        (
+            "Task: Extract the destination city.\n"
+            "Ticket: Passenger: Nora Blake; From: Denver; To: Seattle; Seat: 12C.\n"
+            "Return only the destination city.\n\n"
+            "Output:\n"
+        ),
+    ),
+    (
+        "concrete_extract_after_marker",
+        (
+            "Task: Extract the value after Status.\n"
+            "Record: Ticket=PX-44; Owner=Ravi Singh; Status=waiting-review; Priority=high.\n"
+            "Return only the status value.\n\n"
+            "Output:\n"
+        ),
+    ),
+    (
+        "concrete_extract_between_tags",
+        (
+            "Task: Extract the text inside the title tags.\n"
+            "Text: <note><title>Quarterly Budget Review</title><owner>Finance</owner></note>\n"
+            "Return only the title text.\n\n"
+            "Output:\n"
+        ),
+    ),
+    (
+        "concrete_extract_filename_extension",
+        (
+            "Task: Extract the file extension.\n"
+            "Filename: archive.final.v3.tar.gz\n"
+            "Return only the extension after the last period.\n\n"
+            "Output:\n"
+        ),
+    ),
+    (
+        "concrete_extract_domain",
+        (
+            "Task: Extract the domain from the URL.\n"
+            "URL: https://docs.example.org/projects/alpha?tab=files\n"
+            "Return only the domain.\n\n"
+            "Output:\n"
+        ),
+    ),
+    (
+        "concrete_extract_hashtag",
+        (
+            "Task: Extract the hashtag.\n"
+            "Post: Launch photos are live now #NorthPierOpening thanks to the whole team.\n"
+            "Return only the hashtag including the # symbol.\n\n"
+            "Output:\n"
+        ),
+    ),
+    (
+        "concrete_format_iso_date",
+        (
+            "Task: Convert the date to ISO format.\n"
+            "Date: July 9, 2026\n"
+            "Return only the date in YYYY-MM-DD format.\n\n"
+            "Output:\n"
+        ),
+    ),
+    (
+        "concrete_format_us_date",
+        (
+            "Task: Convert the date to MM/DD/YYYY format.\n"
+            "Date: 2027-02-03\n"
+            "Return only the formatted date.\n\n"
+            "Output:\n"
+        ),
+    ),
+    (
+        "concrete_format_phone_digits",
+        (
+            "Task: Remove all non-digit characters from the phone number.\n"
+            "Phone: (212) 555-0147 ext. 9\n"
+            "Return only the digits.\n\n"
+            "Output:\n"
+        ),
+    ),
+    (
+        "concrete_format_title_case",
+        (
+            "Task: Convert the text to title case.\n"
+            "Text: annual report for northern harbor project\n"
+            "Return only the title-cased text.\n\n"
+            "Output:\n"
+        ),
+    ),
+    (
+        "concrete_format_slug",
+        (
+            "Task: Convert the title to a URL slug.\n"
+            "Title: Winter Market Schedule Update\n"
+            "Use lowercase words separated by hyphens. Return only the slug.\n\n"
+            "Output:\n"
+        ),
+    ),
+    (
+        "concrete_format_snake_case",
+        (
+            "Task: Convert the label to snake_case.\n"
+            "Label: Customer Renewal Date\n"
+            "Return only the snake_case label.\n\n"
+            "Output:\n"
+        ),
+    ),
+    (
+        "concrete_format_currency",
+        (
+            "Task: Format the amount as US currency.\n"
+            "Amount: 1287.5\n"
+            "Return only the formatted amount with a dollar sign and two decimals.\n\n"
+            "Output:\n"
+        ),
+    ),
+    (
+        "concrete_format_fixed_decimals",
+        (
+            "Task: Round the number to two decimal places.\n"
+            "Number: 19.8764\n"
+            "Return only the rounded number with exactly two decimals.\n\n"
+            "Output:\n"
+        ),
+    ),
+    (
+        "concrete_format_join_names",
+        (
+            "Task: Join the names with semicolons.\n"
+            "Names: Aria, Ben, Carmen, Diego\n"
+            "Return only the semicolon-separated string.\n\n"
+            "Output:\n"
+        ),
+    ),
+    (
+        "concrete_format_reverse_words",
+        (
+            "Task: Reverse the word order.\n"
+            "Text: clear plans reduce project risk\n"
+            "Return only the words in reverse order.\n\n"
+            "Output:\n"
+        ),
+    ),
+    (
+        "concrete_transform_remove_vowels",
+        (
+            "Task: Remove all vowels from the text.\n"
+            "Text: reliable backup system\n"
+            "Treat a, e, i, o, u as vowels. Return only the transformed text.\n\n"
+            "Output:\n"
+        ),
+    ),
+    (
+        "concrete_transform_abbreviate_months",
+        (
+            "Task: Replace full month names with three-letter abbreviations.\n"
+            "Text: Reports are due in January, April, and September.\n"
+            "Return only the updated sentence.\n\n"
+            "Output:\n"
+        ),
+    ),
+    (
+        "concrete_transform_mask_email",
+        (
+            "Task: Mask the email username after the first two characters.\n"
+            "Email: jonathan.rivera@example.com\n"
+            "Keep the domain unchanged. Return only the masked email.\n\n"
+            "Output:\n"
+        ),
+    ),
+    (
+        "concrete_classify_priority",
+        (
+            "Task: Classify the support ticket priority.\n"
+            "Ticket: The production payment service is unavailable for all customers.\n"
+            "Choose exactly one label: low, medium, high, critical.\n\n"
+            "Priority:\n"
+        ),
+    ),
+    (
+        "concrete_classify_file_type",
+        (
+            "Task: Classify the file type from the extension.\n"
+            "Filename: presentation.final.pptx\n"
+            "Choose exactly one label: document, spreadsheet, presentation, image.\n\n"
+            "Type:\n"
+        ),
+    ),
+    (
+        "concrete_classify_weather_advice",
+        (
+            "Task: Choose the most appropriate advice.\n"
+            "Forecast: Heavy rain is expected from 15:00 to 19:00.\n"
+            "Choose exactly one option: bring umbrella, wear sunglasses, water plants.\n\n"
+            "Advice:\n"
+        ),
+    ),
+    (
+        "concrete_classify_language",
+        (
+            "Task: Identify the language.\n"
+            "Sentence: El tren llega a la estacion central a las ocho.\n"
+            "Choose exactly one label: English, Spanish, French, German.\n\n"
+            "Language:\n"
+        ),
+    ),
+    (
+        "concrete_classify_topic",
+        (
+            "Task: Classify the topic of the sentence.\n"
+            "Sentence: The committee approved the annual budget after reviewing tax revenue.\n"
+            "Choose exactly one topic: finance, sports, cooking, travel.\n\n"
+            "Topic:\n"
+        ),
+    ),
+    (
+        "concrete_classify_shipping_status",
+        (
+            "Task: Classify the shipping status.\n"
+            "Message: The package left the regional sorting center at 06:40 and is on the truck.\n"
+            "Choose exactly one status: pending, in_transit, delivered, cancelled.\n\n"
+            "Status:\n"
+        ),
+    ),
+    (
+        "concrete_classify_access_level",
+        (
+            "Task: Choose the access level.\n"
+            "Rule: Interns can view reports. Managers can view and edit reports. "
+            "Admins can view, edit, and delete reports.\n"
+            "User role: Manager\n"
+            "Choose exactly one level: view_only, edit_allowed, delete_allowed.\n\n"
+            "Level:\n"
+        ),
+    ),
+    (
+        "concrete_classify_pass_fail",
+        (
+            "Task: Determine whether the student passed.\n"
+            "Rule: Passing requires a score of at least 60.\n"
+            "Score: 58\n"
+            "Choose exactly one label: pass, fail.\n\n"
+            "Label:\n"
+        ),
+    ),
+    (
+        "concrete_classify_age_group",
+        (
+            "Task: Classify the age group.\n"
+            "Rule: child is under 13, teen is 13 to 17, adult is 18 or older.\n"
+            "Age: 17\n"
+            "Choose exactly one label: child, teen, adult.\n\n"
+            "Group:\n"
+        ),
+    ),
+    (
+        "concrete_classify_inventory_status",
+        (
+            "Task: Classify the inventory status.\n"
+            "Rule: 0 units is out_of_stock, 1-20 units is low_stock, above 20 is in_stock.\n"
+            "Units available: 20\n"
+            "Choose exactly one label: out_of_stock, low_stock, in_stock.\n\n"
+            "Status:\n"
+        ),
+    ),
+    (
+        "concrete_boolean_weekend",
+        (
+            "Task: Answer with yes or no.\n"
+            "Question: Is Saturday a weekend day?\n\n"
+            "Answer:\n"
+        ),
+    ),
+    (
+        "concrete_boolean_threshold",
+        (
+            "Task: Answer with yes or no.\n"
+            "Rule: Free shipping applies when the order total is at least 75 dollars.\n"
+            "Order total: 74.99 dollars.\n"
+            "Question: Does free shipping apply?\n\n"
+            "Answer:\n"
+        ),
+    ),
+    (
+        "concrete_boolean_date_range",
+        (
+            "Task: Answer with yes or no.\n"
+            "Allowed booking dates: 2026-06-01 through 2026-06-30 inclusive.\n"
+            "Requested date: 2026-06-30.\n"
+            "Question: Is the requested date allowed?\n\n"
+            "Answer:\n"
+        ),
+    ),
+    (
+        "concrete_boolean_contains_word",
+        (
+            "Task: Answer with yes or no.\n"
+            "Text: The archive includes invoices, receipts, and contracts.\n"
+            "Question: Does the text contain the word receipts?\n\n"
+            "Answer:\n"
+        ),
+    ),
+    (
+        "concrete_boolean_all_conditions",
+        (
+            "Task: Answer with yes or no.\n"
+            "Rule: A loan is approved only if income is at least 3000 and credit score "
+            "is at least 680.\n"
+            "Income: 3200. Credit score: 675.\n"
+            "Question: Is the loan approved?\n\n"
+            "Answer:\n"
+        ),
+    ),
+    (
+        "concrete_boolean_password_valid",
+        (
+            "Task: Answer with yes or no.\n"
+            "Rule: A password is valid if it has at least 8 characters and contains a digit.\n"
+            "Password: meadow42\n"
+            "Question: Is the password valid?\n\n"
+            "Answer:\n"
+        ),
+    ),
+    (
+        "concrete_date_next_day",
+        (
+            "Task: Compute the next calendar day.\n"
+            "Date: 2026-02-28\n"
+            "Return only the next date in YYYY-MM-DD format.\n\n"
+            "Answer:\n"
+        ),
+    ),
+    (
+        "concrete_date_previous_day",
+        (
+            "Task: Compute the previous calendar day.\n"
+            "Date: 2026-03-01\n"
+            "Return only the previous date in YYYY-MM-DD format.\n\n"
+            "Answer:\n"
+        ),
+    ),
+    (
+        "concrete_date_add_days",
+        (
+            "Task: Add days to the date.\n"
+            "Start date: 2026-05-17. Add 45 days.\n"
+            "Return only the resulting date in YYYY-MM-DD format.\n\n"
+            "Answer:\n"
+        ),
+    ),
+    (
+        "concrete_date_weekday_from_schedule",
+        (
+            "Task: Find the weekday for the appointment.\n"
+            "Schedule: Monday 09:00 dentist, Tuesday 14:00 library, Wednesday 11:30 bank.\n"
+            "Appointment: library\n"
+            "Return only the weekday.\n\n"
+            "Answer:\n"
+        ),
+    ),
+    (
+        "concrete_time_timezone_simple",
+        (
+            "Task: Convert the time from UTC to UTC+2.\n"
+            "UTC time: 18:45\n"
+            "Return only the local time in HH:MM format.\n\n"
+            "Answer:\n"
+        ),
+    ),
+    (
+        "concrete_time_duration_across_midnight",
+        (
+            "Task: Compute the elapsed time.\n"
+            "Start: 22:50. End: 01:15 the next day.\n"
+            "Return only the elapsed time in minutes.\n\n"
+            "Answer:\n"
+        ),
+    ),
+    (
+        "concrete_table_lookup_price",
+        (
+            "Task: Look up the product price.\n"
+            "Table:\n"
+            "Product | Price\n"
+            "Notebook | 4.50\n"
+            "Marker | 1.25\n"
+            "Folder | 2.10\n"
+            "Question: What is the price of Marker?\n"
+            "Return only the price.\n\n"
+            "Answer:\n"
+        ),
+    ),
+    (
+        "concrete_table_lookup_manager",
+        (
+            "Task: Look up the team manager.\n"
+            "Table:\n"
+            "Team | Manager\n"
+            "Design | Elena\n"
+            "Platform | Omar\n"
+            "Support | Nina\n"
+            "Question: Who manages Platform?\n"
+            "Return only the manager name.\n\n"
+            "Answer:\n"
+        ),
+    ),
+    (
+        "concrete_table_sum_column",
+        (
+            "Task: Sum the quantity column.\n"
+            "Rows:\n"
+            "apples, 14\n"
+            "oranges, 9\n"
+            "pears, 17\n"
+            "Return only the total quantity.\n\n"
+            "Answer:\n"
+        ),
+    ),
+    (
+        "concrete_table_max_row",
+        (
+            "Task: Find the city with the highest population.\n"
+            "Rows:\n"
+            "Arden, 82000\n"
+            "Briggs, 91500\n"
+            "Claremont, 77600\n"
+            "Return only the city name.\n\n"
+            "Answer:\n"
+        ),
+    ),
+    (
+        "concrete_table_filter_status",
+        (
+            "Task: List the ticket IDs with status open, preserving table order.\n"
+            "Rows:\n"
+            "A17, open\n"
+            "B22, closed\n"
+            "C09, open\n"
+            "D14, waiting\n"
+            "Return only a comma-separated list of IDs.\n\n"
+            "Output:\n"
+        ),
+    ),
+    (
+        "concrete_table_average_score",
+        (
+            "Task: Compute the average score.\n"
+            "Rows:\n"
+            "Mila, 88\n"
+            "Jon, 76\n"
+            "Tara, 91\n"
+            "Return only the average score as a number.\n\n"
+            "Answer:\n"
+        ),
+    ),
+    (
+        "concrete_json_nested_value",
+        (
+            "Task: Extract a value from the JSON.\n"
+            "JSON: {\"user\":{\"name\":\"Iris Lee\",\"role\":\"editor\"},\"active\":true}\n"
+            "Return only the user's role.\n\n"
+            "Output:\n"
+        ),
+    ),
+    (
+        "concrete_json_array_count",
+        (
+            "Task: Count the items in the JSON array.\n"
+            "JSON: {\"tags\":[\"urgent\",\"finance\",\"review\",\"q2\"]}\n"
+            "Return only the number of tags.\n\n"
+            "Answer:\n"
+        ),
+    ),
+    (
+        "concrete_json_boolean_value",
+        (
+            "Task: Extract the boolean value from the JSON.\n"
+            "JSON: {\"feature\":\"exports\",\"enabled\":false,\"owner\":\"ops\"}\n"
+            "Return only the value of enabled.\n\n"
+            "Output:\n"
+        ),
+    ),
+    (
+        "concrete_json_create_array",
+        (
+            "Task: Create a JSON array from the values.\n"
+            "Values: red, blue, green\n"
+            "Return only valid JSON on one line.\n\n"
+            "JSON:\n"
+        ),
+    ),
+    (
+        "concrete_json_create_object_typed",
+        (
+            "Task: Create a JSON object from the fields.\n"
+            "ID: 42\n"
+            "Name: North Gate\n"
+            "Open: false\n"
+            "Use keys exactly: id, name, open. Return only valid JSON on one line.\n\n"
+            "JSON:\n"
+        ),
+    ),
+    (
+        "concrete_json_update_field",
+        (
+            "Task: Update one field in the JSON object.\n"
+            "JSON: {\"name\":\"Basic Plan\",\"price\":12,\"active\":true}\n"
+            "Change price to 15. Return only the updated JSON on one line.\n\n"
+            "JSON:\n"
+        ),
+    ),
+    (
+        "concrete_csv_extract_second_field",
+        (
+            "Task: Extract the second field from the CSV row.\n"
+            "CSV row: Rivera,42,active,Seattle\n"
+            "Return only the second field.\n\n"
+            "Output:\n"
+        ),
+    ),
+    (
+        "concrete_csv_create_header",
+        (
+            "Task: Create a CSV header.\n"
+            "Fields in order: date, customer, total, paid\n"
+            "Return only the CSV header row.\n\n"
+            "CSV:\n"
+        ),
+    ),
+    (
+        "concrete_csv_quote_field",
+        (
+            "Task: Create one CSV row, quoting fields when needed.\n"
+            "Fields in order: name, note, amount\n"
+            "Values: Samir Khan; paid, waiting for receipt; 31.20\n"
+            "Return only the CSV row with no header.\n\n"
+            "CSV:\n"
+        ),
+    ),
+    (
+        "concrete_csv_count_rows",
+        (
+            "Task: Count the data rows, excluding the header.\n"
+            "CSV:\n"
+            "name,total\n"
+            "Ada,14\n"
+            "Bo,27\n"
+            "Cy,19\n"
+            "Return only the number of data rows.\n\n"
+            "Answer:\n"
+        ),
+    ),
+    (
+        "concrete_list_intersection",
+        (
+            "Task: Find the values that appear in both lists, preserving the first list order.\n"
+            "List A: red, green, blue, yellow\n"
+            "List B: black, yellow, red, white\n"
+            "Return only a comma-separated list.\n\n"
+            "Output:\n"
+        ),
+    ),
+    (
+        "concrete_list_difference",
+        (
+            "Task: Find the values in List A that are not in List B, preserving order.\n"
+            "List A: oak, pine, birch, maple\n"
+            "List B: maple, cedar, pine\n"
+            "Return only a comma-separated list.\n\n"
+            "Output:\n"
+        ),
+    ),
+    (
+        "concrete_list_deduplicate",
+        (
+            "Task: Remove duplicates while preserving the first occurrence.\n"
+            "Items: tea, coffee, tea, juice, coffee, water\n"
+            "Return only a comma-separated list.\n\n"
+            "Output:\n"
+        ),
+    ),
+    (
+        "concrete_list_group_count",
+        (
+            "Task: Count how many items belong to the fruit category.\n"
+            "Items: apple=fruit, carrot=vegetable, pear=fruit, onion=vegetable, plum=fruit\n"
+            "Return only the fruit count.\n\n"
+            "Answer:\n"
+        ),
+    ),
+    (
+        "concrete_logic_seating_left_of",
+        (
+            "Task: Determine who sits immediately left of Omar.\n"
+            "Seats from left to right: Lina, Omar, Chen, Fatima.\n"
+            "Return only the person's name.\n\n"
+            "Answer:\n"
+        ),
+    ),
+    (
+        "concrete_logic_rank_order",
+        (
+            "Task: Determine who finished second.\n"
+            "Race results: Mei finished before Noah. Noah finished before Iris. "
+            "Luca finished after Iris.\n"
+            "Return only the second-place name.\n\n"
+            "Answer:\n"
+        ),
+    ),
+    (
+        "concrete_logic_schedule_conflict",
+        (
+            "Task: Identify the conflicting meeting.\n"
+            "Existing meeting: 10:00-11:00.\n"
+            "Candidates: A 09:00-09:30, B 10:30-11:30, C 11:15-11:45.\n"
+            "Return only the candidate letter that overlaps the existing meeting.\n\n"
+            "Answer:\n"
+        ),
+    ),
+    (
+        "concrete_logic_route_next_stop",
+        (
+            "Task: Find the next stop after Central.\n"
+            "Route: Harbor -> Museum -> Central -> Garden -> Airport\n"
+            "Return only the next stop name.\n\n"
+            "Answer:\n"
+        ),
+    ),
+    (
+        "concrete_logic_parent_child",
+        (
+            "Task: Identify the grandparent.\n"
+            "Facts: Elena is Marco's parent. Marco is Sofia's parent.\n"
+            "Question: Who is Sofia's grandparent?\n"
+            "Return only the name.\n\n"
+            "Answer:\n"
+        ),
+    ),
+    (
+        "concrete_logic_grid_cell",
+        (
+            "Task: Find the value at row 2, column 3.\n"
+            "Grid:\n"
+            "Row 1: A B C\n"
+            "Row 2: D E F\n"
+            "Row 3: G H I\n"
+            "Return only the cell value.\n\n"
+            "Answer:\n"
+        ),
+    ),
+    (
+        "concrete_unit_pounds_to_ounces",
+        (
+            "Task: Convert pounds to ounces.\n"
+            "Weight: 6.5 pounds\n"
+            "Use 16 ounces per pound. Return only the number of ounces.\n\n"
+            "Answer:\n"
+        ),
+    ),
+    (
+        "concrete_unit_minutes_to_hours",
+        (
+            "Task: Convert minutes to hours and minutes.\n"
+            "Duration: 145 minutes\n"
+            "Return only the duration in the format H hours M minutes.\n\n"
+            "Answer:\n"
+        ),
+    ),
+    (
+        "concrete_unit_liters_to_milliliters",
+        (
+            "Task: Convert liters to milliliters.\n"
+            "Volume: 2.75 liters\n"
+            "Return only the number of milliliters.\n\n"
+            "Answer:\n"
+        ),
+    ),
+    (
+        "concrete_unit_inches_to_feet",
+        (
+            "Task: Convert inches to feet and inches.\n"
+            "Length: 74 inches\n"
+            "Return only the length in the format F feet I inches.\n\n"
+            "Answer:\n"
+        ),
+    ),
+    (
+        "concrete_code_complete_add_tax",
+        (
+            "def add_tax(price: float) -> float:\n"
+            "    \"\"\"Return price after adding exactly 8 percent tax.\"\"\"\n"
+        ),
+    ),
 ]
 
 

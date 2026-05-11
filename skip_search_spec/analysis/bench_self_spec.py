@@ -108,12 +108,12 @@ def run_cli(argv: list[str]) -> None:
     parser.add_argument(
         "--prompt-set",
         choices=tuple(PROMPT_SETS),
-        default="completion-style",
+        default="concrete-completion-style",
     )
     parser.add_argument(
         "--warmup-prompts",
         type=int,
-        default=0,
+        default=5,
         help="Run but exclude the first N prompts from all aggregate metrics.",
     )
     parser.add_argument("--max-new-tokens", type=int, default=200)
@@ -126,7 +126,7 @@ def run_cli(argv: list[str]) -> None:
     parser.add_argument(
         "--measure-internal-timings",
         action=argparse.BooleanOptionalAction,
-        default=True,
+        default=False,
     )
     parser.add_argument(
         "--flashhead-top-k-clusters",
