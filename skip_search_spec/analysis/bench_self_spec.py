@@ -95,6 +95,10 @@ class BenchSummary:
     internal_body_seconds_estimate: float | None
     internal_drafter_registration_seconds: float | None
     internal_drafter_teardown_seconds: float | None
+    mean_self_spec_generated_tokens_per_prompt: float
+    mean_normal_generated_tokens_per_prompt: float | None
+    normal_tokens_per_second: float | None
+    self_spec_tokens_per_second: float | None
 
 
 def run_cli(argv: list[str]) -> None:
@@ -554,6 +558,12 @@ def _summarize(
     total_speedup_per_token: float | None = None
     exact_match_count: int | None = None
     exact_match_rate: float | None = None
+    self_spec_tokens_per_second = _safe_div(
+        total_self_spec_tokens,
+        total_self_spec_seconds,
+    )
+
+    normal_tokens_per_second: float | None = None
 
     compared = [result for result in included if result.normal_seconds is not None]
     if compared:
@@ -573,6 +583,11 @@ def _summarize(
         )
         exact_match_count = sum(1 for result in compared if result.exact_match)
         exact_match_rate = _safe_div(exact_match_count, len(compared))
+
+        normal_tokens_per_second = _safe_div(
+            total_normal_tokens,
+            total_normal_seconds,
+        )
 
     dense_head_seconds = sum(result.dense_head_seconds for result in included)
     flashhead_seconds = sum(result.flashhead_seconds for result in included)
@@ -625,7 +640,108 @@ def _summarize(
         internal_drafter_teardown_seconds=teardown_seconds
         if measure_internal_timings
         else None,
+        mean_self_spec_generated_tokens_per_prompt=_safe_div(
+            total_self_spec_tokens,
+            len(included),
+        ) or 0.0,
+        mean_normal_generated_tokens_per_prompt=(
+            _safe_div(total_normal_tokens, len(compared)) if compared else None
+        ),
+        normal_tokens_per_second=normal_tokens_per_second,
+        self_spec_tokens_per_second=self_spec_tokens_per_second,
     )
+
+
+def _gpu_display_name() -> str:
+    if not torch.cuda.is_available():
+        return "CPU / CUDA unavailable"
+
+    device_index = torch.cuda.current_device()
+    props = torch.cuda.get_device_properties(device_index)
+    total_gb = props.total_memory / (1024**3)
+    return f"{props.name} {total_gb:.0f}GB"
+
+
+def _num_model_layers(model: Any) -> int | None:
+    config = getattr(model, "config", None)
+    if config is None:
+        return None
+
+    for attr in (
+        "num_hidden_layers",
+        "n_layer",
+        "num_layers",
+        "n_layers",
+    ):
+        value = getattr(config, attr, None)
+        if value is not None:
+            return int(value)
+
+    return None
+
+
+def _vocab_size(model: Any, tokenizer: Any) -> int | None:
+    config = getattr(model, "config", None)
+
+    value = getattr(config, "vocab_size", None) if config is not None else None
+    if value is not None:
+        return int(value)
+
+    try:
+        return int(len(tokenizer))
+    except TypeError:
+        return None
+
+
+def _parameter_count(module: Any) -> int:
+    return sum(param.numel() for param in module.parameters())
+
+
+def _lm_head_parameter_count(model: Any) -> int | None:
+    lm_head = getattr(model, "lm_head", None)
+    if lm_head is not None:
+        return _parameter_count(lm_head)
+
+    output_embeddings = None
+    if hasattr(model, "get_output_embeddings"):
+        output_embeddings = model.get_output_embeddings()
+
+    if output_embeddings is not None:
+        return _parameter_count(output_embeddings)
+
+    return None
+
+
+def _lm_head_parameter_fraction(model: Any) -> float | None:
+    total_params = _parameter_count(model)
+    head_params = _lm_head_parameter_count(model)
+
+    if head_params is None or total_params == 0:
+        return None
+
+    return head_params / total_params
+
+def _flashhead_acceptance_ratio(
+    variants: list[dict[str, Any]],
+) -> float | None:
+    without_fh: float | None = None
+    with_fh: float | None = None
+
+    for variant in variants:
+        summary = variant["summary"]
+        rate = summary.get("total_acceptance_rate")
+        if rate is None:
+            continue
+
+        if variant["metadata"].get("flashhead_enabled"):
+            with_fh = float(rate)
+        else:
+            without_fh = float(rate)
+
+    if with_fh is None or without_fh is None or without_fh == 0.0:
+        return None
+
+    return with_fh / without_fh
 
 
 def _build_metadata(
@@ -656,6 +772,10 @@ def _build_metadata(
     model_dtype = str(next(bridged.model.parameters()).dtype)
     loaded_bridge_dtype = str(next(bridged.bridge.parameters()).dtype)
     flashhead = speculator.flashhead
+
+    lm_head_params = _lm_head_parameter_count(bridged.model)
+    lm_total_params = _parameter_count(bridged.model)
+    lm_head_fraction = _lm_head_parameter_fraction(bridged.model)
 
     return {
         "created_at": datetime.now().isoformat(timespec="seconds"),
@@ -693,6 +813,13 @@ def _build_metadata(
         "attention_backend": str(backend),
         "attention_backend_env": os.environ.get("SKIP_SEARCH_ATTN_IMPLEMENTATION"),
         "torch_version": torch.__version__,
+        "gpu": _gpu_display_name(),
+        "gap_tuple": [bridged.gap.start, bridged.gap.length],
+        "num_model_layers": _num_model_layers(bridged.model),
+        "lm_vocab_size": _vocab_size(bridged.model, bridged.tokenizer),
+        "lm_total_parameters": lm_total_params,
+        "lm_head_parameters": lm_head_params,
+        "lm_head_parameter_fraction": lm_head_fraction,
     }
 
 
@@ -1042,6 +1169,31 @@ def _draw_inline_legend(ax: Any, variants: list[dict[str, Any]]) -> None:
             color=variant["edge"],
         )
 
+def _fmt_int(value: Any) -> str:
+    if value is None:
+        return "n/a"
+    return f"{int(value):,}"
+
+
+def _fmt_float_1(value: float | None) -> str:
+    if value is None:
+        return "n/a"
+    return f"{value:.1f}"
+
+
+def _fmt_pct_2(value: float | None) -> str:
+    if value is None:
+        return "n/a"
+    return f"{100.0 * value:.2f}%"
+
+def _gap_label(metadata: dict[str, Any]) -> str:
+    start = metadata.get("gap_start")
+    length = metadata.get("gap_length")
+
+    if start is None or length is None:
+        return "n/a"
+
+    return f"({start}, {length})"
 
 def _info_sections(
     variants: list[dict[str, Any]],
@@ -1050,11 +1202,16 @@ def _info_sections(
     metadata = first["metadata"]
     setup = [
         ("Prompt set", _prompt_set_display_name(metadata.get("prompt_set"))),
+        ("Gap", _gap_label(metadata)),
         ("Block size", _value(metadata.get("draft_block_size"))),
-        ("Warmup prompts", _value(first["summary"].get("warmup_prompts"))),
-        ("Measured prompts", _value(first["summary"].get("prompt_count_included"))),
+        ("Layers", _value(metadata.get("num_model_layers"))),
+        ("LM vocab", _fmt_int(metadata.get("lm_vocab_size"))),
+        ("LM params", _fmt_int(metadata.get("lm_total_parameters"))),
+        ("Head params", _fmt_int(metadata.get("lm_head_parameters"))),
+        ("Head portion", _fmt_pct_2(metadata.get("lm_head_parameter_fraction"))),
     ]
     runtime = [
+        ("GPU", _value(metadata.get("gpu"))),
         ("Backend", _value(metadata.get("attention_backend"))),
         ("Model dtype", _dtype_label(metadata.get("model_dtype"))),
         ("Bridge dtype", _dtype_label(metadata.get("loaded_bridge_dtype"))),
@@ -1062,10 +1219,13 @@ def _info_sections(
             "Internal timing",
             _yes_no(bool(metadata.get("measure_internal_timings"))),
         ),
+        ("Max tokens/ex", _value(metadata.get("max_new_tokens"))),
+        ("Warmup prompts", _value(first["summary"].get("warmup_prompts"))),
+        ("Measured prompts", _value(first["summary"].get("prompt_count_included"))),
     ]
 
     results: list[tuple[str, str]] = []
-    timings: list[tuple[str, str]] = []
+    head_rows: list[tuple[str, str]] = []
     flashhead_meta = next(
         (
             variant["metadata"]
@@ -1080,6 +1240,10 @@ def _info_sections(
         results.extend(
             [
                 (
+                    f"Baseline Avg tokens/sec ({prefix})",
+                    _fmt_float_1(summary.get("normal_tokens_per_second")),
+                ),
+                (
                     f"Speedup ({prefix})",
                     _fmt_x(_summary_speedup(summary)),
                 ),
@@ -1090,20 +1254,23 @@ def _info_sections(
                 (f"Exact match ({prefix})", _fmt_pct(summary.get("exact_match_rate"))),
             ]
         )
-        timings.append(
-            (
-                f"Head/Body ({prefix})",
+        head_seconds = summary.get("internal_head_seconds")
+        body_seconds = summary.get("internal_body_seconds_estimate")
+
+        if head_seconds is not None or body_seconds is not None:
+            head_rows.append(
                 (
-                    _fmt_head_body(
-                        summary.get("internal_head_seconds"),
-                        summary.get("internal_body_seconds_estimate"),
-                    )
-                ),
+                    f"Head/Body ({prefix})",
+                    _fmt_head_body(head_seconds, body_seconds),
+                )
             )
-        )
+
+    fh_accuracy = _flashhead_acceptance_ratio(variants)
+    if fh_accuracy is not None:
+        head_rows.append(("FH accuracy", _fmt_pct(fh_accuracy)))
 
     if flashhead_meta:
-        timings.extend(
+        head_rows.extend(
             [
                 (
                     "FH index",
@@ -1116,12 +1283,16 @@ def _info_sections(
             ]
         )
 
-    return [
+    sections = [
         ("Setup", setup),
         ("Runtime", runtime),
         ("Results", results),
-        ("Head", timings),
     ]
+
+    if head_rows:
+        sections.append(("Head", head_rows))
+
+    return sections
 
 
 def _draw_report_footer(
@@ -1151,7 +1322,7 @@ def _draw_report_footer(
             color=title_color,
         )
         y = 0.72
-        row_step = 0.145
+        row_step = 0.105
         for label, value in rows:
             _draw_labeled_value(
                 ax,
