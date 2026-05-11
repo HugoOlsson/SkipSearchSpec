@@ -308,6 +308,12 @@ def bench_self_spec(
     run_stem = output_prefix or _default_run_stem(
         bridge_path=bridge_path,
         prompt_set=prompt_set,
+        draft_block_size=draft_block_size,
+        max_new_tokens=max_new_tokens,
+        warmup_prompts=warmup_prompts,
+        variants=variants,
+        flash_path=flash_path,
+        bridged=bridged,
     )
     json_path = output_dir / f"{run_stem}.json"
 
@@ -658,8 +664,7 @@ def _gpu_display_name() -> str:
 
     device_index = torch.cuda.current_device()
     props = torch.cuda.get_device_properties(device_index)
-    total_gb = props.total_memory / (1024**3)
-    return f"{props.name} {total_gb:.0f}GB"
+    return props.name
 
 
 def _num_model_layers(model: Any) -> int | None:
@@ -906,10 +911,10 @@ def _plot_variant_distribution(
     fig.text(
         0.5,
         0.945,
-        title or "Self-speculation inference speedup",
+        title or "Self-speculation per-example speedup",
         ha="center",
         va="top",
-        fontsize=28,
+        fontsize=22,
         fontweight="bold",
         color="#050505",
     )
@@ -1060,8 +1065,8 @@ def _styled_variant_payload(variant: dict[str, Any]) -> dict[str, Any]:
 
 def _summary_speedup(summary: dict[str, Any]) -> float | None:
     for key in (
-        "total_speedup_per_generated_token",
         "mean_prompt_speedup_per_generated_token",
+        "total_speedup_per_generated_token",
         "total_speedup_seconds",
     ):
         value = summary.get(key)
@@ -1159,7 +1164,7 @@ def _draw_inline_legend(ax: Any, variants: list[dict[str, Any]]) -> None:
         suffix = "" if speedup is None else f" {_fmt_x(speedup)}"
         ax.text(
             0.016,
-            0.955 - index * 0.064,
+            0.955 - index * 0.085,
             f"{variant['label']}{suffix}",
             transform=ax.transAxes,
             ha="left",
@@ -1187,13 +1192,33 @@ def _fmt_pct_2(value: float | None) -> str:
     return f"{100.0 * value:.2f}%"
 
 def _gap_label(metadata: dict[str, Any]) -> str:
-    start = metadata.get("gap_start")
-    length = metadata.get("gap_length")
+    gap_start = metadata.get("gap_start")
+    gap_end = metadata.get("gap_end")
+    num_layers = metadata.get("num_model_layers")
 
-    if start is None or length is None:
+    if gap_start is None or gap_end is None or num_layers is None:
         return "n/a"
 
-    return f"({start}, {length})"
+    kept_start = int(gap_start)
+    kept_end = int(num_layers) - int(gap_end)
+
+    return f"({kept_start}, {kept_end})"
+
+def _fmt_compact_number(value: Any) -> str:
+    if value is None:
+        return "n/a"
+
+    value = float(value)
+    abs_value = abs(value)
+
+    if abs_value >= 1_000_000_000:
+        return f"{value / 1_000_000_000:.2f}B"
+    if abs_value >= 1_000_000:
+        return f"{value / 1_000_000:.1f}M"
+    if abs_value >= 1_000:
+        return f"{value / 1_000:.1f}K"
+
+    return str(int(value))
 
 def _info_sections(
     variants: list[dict[str, Any]],
@@ -1206,8 +1231,8 @@ def _info_sections(
         ("Block size", _value(metadata.get("draft_block_size"))),
         ("Layers", _value(metadata.get("num_model_layers"))),
         ("LM vocab", _fmt_int(metadata.get("lm_vocab_size"))),
-        ("LM params", _fmt_int(metadata.get("lm_total_parameters"))),
-        ("Head params", _fmt_int(metadata.get("lm_head_parameters"))),
+        ("LM params", _fmt_compact_number(metadata.get("lm_total_parameters"))),
+        ("Head params", _fmt_compact_number(metadata.get("lm_head_parameters"))),
         ("Head portion", _fmt_pct_2(metadata.get("lm_head_parameter_fraction"))),
     ]
     runtime = [
@@ -1240,11 +1265,7 @@ def _info_sections(
         results.extend(
             [
                 (
-                    f"Baseline Avg tokens/sec ({prefix})",
-                    _fmt_float_1(summary.get("normal_tokens_per_second")),
-                ),
-                (
-                    f"Speedup ({prefix})",
+                    f"Mean speedup ({prefix})",
                     _fmt_x(_summary_speedup(summary)),
                 ),
                 (
@@ -1321,8 +1342,8 @@ def _draw_report_footer(
             fontweight="bold",
             color=title_color,
         )
-        y = 0.72
-        row_step = 0.105
+        y = 0.76
+        row_step = 0.115
         for label, value in rows:
             _draw_labeled_value(
                 ax,
@@ -1377,7 +1398,7 @@ def _draw_labeled_value(
 
 
 def _footer_font_size(ax: Any, x: float, right: float, text: str) -> float:
-    font_size = 11.2
+    font_size = 10.7
     minimum = 7.8
     while font_size > minimum:
         probe = ax.text(
@@ -1500,32 +1521,82 @@ def _sample_std_or_none(values: list[float]) -> float | None:
     return math.sqrt(variance)
 
 
-def _default_run_stem(*, bridge_path: Path, prompt_set: str) -> str:
+def _default_run_stem(
+    *,
+    bridge_path: Path,
+    prompt_set: str,
+    draft_block_size: int,
+    max_new_tokens: int,
+    warmup_prompts: int,
+    variants: VariantMode,
+    flash_path: Path | None,
+    bridged: BridgedGapModel,
+) -> str:
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    return f"bench_self_spec__{bridge_path.stem}__{prompt_set}__{timestamp}"
+
+    model_name = _slugify_filename_part(
+        _model_display_name(str(bridged.config.model_name))
+    )
+
+    prompt_name = _slugify_filename_part(prompt_set)
+
+    num_layers = _num_model_layers(bridged.model)
+    gap_label = _gap_file_label(
+        gap_start=bridged.gap.start,
+        gap_end=bridged.gap.end,
+        num_layers=num_layers,
+    )
+
+    if variants == "auto":
+        variant_label = "both" if flash_path is not None else "no-fh"
+    elif variants == "flashhead":
+        variant_label = "fh"
+    elif variants == "no-flashhead":
+        variant_label = "no-fh"
+    else:
+        variant_label = "both"
+
+    return (
+        f"bench_self_spec"
+        f"__{model_name}"
+        f"__{prompt_name}"
+        f"__keep-{gap_label}"
+        f"__block-{draft_block_size}"
+        f"__max-{max_new_tokens}"
+        f"__warmup-{warmup_prompts}"
+        f"__{variant_label}"
+        f"__{timestamp}"
+    )
+
+def _gap_file_label(
+    *,
+    gap_start: int,
+    gap_end: int,
+    num_layers: int | None,
+) -> str:
+    if num_layers is None:
+        return f"gap-{gap_start}-{gap_end}"
+
+    kept_start = max(0, int(gap_start))
+    kept_end = max(0, int(num_layers) - int(gap_end))
+    return f"{kept_start}-{kept_end}"
 
 
-def _default_plot_title(metadata: dict[str, Any]) -> str:
-    prompt_set = str(metadata.get("prompt_set", "unknown prompt set"))
-    return f"Self-spec speedup distribution ({prompt_set})"
+def _slugify_filename_part(value: str) -> str:
+    cleaned = value.strip().lower()
+    chars: list[str] = []
 
+    previous_was_sep = False
+    for char in cleaned:
+        if char.isalnum():
+            chars.append(char)
+            previous_was_sep = False
+        elif not previous_was_sep:
+            chars.append("-")
+            previous_was_sep = True
 
-def _metric_value(value: Any) -> str:
-    if value is None:
-        return "n/a"
-    return str(value)
-
-
-def _fmt_float(value: float | None) -> str:
-    if value is None:
-        return "n/a"
-    return f"{value:.4f}"
-
-
-def _fmt_seconds(value: float | None) -> str:
-    if value is None:
-        return "n/a"
-    return f"{value:.3f}s"
+    slug = "".join(chars).strip("-")
+    return slug or "unknown"
 
 
 def _fmt_seconds_compact(value: float | None) -> str:
