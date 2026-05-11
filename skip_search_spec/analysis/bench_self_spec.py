@@ -19,6 +19,7 @@ from skip_search_spec.experiments.inference_prompts import (
     INFERENCE_TEST_PROMPTS_EASY,
     INFERENCE_TEST_PROMPTS_HARD,
 )
+from skip_search_spec.helpers.versioning import get_git_revision
 from skip_search_spec.inference.normal_inference import generate_normal
 from skip_search_spec.inference.self_spec_inference import BridgeSelfSpeculator
 from skip_search_spec.training.bridged_gap_model import BridgedGapModel
@@ -782,8 +783,11 @@ def _build_metadata(
     lm_total_params = _parameter_count(bridged.model)
     lm_head_fraction = _lm_head_parameter_fraction(bridged.model)
 
+    repo_state = get_git_revision()    
+
     return {
         "created_at": datetime.now().isoformat(timespec="seconds"),
+        "git_commit": repo_state.commit if repo_state else None,
         "bridge_checkpoint_path": str(bridge_path.resolve(strict=False)),
         "flashhead_path": str(flash_path.resolve(strict=False)) if flash_path else None,
         "prompt_set": prompt_set,
@@ -870,6 +874,28 @@ def _variant_payloads(payload: dict[str, Any]) -> list[dict[str, Any]]:
             "prompt_results": payload["prompt_results"],
         }
     ]
+
+def _draw_git_revision(fig: Any, metadata: dict[str, Any]) -> None:
+    commit = metadata.get("git_commit_short") or metadata.get("git_commit")
+    tag = metadata.get("git_tag")
+
+    if not commit:
+        return
+
+    commit = str(commit)[:8]
+
+    text = f"git commit {commit}"
+        
+
+    fig.text(
+        0.985,
+        0.018,
+        text,
+        ha="right",
+        va="bottom",
+        fontsize=8.5,
+        color="#8A8A8A",
+    )
 
 
 def _plot_variant_distribution(
@@ -1011,6 +1037,7 @@ def _plot_variant_distribution(
     _draw_inline_legend(ax, plot_variants)
     footer_ax = fig.add_axes([0.085, 0.075, 0.83, 0.225])
     _draw_report_footer(footer_ax, _info_sections(plot_variants))
+    _draw_git_revision(fig, metadata)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(output_path, dpi=300)
@@ -1311,7 +1338,7 @@ def _info_sections(
     ]
 
     if head_rows:
-        sections.append(("Head", head_rows))
+        sections.append(("FlashHead", head_rows))
 
     return sections
 
