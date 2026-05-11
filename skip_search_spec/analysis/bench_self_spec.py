@@ -63,6 +63,8 @@ class PromptBenchResult:
     flashhead_seconds: float
     drafter_registration_seconds: float
     drafter_teardown_seconds: float
+    self_spec_peak_allocated_bytes: int | None
+    normal_peak_allocated_bytes: int | None
     normal_seconds: float | None
     normal_generated_tokens: int | None
     exact_match: bool | None
@@ -416,6 +418,7 @@ def _run_bench_variant(
             f"Prompt {prompt_index}/{len(prompts)}: {prompt_name}"
         )
 
+        _reset_cuda_peak_memory_stats()
         self_spec_result = speculator.generate(
             prompt=prompt,
             max_new_tokens=max_new_tokens,
@@ -424,6 +427,7 @@ def _run_bench_variant(
             build_token_trace=False,
             measure_internal_timings=measure_internal_timings,
         )
+        self_spec_peak_allocated_bytes = _cuda_peak_allocated_bytes()
         timings = self_spec_result.timings
         acceptance_rate = self_spec_result.accepted_draft_tokens / max(
             self_spec_result.drafted_tokens, 1
@@ -436,9 +440,12 @@ def _run_bench_variant(
         speedup_per_generated_token: float | None = None
         first_mismatch_index: int | None = None
 
+        normal_peak_allocated_bytes: int | None = None
+
         if compare_to_normal:
-            normal_result = normal_cache.get(prompt_index)
-            if normal_result is None:
+            normal_cache_entry = normal_cache.get(prompt_index)
+            if normal_cache_entry is None:
+                _reset_cuda_peak_memory_stats()
                 normal_result = generate_normal(
                     prompt=prompt,
                     max_new_tokens=max_new_tokens,
@@ -448,7 +455,15 @@ def _run_bench_variant(
                     tokenizer=bridged.tokenizer,
                     device=bridged.device,
                 )
-                normal_cache[prompt_index] = normal_result
+                normal_peak_allocated_bytes = _cuda_peak_allocated_bytes()
+                normal_cache_entry = {
+                    "result": normal_result,
+                    "peak_allocated_bytes": normal_peak_allocated_bytes,
+                }
+                normal_cache[prompt_index] = normal_cache_entry
+            else:
+                normal_result = normal_cache_entry["result"]
+                normal_peak_allocated_bytes = normal_cache_entry["peak_allocated_bytes"]
 
             normal_seconds = normal_result.inference_seconds
             normal_generated_tokens = normal_result.num_generated_tokens
@@ -486,6 +501,8 @@ def _run_bench_variant(
             speedup_seconds=speedup_seconds,
             speedup_per_generated_token=speedup_per_generated_token,
             first_mismatch_index=first_mismatch_index,
+            self_spec_peak_allocated_bytes=self_spec_peak_allocated_bytes,
+            normal_peak_allocated_bytes=normal_peak_allocated_bytes,
         )
         prompt_results.append(result)
 
@@ -518,6 +535,26 @@ def _run_bench_variant(
     summary = _summarize(
         prompt_results=prompt_results,
         measure_internal_timings=measure_internal_timings,
+    )
+
+    included_results = [
+        result for result in prompt_results if result.included_in_metrics
+    ]
+
+    metadata["mean_self_spec_peak_allocated_bytes"] = _mean_int_or_none(
+        [
+            result.self_spec_peak_allocated_bytes
+            for result in included_results
+            if result.self_spec_peak_allocated_bytes is not None
+        ]
+    )
+
+    metadata["mean_normal_peak_allocated_bytes"] = _mean_int_or_none(
+        [
+            result.normal_peak_allocated_bytes
+            for result in included_results
+            if result.normal_peak_allocated_bytes is not None
+        ]
     )
 
     return {
@@ -658,6 +695,10 @@ def _summarize(
         self_spec_tokens_per_second=self_spec_tokens_per_second,
     )
 
+def _mean_int_or_none(values: list[int]) -> float | None:
+    if not values:
+        return None
+    return float(sum(values)) / float(len(values))
 
 def _gpu_display_name() -> str:
     if not torch.cuda.is_available():
@@ -893,8 +934,8 @@ def _draw_git_revision(fig: Any, metadata: dict[str, Any]) -> None:
         text,
         ha="right",
         va="bottom",
-        fontsize=8.5,
-        color="#8A8A8A",
+        fontsize=11,
+        color="#292929",
     )
 
 
@@ -1546,6 +1587,16 @@ def _sample_std_or_none(values: list[float]) -> float | None:
     mean = _mean(values)
     variance = sum((value - mean) ** 2 for value in values) / (len(values) - 1)
     return math.sqrt(variance)
+
+def _cuda_peak_allocated_bytes() -> int | None:
+    if not torch.cuda.is_available():
+        return None
+    return int(torch.cuda.max_memory_allocated())
+
+
+def _reset_cuda_peak_memory_stats() -> None:
+    if torch.cuda.is_available():
+        torch.cuda.reset_peak_memory_stats()
 
 
 def _default_run_stem(
