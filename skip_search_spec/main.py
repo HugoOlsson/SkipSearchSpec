@@ -27,8 +27,8 @@ from skip_search_spec.protocols.windows import DatasetSpec
 
 
 
-STORE_PATH_FLASH_HEAD = "checkpoints/flashhead_llama32_3b_8016c.pt"
-MODEL_NAME_FLASH_HEAD = "meta-llama/Llama-3.2-3B-Instruct"
+STORE_PATH_FLASH_HEAD = "checkpoints/flashhead_llama31_8b_8016c_v2.pt"
+MODEL_NAME_FLASH_HEAD = "meta-llama/Llama-3.1-8B-Instruct"
 
 INFERENCE_TEST_MAX_NEW_TOKENS = 200
 

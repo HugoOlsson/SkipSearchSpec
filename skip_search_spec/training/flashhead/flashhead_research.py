@@ -227,20 +227,11 @@ def build_flashhead_head(store_path: str, model_name: str) -> None:
     )
     print(f"mean_similarity_plot_path={plot_path}")
 
-    print()
-    print("largest cluster size:")
-    print(int(built_clusters.cluster_sizes.max().item()))
-
-    print()
-    print("smallest cluster size:")
-    print(int(built_clusters.cluster_sizes.min().item()))
 
     save_flashhead(
         path=store_path,
-        token_to_cluster_mapping=built_clusters.token_to_cluster_mapping,
         cluster_to_token_ids=built_clusters.cluster_to_token_ids,
         centroids=built_clusters.centroids,
-        cluster_sizes=built_clusters.cluster_sizes,
     )
 
 

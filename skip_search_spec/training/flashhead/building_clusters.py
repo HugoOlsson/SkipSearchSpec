@@ -1,6 +1,6 @@
 from collections.abc import Callable
 from dataclasses import dataclass
-from torch import Tensor, nn
+from torch import Tensor
 import torch
 import os
 
@@ -10,28 +10,8 @@ torch.set_num_interop_threads(1)
 
 @dataclass(frozen=True, slots=True)
 class BuiltFlashHeadClusters:
-    token_to_cluster_mapping: Tensor  # [vocab_size]
     cluster_to_token_ids: Tensor      # [num_clusters, cluster_size], no padding
     centroids: Tensor                 # [num_clusters, hidden_size]
-    cluster_sizes: Tensor             # [num_clusters], all equal
-
-
-@dataclass(frozen=True, slots=True)
-class FlashHeadIndex:
-    # [hidden_size, num_clusters], transposed centroids for fast cluster scoring
-    centroids_t: Tensor          
-    # [num_clusters, cluster_size], token ids contained in each cluster          
-    cluster_to_token_ids: Tensor     
-    # [num_clusters, cluster_size, hidden_size], LM-head rows grouped by cluster      
-    clustered_lm_head: Tensor           
-    # [num_clusters, cluster_size] or None, matching LM-head bias grouped by cluster   
-    clustered_lm_head_bias: Tensor | None  
-    # number of tokens in each cluster
-    cluster_size: int          
-    # total number of clusters           
-    num_clusters: int    
-    # total number of tokens in the vocabulary                 
-    vocab_size: int                        
 
 
 @dataclass(frozen=True, slots=True)
@@ -81,13 +61,6 @@ def build_equal_cluster_capacities(
     )
 
 
-@torch.no_grad()
-def assign_to_nearest_centroid(
-    vectors: Tensor,
-    centroids: Tensor,
-) -> Tensor:
-    scores = vectors @ centroids.transpose(0, 1)
-    return scores.argmax(dim=-1)
 
 
 @torch.no_grad()
@@ -391,10 +364,8 @@ def build_clusters(
     print_clustering_quality(quality)
 
     return BuiltFlashHeadClusters(
-        token_to_cluster_mapping=token_to_cluster_mapping.cpu(),
         cluster_to_token_ids=cluster_to_token_ids.cpu(),
         centroids=centroids.cpu(),
-        cluster_sizes=cluster_sizes.cpu(),
     )
 
 
@@ -485,106 +456,6 @@ def validate_strict_equal_clustering(
             f"but found duplicate_token_count={duplicate_count}, "
             f"missing_token_count={missing_count}."
         )
-
-
-@torch.no_grad()
-def build_flashhead_index(
-    built: BuiltFlashHeadClusters,
-    *,
-    lm_head_vector_table: Tensor,
-    lm_head_bias: Tensor | None = None,
-    device: torch.device | str | None = None,
-    dtype: torch.dtype | None = None,
-) -> FlashHeadIndex:
-    """
-    Builds the fast inference layout.
-
-    Important:
-    - lm_head_vector_table should be the original LM-head weight, not L2-normalized.
-    - centroids may be normalized because stage 1 is centroid retrieval.
-    - clustered_lm_head duplicates/reorders the LM-head vectors by cluster.
-      For memory savings, do not also keep the old dense lm_head inside your inference module.
-    """
-    if lm_head_vector_table.ndim != 2:
-        raise ValueError("lm_head_vector_table must have shape [vocab_size, hidden_size]")
-
-    target_device = lm_head_vector_table.device if device is None else torch.device(device)
-    target_dtype = lm_head_vector_table.dtype if dtype is None else dtype
-
-    vocab_size, hidden_size = lm_head_vector_table.shape
-
-    if built.centroids.ndim != 2:
-        raise ValueError("built.centroids must have shape [num_clusters, hidden_size]")
-
-    if built.cluster_to_token_ids.ndim != 2:
-        raise ValueError(
-            "built.cluster_to_token_ids must have shape [num_clusters, cluster_size]"
-        )
-
-    num_clusters, cluster_size = built.cluster_to_token_ids.shape
-
-    if built.centroids.shape != (num_clusters, hidden_size):
-        raise ValueError(
-            "centroids shape mismatch: "
-            f"expected [{num_clusters}, {hidden_size}], "
-            f"got {list(built.centroids.shape)}."
-        )
-
-    validate_strict_equal_clustering(
-        token_to_cluster_mapping=built.token_to_cluster_mapping,
-        cluster_to_token_ids=built.cluster_to_token_ids,
-        cluster_sizes=built.cluster_sizes,
-        vocab_size=vocab_size,
-        num_clusters=num_clusters,
-    )
-
-    cluster_to_token_ids = built.cluster_to_token_ids.to(
-        device=target_device,
-        dtype=torch.long,
-    ).contiguous()
-
-    centroids_t = built.centroids.to(
-        device=target_device,
-        dtype=target_dtype,
-    ).transpose(0, 1).contiguous()
-
-    lm_head_vector_table = lm_head_vector_table.to(
-        device=target_device,
-        dtype=target_dtype,
-    )
-
-    flat_token_ids = cluster_to_token_ids.reshape(-1)
-
-    clustered_lm_head = lm_head_vector_table.index_select(
-        0,
-        flat_token_ids,
-    ).reshape(num_clusters, cluster_size, hidden_size).contiguous()
-
-    if lm_head_bias is None:
-        clustered_lm_head_bias = None
-    else:
-        if lm_head_bias.ndim != 1 or lm_head_bias.shape[0] != vocab_size:
-            raise ValueError("lm_head_bias must have shape [vocab_size]")
-
-        lm_head_bias = lm_head_bias.to(
-            device=target_device,
-            dtype=target_dtype,
-        )
-
-        clustered_lm_head_bias = lm_head_bias.index_select(
-            0,
-            flat_token_ids,
-        ).reshape(num_clusters, cluster_size).contiguous()
-
-    return FlashHeadIndex(
-        centroids_t=centroids_t,
-        cluster_to_token_ids=cluster_to_token_ids,
-        clustered_lm_head=clustered_lm_head,
-        clustered_lm_head_bias=clustered_lm_head_bias,
-        cluster_size=int(cluster_size),
-        num_clusters=int(num_clusters),
-        vocab_size=int(vocab_size),
-    )
 
 
 

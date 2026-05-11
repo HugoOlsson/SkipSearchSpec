@@ -13,17 +13,15 @@ class FlashHeadModule(nn.Module):
     """
     Memory-light FlashHead module for greedy next-token lookup.
 
-    Unlike the preclustered version, this does NOT materialize:
+    Runtime-owned tensors:
+      - centroids_t: [hidden_size, num_clusters]
+      - cluster_to_token_ids: [num_clusters, cluster_size]
 
-        clustered_lm_head: [num_clusters, cluster_size, hidden_size]
+    Borrowed model tensors:
+      - lm_head_vector_table: [vocab_size, hidden_size]
+      - lm_head_bias: [vocab_size] or None
 
-    Instead it stores:
-        - centroids_t
-        - cluster_to_token_ids
-        - a reference to the existing model lm_head weight
-
-    This saves roughly one full LM-head copy in GPU memory, at the cost of
-    gathering candidate lm_head rows during find_token().
+    The LM-head weight is not copied or registered as module state.
     """
 
     centroids_t: Tensor
@@ -32,6 +30,8 @@ class FlashHeadModule(nn.Module):
     lm_head_bias: Tensor | None
     top_k_clusters: int
     cluster_size: int
+    num_clusters: int
+    vocab_size: int
 
     def __init__(
         self,
@@ -61,15 +61,19 @@ class FlashHeadModule(nn.Module):
             )
 
         if (cluster_to_token_ids < 0).any():
-            raise ValueError(
-                "cluster_to_token_ids must not contain padding for this fast path"
-            )
+            raise ValueError("cluster_to_token_ids must not contain negative ids")
 
         num_clusters, cluster_size = cluster_to_token_ids.shape
         vocab_size, hidden_size = lm_head_vector_table.shape
 
         if centroids.shape != (num_clusters, hidden_size):
-            raise ValueError("centroids shape does not match cluster/lm_head shape")
+            raise ValueError(
+                "centroids shape mismatch: "
+                f"expected {(num_clusters, hidden_size)}, got {tuple(centroids.shape)}"
+            )
+
+        if int(cluster_to_token_ids.max().item()) >= vocab_size:
+            raise ValueError("cluster_to_token_ids contains token ids >= vocab_size")
 
         if vocab_size != num_clusters * cluster_size:
             raise ValueError(
@@ -82,6 +86,8 @@ class FlashHeadModule(nn.Module):
 
         self.top_k_clusters = int(top_k_clusters)
         self.cluster_size = int(cluster_size)
+        self.num_clusters = int(num_clusters)
+        self.vocab_size = int(vocab_size)
 
         self.register_buffer(
             "centroids_t",
@@ -92,20 +98,11 @@ class FlashHeadModule(nn.Module):
             cluster_to_token_ids.detach().long().contiguous(),
         )
 
-        # Important:
-        # Do NOT clone/index_select/contiguous this. Keep a reference to the
-        # existing model lm_head weight so we do not duplicate the full table.
-        self.register_buffer(
-            "lm_head_vector_table",
-            lm_head_vector_table.detach(),
-            persistent=False,
-        )
-
-        self.register_buffer(
-            "lm_head_bias",
-            None if lm_head_bias is None else lm_head_bias.detach(),
-            persistent=False,
-        )
+        # Plain attributes on purpose:
+        # these borrow the model's existing LM-head tensors and should not be
+        # saved, copied, or moved by FlashHeadModule.to().
+        self.lm_head_vector_table = lm_head_vector_table.detach()
+        self.lm_head_bias = None if lm_head_bias is None else lm_head_bias.detach()
 
     @classmethod
     def from_model(
@@ -118,24 +115,20 @@ class FlashHeadModule(nn.Module):
         stored = load_flashhead(flashhead_path)
         lm_head_vector_table, lm_head_bias = extract_lm_head(model)
 
-        module = cls(
-            centroids=stored.centroids,
-            cluster_to_token_ids=stored.cluster_to_token_ids,
+        device = lm_head_vector_table.device
+        dtype = lm_head_vector_table.dtype
+
+        return cls(
+            centroids=stored.centroids.to(device=device, dtype=dtype),
+            cluster_to_token_ids=stored.cluster_to_token_ids.to(device=device),
             lm_head_vector_table=lm_head_vector_table,
             lm_head_bias=lm_head_bias,
             top_k_clusters=top_k_clusters,
         )
 
-        # This moves centroids and token ids to the model device/dtype.
-        # lm_head_vector_table is already on the model device and dtype.
-        return module.to(
-            device=lm_head_vector_table.device,
-            dtype=lm_head_vector_table.dtype,
-        )
-
     @torch.inference_mode()
     def find_token(self, hidden_vector: Tensor) -> Tensor:
-        actual_top_k = min(self.top_k_clusters, self.centroids_t.shape[1])
+        actual_top_k = min(self.top_k_clusters, self.num_clusters)
 
         cluster_scores = hidden_vector @ self.centroids_t
 
@@ -147,25 +140,21 @@ class FlashHeadModule(nn.Module):
 
         candidate_token_ids = self.cluster_to_token_ids[top_cluster_ids].reshape(-1)
 
-        # Memory-light path:
-        # gather only the candidate rows from the existing lm_head weight.
         candidate_vectors = self.lm_head_vector_table.index_select(
             0,
-            candidate_token_ids.to(self.lm_head_vector_table.device),
+            candidate_token_ids,
         )
 
-        candidate_scores_flat = candidate_vectors @ hidden_vector
+        candidate_scores = candidate_vectors @ hidden_vector
 
         if self.lm_head_bias is not None:
-            candidate_scores_flat = candidate_scores_flat + self.lm_head_bias.index_select(
+            candidate_scores = candidate_scores + self.lm_head_bias.index_select(
                 0,
-                candidate_token_ids.to(self.lm_head_bias.device),
+                candidate_token_ids,
             )
 
-        max_score = candidate_scores_flat.max()
-
-        # Tie-break by smallest original token id, matching your previous behavior.
-        return candidate_token_ids[candidate_scores_flat == max_score].min()
+        best_score = candidate_scores.max()
+        return candidate_token_ids[candidate_scores == best_score].min()
 
 
 def extract_lm_head(model: Any) -> tuple[Tensor, Tensor | None]:
