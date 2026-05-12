@@ -163,7 +163,7 @@ def _generate_normal_measured(
     use_cache: bool,
     device: torch.device,
     total_start_time: float,
-    debug_argmax_ties: bool
+    debug_argmax_ties: bool,
 ) -> NormalInferenceResult:
     backbone = get_causal_lm_backbone(model)
     lm_head = get_output_lm_head(model)
@@ -215,7 +215,6 @@ def _generate_normal_measured(
             head_start_time = time.perf_counter()
 
             logits = lm_head(head_input)
-            print("Normal with argmax check does run")
             next_token = argmax_debug_first_tie(
                 logits[:, -1, :],
                 name="normal",
