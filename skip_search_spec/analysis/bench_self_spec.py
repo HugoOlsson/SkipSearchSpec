@@ -516,7 +516,10 @@ def _run_bench_variant(
         variant_label=variant["label"],
     )
     profile_results = profile_phase.profile_results
-    profile_summary = _summarize_profile(profile_results)
+    profile_summary = _summarize_profile(
+        profile_results,
+        draft_block_size=draft_block_size,
+    )
 
     speed_phase = _run_prompt_phase(
         phase="speed",
@@ -674,8 +677,8 @@ def _run_prompt_phase(
                         profile_result.drafter_overhead_seconds,
                         profile_result.drafter_total_seconds,
                     ),
-                    "drafter_to_verifier_fraction": _safe_div(
-                        profile_result.drafter_total_seconds,
+                   "drafter_to_verifier_fraction": _safe_div(
+                        _safe_div(profile_result.drafter_total_seconds, draft_block_size),
                         profile_result.verifier_seconds,
                     ),
                 }
@@ -880,6 +883,8 @@ def _summarize(
 
 def _summarize_profile(
     profile_results: list[ProfilePromptResult],
+    *,
+    draft_block_size: int,
 ) -> ProfileSummary | None:
     if not profile_results:
         return None
@@ -919,7 +924,10 @@ def _summarize_profile(
         drafter_body_fraction=_safe_div(drafter_body, drafter_total),
         drafter_head_fraction=_safe_div(drafter_head, drafter_total),
         drafter_overhead_fraction=_safe_div(drafter_overhead, drafter_total),
-        drafter_to_verifier_fraction=_safe_div(drafter_total, verifier_seconds),
+        drafter_to_verifier_fraction=_safe_div(
+            _safe_div(drafter_total, draft_block_size),
+            verifier_seconds,
+        ),
         drafter_registration_seconds=registration,
         drafter_teardown_seconds=teardown,
     )
