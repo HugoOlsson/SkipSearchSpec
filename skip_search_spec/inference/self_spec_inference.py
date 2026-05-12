@@ -320,11 +320,10 @@ class BridgeSelfSpeculator:
         total_start_time = time.perf_counter()
 
         # 1. Verify the prompt once to create the base.
-        verifier = self._run_verifier_timed(
+        # We do not include prefill time
+        verifier = self.bridged.run_verifier(
             input_ids=input_ids,
             attention_mask=prompt_attention_mask,
-            timings=timings,
-            measure_internal_timings=measure_internal_timings,
         )
         verifier_calls += 1
         kv_cache = KVCacheHandler.from_verifier_output_after_prompt(

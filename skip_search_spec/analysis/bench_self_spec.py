@@ -97,6 +97,7 @@ class ProfilePromptResult:
     generated_tokens: int
 
     verifier_seconds: float
+    verifier_calls: int
 
     drafter_total_seconds: float
     drafter_body_seconds: float
@@ -104,6 +105,7 @@ class ProfilePromptResult:
     drafter_flashhead_seconds: float
     drafter_head_seconds: float
     drafter_overhead_seconds: float
+    drafter_calls: int
 
     drafter_registration_seconds: float
     drafter_teardown_seconds: float
@@ -676,6 +678,8 @@ def _run_prompt_phase(
                 drafter_overhead_seconds=timings.drafter_overhead_seconds,
                 drafter_registration_seconds=timings.drafter_registration_seconds,
                 drafter_teardown_seconds=timings.drafter_teardown_seconds,
+                drafter_calls=self_spec_result.drafted_tokens,
+                verifier_calls=self_spec_result.verifier_calls
             )
             profile_results.append(profile_result)
 
@@ -911,9 +915,19 @@ def _summarize_profile(
     profile_total = sum(result.profile_seconds for result in profile_results)
     generated_tokens = sum(result.generated_tokens for result in profile_results)
 
+    verifier_calls_minus_prefill = sum(result.verifier_calls - 1 for result in profile_results) #Removing one because we are not timing the prefill verifier call
+
     verifier_seconds = sum(result.verifier_seconds for result in profile_results)
 
+    time_per_verifier_call = verifier_seconds/verifier_calls_minus_prefill
+
     drafter_total = sum(result.drafter_total_seconds for result in profile_results)
+
+    drafter_calls = sum(result.drafter_calls for result in profile_results)
+
+    time_per_drafter_call = drafter_total/drafter_calls
+
+
     drafter_body = sum(result.drafter_body_seconds for result in profile_results)
     drafter_dense_head = sum(
         result.drafter_dense_head_seconds for result in profile_results
@@ -944,8 +958,8 @@ def _summarize_profile(
         drafter_head_fraction=_safe_div(drafter_head, drafter_total),
         drafter_overhead_fraction=_safe_div(drafter_overhead, drafter_total),
         drafter_to_verifier_fraction=_safe_div(
-            _safe_div(drafter_total, draft_block_size),
-            verifier_seconds,
+            time_per_drafter_call,
+            time_per_verifier_call,
         ),
         drafter_registration_seconds=registration,
         drafter_teardown_seconds=teardown,
