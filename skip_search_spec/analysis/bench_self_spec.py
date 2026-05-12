@@ -1262,7 +1262,7 @@ def _plot_variant_distribution(
     fig.text(
         0.5,
         0.945,
-        title or "Self-speculation per-example speedup",
+        title or "Self-speculation per-token speedup",
         ha="center",
         va="top",
         fontsize=22,
@@ -1383,6 +1383,7 @@ def _styled_variant_payload(variant: dict[str, Any]) -> dict[str, Any]:
     summary = variant["summary"]
     profile_summary = variant.get("profile_summary")
     prompt_results = variant["prompt_results"]
+    profile_results = variant.get("profile_results", [])
     if key == "flashhead" or metadata.get("flashhead_enabled"):
         colors = {
             "edge": "#9B007F",
@@ -1411,6 +1412,7 @@ def _styled_variant_payload(variant: dict[str, Any]) -> dict[str, Any]:
         "metadata": metadata,
         "summary": summary,
         "profile_summary": profile_summary,
+         "profile_results": profile_results,
         "speedups": speedups,
         "aggregate_speedup": _summary_speedup(summary),
         **colors,
@@ -1419,9 +1421,9 @@ def _styled_variant_payload(variant: dict[str, Any]) -> dict[str, Any]:
 
 def _summary_speedup(summary: dict[str, Any]) -> float | None:
     for key in (
-        "mean_prompt_speedup_per_generated_token",
+        #"mean_prompt_speedup_per_generated_token",
         "total_speedup_per_generated_token",
-        "total_speedup_seconds",
+        #"total_speedup_seconds",
     ):
         value = summary.get(key)
         if value is not None:
@@ -1732,6 +1734,33 @@ def _info_sections(
                 ),
             ]
         )
+    
+    normal_time_per_token = _safe_div(
+        summary.get("total_normal_seconds"),
+        summary.get("total_normal_generated_tokens"),
+    )
+
+    verifier_calls_minus_prefill = sum(
+        result["verifier_calls"] - 1
+        for result in variant.get("profile_results", [])
+    )
+
+    verifier_time_per_call = _safe_div(
+        profile_summary.get("verifier_seconds"),
+        verifier_calls_minus_prefill,
+    )
+
+    verifier_to_normal_ratio = _safe_div(
+        verifier_time_per_call,
+        normal_time_per_token,
+    )
+    
+    profile_rows.append(
+        (
+            f"Verifier/normal ({prefix})",
+            _fmt_x(verifier_to_normal_ratio),
+        )
+    )
     
     fh_accuracy = _flashhead_acceptance_ratio(variants)
     if fh_accuracy is not None:
