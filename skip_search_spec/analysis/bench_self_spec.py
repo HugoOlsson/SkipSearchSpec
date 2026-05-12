@@ -191,7 +191,7 @@ def run_cli(argv: list[str]) -> None:
     parser.add_argument(
         "--profile-prompts",
         type=int,
-        default=5,
+        default=10,
         help=(
             "Run M prompts with internal timings after warmup. These profile "
             "runs are saved separately and are not used for speedup metrics."
@@ -213,7 +213,7 @@ def run_cli(argv: list[str]) -> None:
     parser.add_argument(
         "--flashhead-top-k-clusters",
         type=int,
-        default=100,
+        default=50,
     )
     parser.add_argument(
         "--variants",
