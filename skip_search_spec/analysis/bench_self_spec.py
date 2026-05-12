@@ -191,7 +191,7 @@ def run_cli(argv: list[str]) -> None:
     parser.add_argument(
         "--profile-prompts",
         type=int,
-        default=10,
+        default=15,
         help=(
             "Run M prompts with internal timings after warmup. These profile "
             "runs are saved separately and are not used for speedup metrics."
