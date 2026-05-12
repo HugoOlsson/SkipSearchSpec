@@ -92,7 +92,7 @@ def generate_normal(
     sync_device_for_timing(device)
     total_start_time = time.perf_counter()
 
-    if not measure_internal_timings:
+    if not debug_argmax_ties:
         return _generate_normal_hf_generate(
             model=model,
             tokenizer=tokenizer,

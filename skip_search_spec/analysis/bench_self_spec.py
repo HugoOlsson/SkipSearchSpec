@@ -722,6 +722,7 @@ def _run_prompt_phase(
                     model=bridged.model,
                     tokenizer=bridged.tokenizer,
                     device=bridged.device,
+                    #measure_internal_timings=measure_internal_timings,
                     debug_argmax_ties=debug_argmax_ties
                 )
                 normal_peak_allocated_bytes = _cuda_peak_allocated_bytes()
