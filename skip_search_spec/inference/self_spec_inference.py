@@ -17,11 +17,38 @@ from skip_search_spec.training.flashhead.next_token_adapter import FlashHeadModu
 @dataclass(slots=True)
 class SelfSpecTimings:
     total_seconds: float = 0.0
+
+    verifier_seconds: float = 0.0
+    drafter_total_seconds: float = 0.0
+    drafter_body_seconds: float = 0.0
+
     dense_head_seconds: float = 0.0
     flashhead_seconds: float = 0.0
 
     drafter_registration_seconds: float = 0.0
     drafter_teardown_seconds: float = 0.0
+
+    @property
+    def head_seconds(self) -> float:
+        return self.dense_head_seconds + self.flashhead_seconds
+
+    @property
+    def drafter_overhead_seconds(self) -> float:
+        return max(
+            0.0,
+            self.drafter_total_seconds
+            - self.drafter_body_seconds
+            - self.head_seconds,
+        )
+
+    @property
+    def overhead_seconds(self) -> float:
+        measured = (
+            self.verifier_seconds
+            + self.drafter_body_seconds
+            + self.head_seconds
+        )
+        return max(0.0, self.total_seconds - measured)
 
 
 @dataclass(slots=True)
@@ -170,6 +197,33 @@ class BridgeSelfSpeculator:
         if self.flashhead is not None:
             self.flashhead.eval()
 
+    def _run_verifier_timed(
+        self,
+        *,
+        input_ids: torch.Tensor,
+        attention_mask: torch.Tensor | None,
+        past_key_values: Any | None = None,
+        timings: SelfSpecTimings,
+        measure_internal_timings: bool,
+    ) -> Any:
+        if measure_internal_timings:
+            sync_device_for_timing(self.device)
+            start_time = time.perf_counter()
+
+        verifier = self.bridged.run_verifier(
+            input_ids=input_ids,
+            attention_mask=attention_mask,
+            past_key_values=past_key_values,
+        )
+
+        if measure_internal_timings:
+            timings.verifier_seconds += elapsed_seconds_since(
+                start_time,
+                device=self.device,
+            )
+
+        return verifier
+
     @torch.inference_mode()
     def generate(
         self,
@@ -185,9 +239,6 @@ class BridgeSelfSpeculator:
         measure_internal_timings: bool = True,
     ) -> SelfSpecResult:
         timings = SelfSpecTimings()
-        sync_device_for_timing(self.device)
-        total_start_time = time.perf_counter()
-
         model_prompt = prompt
         if use_chat_template:
             model_prompt = format_user_chat_prompt(
@@ -203,6 +254,7 @@ class BridgeSelfSpeculator:
         )
 
         input_ids = cast(torch.Tensor, encoded_prompt["input_ids"]).to(self.device)
+        prompt_attention_mask = torch.ones_like(input_ids)
         prompt_len = input_ids.size(1)
 
         if input_ids.size(0) != 1:
@@ -222,10 +274,15 @@ class BridgeSelfSpeculator:
         eos_token_id = self.tokenizer.eos_token_id
         should_stop_on_eos = stop_on_eos and isinstance(eos_token_id, int)
 
+        sync_device_for_timing(self.device)
+        total_start_time = time.perf_counter()
+
         # 1. Verify the prompt once to create the base.
-        verifier = self.bridged.run_verifier(
+        verifier = self._run_verifier_timed(
             input_ids=input_ids,
-            attention_mask=torch.ones_like(input_ids),
+            attention_mask=prompt_attention_mask,
+            timings=timings,
+            measure_internal_timings=measure_internal_timings,
         )
         verifier_calls += 1
         kv_cache = KVCacheHandler.from_verifier_output_after_prompt(
@@ -250,6 +307,10 @@ class BridgeSelfSpeculator:
             remaining_tokens = max_new_tokens - generated_tokens
             block_size = min(draft_block_size, remaining_tokens)
 
+            if measure_internal_timings:
+                sync_device_for_timing(self.device)
+                drafter_total_start_time = time.perf_counter()
+
             draft_tokens = self._draft_block(
                 accepted_ids=accepted_ids,
                 verifier_reference_hidden=verifier_reference_hidden,
@@ -259,6 +320,12 @@ class BridgeSelfSpeculator:
                 measure_internal_timings=measure_internal_timings,
             )
 
+            if measure_internal_timings:
+                timings.drafter_total_seconds += elapsed_seconds_since(
+                    drafter_total_start_time,
+                    device=self.device,
+                )
+
             drafted_tokens += draft_tokens.size(1)
 
             accepted_len_before_draft = accepted_ids.size(1)
@@ -267,10 +334,12 @@ class BridgeSelfSpeculator:
             # 3. Run verifier on the suffix after the verifier-cached prefix.
             verifier_cache_len_before_verifier_call = kv_cache.verifier_cache_len
             verifier_input_ids = candidate_ids[:, kv_cache.verifier_cache_len:]
-            verifier = self.bridged.run_verifier(
+            verifier = self._run_verifier_timed(
                 input_ids=verifier_input_ids,
                 attention_mask=torch.ones_like(candidate_ids),
                 past_key_values=kv_cache.past_key_values,
+                timings=timings,
+                measure_internal_timings=measure_internal_timings,
             )
             verifier_calls += 1
 
@@ -392,6 +461,12 @@ class BridgeSelfSpeculator:
             if should_stop_on_eos and verifier_token_id == eos_token_id:
                 break
 
+
+        timings.total_seconds = elapsed_seconds_since(
+            total_start_time,
+            device=self.device,
+        )
+
         text = self.tokenizer.decode(
             accepted_ids[0],
             skip_special_tokens=True,
@@ -403,11 +478,6 @@ class BridgeSelfSpeculator:
                 path=trace_json_path,
                 tokenizer_name=self.bridged.config.model_name,
             )
-
-        timings.total_seconds = elapsed_seconds_since(
-            total_start_time,
-            device=self.device,
-        )
 
         num_generated_tokens = int(accepted_ids.size(1) - prompt_len)
 

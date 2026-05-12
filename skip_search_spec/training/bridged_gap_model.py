@@ -50,6 +50,7 @@ class NoOpDecoderLayer(nn.Module):
         return hidden_states
 
 
+
 @dataclass(frozen=True, slots=True)
 class BridgedGapConfig:
     model_name: str
@@ -81,6 +82,23 @@ class VerifierBridgeOutput:
     # The hidden source used as the bridge's previous-position conditioning.
     # This can be reentry_hidden today, final_hidden tomorrow, etc.
     reference_hidden: torch.Tensor
+
+def sync_device_for_timing(device: torch.device) -> None:
+    if device.type == "cuda":
+        torch.cuda.synchronize(device)
+        return
+
+    if device.type == "mps" and hasattr(torch, "mps"):
+        torch.mps.synchronize()
+
+
+def elapsed_seconds_since(
+    start_time: float,
+    *,
+    device: torch.device,
+) -> float:
+    sync_device_for_timing(device)
+    return time.perf_counter() - start_time
 
 
 @dataclass(slots=True)
@@ -502,6 +520,12 @@ class BridgedGapModel:
                 logits = drafter_forward.logits
                 output_past_key_values = drafter_forward.past_key_values
             else:
+                if measure_internal_timings and timings is not None:
+                    sync_device_for_timing(input_ids.device)
+                    drafter_body_start_time = time.perf_counter()
+                else:
+                    drafter_body_start_time = None
+
                 backbone_forward = backbone(
                     input_ids=input_ids,
                     attention_mask=attention_mask,
@@ -510,6 +534,17 @@ class BridgedGapModel:
                     past_key_values=past_key_values,
                     return_dict=True,
                 )
+
+                if (
+                    measure_internal_timings
+                    and timings is not None
+                    and drafter_body_start_time is not None
+                ):
+                    timings.drafter_body_seconds += elapsed_seconds_since(
+                        drafter_body_start_time,
+                        device=input_ids.device,
+                    )
+
                 logits = None
                 output_past_key_values = getattr(
                     backbone_forward,

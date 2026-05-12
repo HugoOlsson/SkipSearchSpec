@@ -34,6 +34,7 @@ PromptSetName = Literal[
 ]
 VariantMode = Literal["auto", "flashhead", "no-flashhead", "both"]
 VariantOrder = Literal["no-flashhead-first", "flashhead-first"]
+PhaseName = Literal["warmup", "profile", "speed"]
 
 
 PROMPT_SETS: dict[PromptSetName, tuple[list[tuple[str, str]], bool]] = {
@@ -50,6 +51,12 @@ PROMPT_SETS: dict[PromptSetName, tuple[list[tuple[str, str]], bool]] = {
 
 @dataclass(frozen=True, slots=True)
 class PromptBenchResult:
+    """One real speed-benchmark prompt.
+
+    These rows are generated with measure_internal_timings=False. Profile timings
+    are stored separately in ProfilePromptResult / ProfileSummary.
+    """
+
     index: int
     name: str
     included_in_metrics: bool
@@ -59,8 +66,11 @@ class PromptBenchResult:
     drafted_tokens: int
     accepted_draft_tokens: int
     acceptance_rate: float
+    drafter_total_seconds: float
+    drafter_body_seconds: float
     dense_head_seconds: float
     flashhead_seconds: float
+    drafter_overhead_seconds: float
     drafter_registration_seconds: float
     drafter_teardown_seconds: float
     self_spec_peak_allocated_bytes: int | None
@@ -71,6 +81,62 @@ class PromptBenchResult:
     speedup_seconds: float | None
     speedup_per_generated_token: float | None
     first_mismatch_index: int | None
+
+
+@dataclass(frozen=True, slots=True)
+class ProfilePromptResult:
+    """One internally timed profiling prompt.
+
+    These rows are generated with measure_internal_timings=True and are not used
+    for speedup numbers.
+    """
+
+    index: int
+    name: str
+    profile_seconds: float
+    generated_tokens: int
+
+    verifier_seconds: float
+
+    drafter_total_seconds: float
+    drafter_body_seconds: float
+    drafter_dense_head_seconds: float
+    drafter_flashhead_seconds: float
+    drafter_head_seconds: float
+    drafter_overhead_seconds: float
+
+    drafter_registration_seconds: float
+    drafter_teardown_seconds: float
+
+
+@dataclass(frozen=True, slots=True)
+class PhaseRunResult:
+    prompt_results: list[PromptBenchResult]
+    profile_results: list[ProfilePromptResult]
+
+
+@dataclass(frozen=True, slots=True)
+class ProfileSummary:
+    profile_prompt_count: int
+    profile_generated_tokens: int
+
+    profile_total_seconds: float
+    verifier_seconds: float
+
+    drafter_total_seconds: float
+    drafter_body_seconds: float
+    drafter_dense_head_seconds: float
+    drafter_flashhead_seconds: float
+    drafter_head_seconds: float
+    drafter_overhead_seconds: float
+
+    drafter_body_fraction: float | None
+    drafter_head_fraction: float | None
+    drafter_overhead_fraction: float | None
+    drafter_to_verifier_fraction: float | None
+
+    drafter_registration_seconds: float
+    drafter_teardown_seconds: float
 
 
 @dataclass(frozen=True, slots=True)
@@ -92,12 +158,6 @@ class BenchSummary:
     std_prompt_speedup_per_generated_token: float | None
     exact_match_count: int | None
     exact_match_rate: float | None
-    internal_dense_head_seconds: float | None
-    internal_flashhead_seconds: float | None
-    internal_head_seconds: float | None
-    internal_body_seconds_estimate: float | None
-    internal_drafter_registration_seconds: float | None
-    internal_drafter_teardown_seconds: float | None
     mean_self_spec_generated_tokens_per_prompt: float
     mean_normal_generated_tokens_per_prompt: float | None
     normal_tokens_per_second: float | None
@@ -121,7 +181,19 @@ def run_cli(argv: list[str]) -> None:
         "--warmup-prompts",
         type=int,
         default=5,
-        help="Run but exclude the first N prompts from all aggregate metrics.",
+        help=(
+            "Run N warmup prompts before profiling and benchmarking. Warmup "
+            "results are discarded."
+        ),
+    )
+    parser.add_argument(
+        "--profile-prompts",
+        type=int,
+        default=5,
+        help=(
+            "Run M prompts with internal timings after warmup. These profile "
+            "runs are saved separately and are not used for speedup metrics."
+        ),
     )
     parser.add_argument(
         "--max-prompts",
@@ -135,11 +207,6 @@ def run_cli(argv: list[str]) -> None:
         action=argparse.BooleanOptionalAction,
         default=True,
         help="Run normal greedy generation for exact-match and speedup metrics.",
-    )
-    parser.add_argument(
-        "--measure-internal-timings",
-        action=argparse.BooleanOptionalAction,
-        default=False,
     )
     parser.add_argument(
         "--flashhead-top-k-clusters",
@@ -183,10 +250,10 @@ def run_cli(argv: list[str]) -> None:
         flashhead_path=args.flashhead_path,
         prompt_set=args.prompt_set,
         warmup_prompts=args.warmup_prompts,
+        profile_prompts=args.profile_prompts,
         max_prompts=args.max_prompts,
         max_new_tokens=args.max_new_tokens,
         compare_to_normal=args.compare_to_normal,
-        measure_internal_timings=args.measure_internal_timings,
         flashhead_top_k_clusters=args.flashhead_top_k_clusters,
         variants=args.variants,
         variant_order=args.variant_order,
@@ -235,10 +302,10 @@ def bench_self_spec(
     flashhead_path: str | Path | None = None,
     prompt_set: PromptSetName = "completion-style",
     warmup_prompts: int = 0,
+    profile_prompts: int = 5,
     max_prompts: int | None = None,
     max_new_tokens: int = 200,
     compare_to_normal: bool = True,
-    measure_internal_timings: bool = True,
     flashhead_top_k_clusters: int = 100,
     variants: VariantMode = "auto",
     variant_order: VariantOrder = "no-flashhead-first",
@@ -250,6 +317,8 @@ def bench_self_spec(
         raise ValueError("draft_block_size must be >= 1.")
     if warmup_prompts < 0:
         raise ValueError("warmup_prompts must be >= 0.")
+    if profile_prompts < 0:
+        raise ValueError("profile_prompts must be >= 0.")
     if max_prompts is not None and max_prompts < 1:
         raise ValueError("max_prompts must be >= 1.")
     if max_new_tokens < 1:
@@ -293,10 +362,10 @@ def bench_self_spec(
                 normal_cache=normal_cache,
                 use_chat_template=use_chat_template,
                 warmup_prompts=warmup_prompts,
+                profile_prompts=profile_prompts,
                 max_new_tokens=max_new_tokens,
                 draft_block_size=draft_block_size,
                 compare_to_normal=compare_to_normal,
-                measure_internal_timings=measure_internal_timings,
                 flashhead_top_k_clusters=flashhead_top_k_clusters,
                 bridge_path=bridge_path,
                 prompt_set=prompt_set,
@@ -314,6 +383,7 @@ def bench_self_spec(
         draft_block_size=draft_block_size,
         max_new_tokens=max_new_tokens,
         warmup_prompts=warmup_prompts,
+        profile_prompts=profile_prompts,
         variants=variants,
         flash_path=flash_path,
         bridged=bridged,
@@ -321,7 +391,7 @@ def bench_self_spec(
     json_path = output_dir / f"{run_stem}.json"
 
     payload = {
-        "schema_version": 2,
+        "schema_version": 3,
         "common_metadata": {
             "created_at": datetime.now().isoformat(timespec="seconds"),
             "bridge_checkpoint_path": str(bridge_path.resolve(strict=False)),
@@ -329,13 +399,19 @@ def bench_self_spec(
             "max_prompts": max_prompts,
             "available_prompt_count": original_prompt_count,
             "run_prompt_count": len(prompts),
+            "warmup_prompts": warmup_prompts,
+            "profile_prompts": profile_prompts,
             "variant_order": [variant["key"] for variant in variant_specs],
+            "speed_measure_internal_timings": False,
+            "profile_measure_internal_timings": profile_prompts > 0,
         },
         "variant_results": variant_results,
     }
     if len(variant_results) == 1:
         payload["metadata"] = variant_results[0]["metadata"]
         payload["summary"] = variant_results[0]["summary"]
+        payload["profile_summary"] = variant_results[0]["profile_summary"]
+        payload["profile_results"] = variant_results[0]["profile_results"]
         payload["prompt_results"] = variant_results[0]["prompt_results"]
 
     with json_path.open("w", encoding="utf-8") as f:
@@ -390,10 +466,10 @@ def _run_bench_variant(
     normal_cache: dict[int, Any],
     use_chat_template: bool,
     warmup_prompts: int,
+    profile_prompts: int,
     max_new_tokens: int,
     draft_block_size: int,
     compare_to_normal: bool,
-    measure_internal_timings: bool,
     flashhead_top_k_clusters: int,
     bridge_path: Path,
     prompt_set: str,
@@ -407,15 +483,146 @@ def _run_bench_variant(
         flashhead_path=flash_path,
         flashhead_top_k_clusters=flashhead_top_k_clusters,
     )
-    prompt_results: list[PromptBenchResult] = []
 
-    for prompt_index, (prompt_name, prompt) in enumerate(prompts, start=1):
-        included = prompt_index > warmup_prompts
-        phase = "measure" if included else "warmup"
-        print()
+    warmup_slice = prompts[:warmup_prompts]
+    profile_slice = prompts[warmup_prompts : warmup_prompts + profile_prompts]
+    speed_slice = prompts[warmup_prompts:]
+
+    _ = _run_prompt_phase(
+        phase="warmup",
+        speculator=speculator,
+        bridged=bridged,
+        prompts=warmup_slice,
+        start_index=1,
+        normal_cache=normal_cache,
+        use_chat_template=use_chat_template,
+        max_new_tokens=max_new_tokens,
+        draft_block_size=draft_block_size,
+        compare_to_normal=compare_to_normal,
+        variant_label=variant["label"],
+    )
+
+    profile_phase = _run_prompt_phase(
+        phase="profile",
+        speculator=speculator,
+        bridged=bridged,
+        prompts=profile_slice,
+        start_index=warmup_prompts + 1,
+        normal_cache=normal_cache,
+        use_chat_template=use_chat_template,
+        max_new_tokens=max_new_tokens,
+        draft_block_size=draft_block_size,
+        compare_to_normal=False,
+        variant_label=variant["label"],
+    )
+    profile_results = profile_phase.profile_results
+    profile_summary = _summarize_profile(profile_results)
+
+    speed_phase = _run_prompt_phase(
+        phase="speed",
+        speculator=speculator,
+        bridged=bridged,
+        prompts=speed_slice,
+        start_index=warmup_prompts + 1,
+        normal_cache=normal_cache,
+        use_chat_template=use_chat_template,
+        max_new_tokens=max_new_tokens,
+        draft_block_size=draft_block_size,
+        compare_to_normal=compare_to_normal,
+        variant_label=variant["label"],
+    )
+    prompt_results = speed_phase.prompt_results
+
+    metadata = _build_metadata(
+        bridged=bridged,
+        speculator=speculator,
+        bridge_path=bridge_path,
+        flash_path=flash_path,
+        prompt_set=prompt_set,
+        use_chat_template=use_chat_template,
+        draft_block_size=draft_block_size,
+        max_new_tokens=max_new_tokens,
+        compare_to_normal=compare_to_normal,
+        flashhead_top_k_clusters=flashhead_top_k_clusters,
+        bridge_dtype=bridge_dtype,
+        requested_max_prompts=requested_max_prompts,
+        available_prompt_count=available_prompt_count,
+        run_prompt_count=len(prompts),
+        warmup_prompts=warmup_prompts,
+        profile_prompts=profile_prompts,
+        profile_prompt_count=len(profile_results),
+        speed_prompt_count=len(prompt_results),
+    )
+    summary = _summarize(
+        prompt_results=prompt_results,
+        warmup_prompts=warmup_prompts,
+    )
+
+    metadata["mean_self_spec_peak_allocated_bytes"] = _mean_int_or_none(
+        [
+            result.self_spec_peak_allocated_bytes
+            for result in prompt_results
+            if result.self_spec_peak_allocated_bytes is not None
+        ]
+    )
+
+    metadata["mean_normal_peak_allocated_bytes"] = _mean_int_or_none(
+        [
+            result.normal_peak_allocated_bytes
+            for result in prompt_results
+            if result.normal_peak_allocated_bytes is not None
+        ]
+    )
+
+    return {
+        "variant_key": variant["key"],
+        "variant_label": variant["label"],
+        "metadata": metadata,
+        "summary": asdict(summary),
+        "profile_summary": asdict(profile_summary) if profile_summary else None,
+        "profile_results": [asdict(result) for result in profile_results],
+        "prompt_results": [asdict(result) for result in prompt_results],
+    }
+
+
+def _run_prompt_phase(
+    *,
+    phase: PhaseName,
+    speculator: BridgeSelfSpeculator,
+    bridged: BridgedGapModel,
+    prompts: list[tuple[str, str]],
+    start_index: int,
+    normal_cache: dict[int, Any],
+    use_chat_template: bool,
+    max_new_tokens: int,
+    draft_block_size: int,
+    compare_to_normal: bool,
+    variant_label: str,
+) -> PhaseRunResult:
+    if not prompts:
+        return PhaseRunResult(prompt_results=[], profile_results=[])
+
+    measure_internal_timings = phase == "profile"
+    should_record_profile = phase == "profile"
+    should_record_speed = phase == "speed"
+    should_run_normal = compare_to_normal and phase in {"warmup", "speed"}
+
+    print()
+    print(
+        f"{phase.capitalize()} phase for {variant_label}: "
+        f"{len(prompts)} prompt(s); "
+        f"internal timings {'enabled' if measure_internal_timings else 'disabled'}"
+    )
+
+    prompt_results: list[PromptBenchResult] = []
+    profile_results: list[ProfilePromptResult] = []
+
+    for offset, (prompt_name, prompt) in enumerate(prompts):
+        prompt_index = start_index + offset
+
         print(
-            f"[{variant['label']} / {phase}] "
-            f"Prompt {prompt_index}/{len(prompts)}: {prompt_name}"
+            f"[{variant_label} / {phase}] Prompt {offset + 1}/{len(prompts)} "
+            f"(original index {prompt_index}): {prompt_name}"
         )
 
         _reset_cuda_peak_memory_stats()
@@ -430,8 +637,49 @@ def _run_bench_variant(
         self_spec_peak_allocated_bytes = _cuda_peak_allocated_bytes()
         timings = self_spec_result.timings
         acceptance_rate = self_spec_result.accepted_draft_tokens / max(
-            self_spec_result.drafted_tokens, 1
+            self_spec_result.drafted_tokens,
+            1,
         )
+
+        if should_record_profile:
+            profile_result = ProfilePromptResult(
+                index=prompt_index,
+                name=prompt_name,
+                profile_seconds=timings.total_seconds,
+                generated_tokens=self_spec_result.num_generated_tokens,
+                verifier_seconds=timings.verifier_seconds,
+                drafter_total_seconds=timings.drafter_total_seconds,
+                drafter_body_seconds=timings.drafter_body_seconds,
+                drafter_dense_head_seconds=timings.dense_head_seconds,
+                drafter_flashhead_seconds=timings.flashhead_seconds,
+                drafter_head_seconds=timings.head_seconds,
+                drafter_overhead_seconds=timings.drafter_overhead_seconds,
+                drafter_registration_seconds=timings.drafter_registration_seconds,
+                drafter_teardown_seconds=timings.drafter_teardown_seconds,
+            )
+            profile_results.append(profile_result)
+
+            print(
+                {
+                    "profile_seconds": profile_result.profile_seconds,
+                    "drafter_body_fraction": _safe_div(
+                        profile_result.drafter_body_seconds,
+                        profile_result.drafter_total_seconds,
+                    ),
+                    "drafter_head_fraction": _safe_div(
+                        profile_result.drafter_head_seconds,
+                        profile_result.drafter_total_seconds,
+                    ),
+                    "drafter_overhead_fraction": _safe_div(
+                        profile_result.drafter_overhead_seconds,
+                        profile_result.drafter_total_seconds,
+                    ),
+                    "drafter_to_verifier_fraction": _safe_div(
+                        profile_result.drafter_total_seconds,
+                        profile_result.verifier_seconds,
+                    ),
+                }
+            )
 
         normal_seconds: float | None = None
         normal_generated_tokens: int | None = None
@@ -439,11 +687,11 @@ def _run_bench_variant(
         speedup_seconds: float | None = None
         speedup_per_generated_token: float | None = None
         first_mismatch_index: int | None = None
-
         normal_peak_allocated_bytes: int | None = None
 
-        if compare_to_normal:
+        if should_run_normal:
             normal_cache_entry = normal_cache.get(prompt_index)
+
             if normal_cache_entry is None:
                 _reset_cuda_peak_memory_stats()
                 normal_result = generate_normal(
@@ -460,110 +708,74 @@ def _run_bench_variant(
                     "result": normal_result,
                     "peak_allocated_bytes": normal_peak_allocated_bytes,
                 }
-                normal_cache[prompt_index] = normal_cache_entry
+
+                if phase == "speed":
+                    normal_cache[prompt_index] = normal_cache_entry
             else:
                 normal_result = normal_cache_entry["result"]
-                normal_peak_allocated_bytes = normal_cache_entry["peak_allocated_bytes"]
+                normal_peak_allocated_bytes = normal_cache_entry[
+                    "peak_allocated_bytes"
+                ]
 
-            normal_seconds = normal_result.inference_seconds
-            normal_generated_tokens = normal_result.num_generated_tokens
-            exact_match = self_spec_result.text == normal_result.text
-            speedup_seconds = _safe_div(normal_seconds, timings.total_seconds)
-            speedup_per_generated_token = _speedup_per_generated_token(
-                self_spec_tokens=self_spec_result.num_generated_tokens,
-                self_spec_seconds=timings.total_seconds,
-                normal_tokens=normal_result.num_generated_tokens,
-                normal_seconds=normal_seconds,
-            )
-            if not exact_match:
-                first_mismatch_index = _first_mismatch_index(
-                    self_spec_result.text,
-                    normal_result.text,
+            if should_record_speed:
+                normal_seconds = normal_result.inference_seconds
+                normal_generated_tokens = normal_result.num_generated_tokens
+                exact_match = self_spec_result.text == normal_result.text
+                speedup_seconds = _safe_div(normal_seconds, timings.total_seconds)
+                speedup_per_generated_token = _speedup_per_generated_token(
+                    self_spec_tokens=self_spec_result.num_generated_tokens,
+                    self_spec_seconds=timings.total_seconds,
+                    normal_tokens=normal_result.num_generated_tokens,
+                    normal_seconds=normal_seconds,
                 )
+                if not exact_match:
+                    first_mismatch_index = _first_mismatch_index(
+                        self_spec_result.text,
+                        normal_result.text,
+                    )
 
-        result = PromptBenchResult(
-            index=prompt_index,
-            name=prompt_name,
-            included_in_metrics=included,
-            self_spec_seconds=timings.total_seconds,
-            self_spec_generated_tokens=self_spec_result.num_generated_tokens,
-            verifier_calls=self_spec_result.verifier_calls,
-            drafted_tokens=self_spec_result.drafted_tokens,
-            accepted_draft_tokens=self_spec_result.accepted_draft_tokens,
-            acceptance_rate=acceptance_rate,
-            dense_head_seconds=timings.dense_head_seconds,
-            flashhead_seconds=timings.flashhead_seconds,
-            drafter_registration_seconds=timings.drafter_registration_seconds,
-            drafter_teardown_seconds=timings.drafter_teardown_seconds,
-            normal_seconds=normal_seconds,
-            normal_generated_tokens=normal_generated_tokens,
-            exact_match=exact_match,
-            speedup_seconds=speedup_seconds,
-            speedup_per_generated_token=speedup_per_generated_token,
-            first_mismatch_index=first_mismatch_index,
-            self_spec_peak_allocated_bytes=self_spec_peak_allocated_bytes,
-            normal_peak_allocated_bytes=normal_peak_allocated_bytes,
-        )
-        prompt_results.append(result)
+        if should_record_speed:
+            prompt_result = PromptBenchResult(
+                index=prompt_index,
+                name=prompt_name,
+                included_in_metrics=True,
+                self_spec_seconds=timings.total_seconds,
+                self_spec_generated_tokens=self_spec_result.num_generated_tokens,
+                verifier_calls=self_spec_result.verifier_calls,
+                drafted_tokens=self_spec_result.drafted_tokens,
+                accepted_draft_tokens=self_spec_result.accepted_draft_tokens,
+                acceptance_rate=acceptance_rate,
+                drafter_total_seconds=timings.drafter_total_seconds,
+                drafter_body_seconds=timings.drafter_body_seconds,
+                dense_head_seconds=timings.dense_head_seconds,
+                flashhead_seconds=timings.flashhead_seconds,
+                drafter_overhead_seconds=timings.drafter_overhead_seconds,
+                drafter_registration_seconds=timings.drafter_registration_seconds,
+                drafter_teardown_seconds=timings.drafter_teardown_seconds,
+                normal_seconds=normal_seconds,
+                normal_generated_tokens=normal_generated_tokens,
+                exact_match=exact_match,
+                speedup_seconds=speedup_seconds,
+                speedup_per_generated_token=speedup_per_generated_token,
+                first_mismatch_index=first_mismatch_index,
+                self_spec_peak_allocated_bytes=self_spec_peak_allocated_bytes,
+                normal_peak_allocated_bytes=normal_peak_allocated_bytes,
+            )
+            prompt_results.append(prompt_result)
 
-        print(
-            {
-                "acceptance_rate": acceptance_rate,
-                "self_spec_seconds": timings.total_seconds,
-                "speedup_per_generated_token": speedup_per_generated_token,
-                "exact_match": exact_match,
-            }
-        )
+            print(
+                {
+                    "acceptance_rate": acceptance_rate,
+                    "self_spec_seconds": timings.total_seconds,
+                    "speedup_per_generated_token": speedup_per_generated_token,
+                    "exact_match": exact_match,
+                }
+            )
 
-    metadata = _build_metadata(
-        bridged=bridged,
-        speculator=speculator,
-        bridge_path=bridge_path,
-        flash_path=flash_path,
-        prompt_set=prompt_set,
-        use_chat_template=use_chat_template,
-        draft_block_size=draft_block_size,
-        max_new_tokens=max_new_tokens,
-        compare_to_normal=compare_to_normal,
-        measure_internal_timings=measure_internal_timings,
-        flashhead_top_k_clusters=flashhead_top_k_clusters,
-        bridge_dtype=bridge_dtype,
-        requested_max_prompts=requested_max_prompts,
-        available_prompt_count=available_prompt_count,
-        run_prompt_count=len(prompts),
-    )
-    summary = _summarize(
+    return PhaseRunResult(
         prompt_results=prompt_results,
-        measure_internal_timings=measure_internal_timings,
+        profile_results=profile_results,
     )
-
-    included_results = [
-        result for result in prompt_results if result.included_in_metrics
-    ]
-
-    metadata["mean_self_spec_peak_allocated_bytes"] = _mean_int_or_none(
-        [
-            result.self_spec_peak_allocated_bytes
-            for result in included_results
-            if result.self_spec_peak_allocated_bytes is not None
-        ]
-    )
-
-    metadata["mean_normal_peak_allocated_bytes"] = _mean_int_or_none(
-        [
-            result.normal_peak_allocated_bytes
-            for result in included_results
-            if result.normal_peak_allocated_bytes is not None
-        ]
-    )
-
-    return {
-        "variant_key": variant["key"],
-        "variant_label": variant["label"],
-        "metadata": metadata,
-        "summary": asdict(summary),
-        "prompt_results": [asdict(result) for result in prompt_results],
-    }
 
 
 def _parse_bridge_dtype(value: str) -> torch.dtype | Literal["model"]:
@@ -580,7 +792,7 @@ def _parse_bridge_dtype(value: str) -> torch.dtype | Literal["model"]:
 def _summarize(
     *,
     prompt_results: list[PromptBenchResult],
-    measure_internal_timings: bool,
+    warmup_prompts: int,
 ) -> BenchSummary:
     included = [result for result in prompt_results if result.included_in_metrics]
     speedups = [
@@ -633,25 +845,10 @@ def _summarize(
             total_normal_seconds,
         )
 
-    dense_head_seconds = sum(result.dense_head_seconds for result in included)
-    flashhead_seconds = sum(result.flashhead_seconds for result in included)
-    registration_seconds = sum(
-        result.drafter_registration_seconds for result in included
-    )
-    teardown_seconds = sum(result.drafter_teardown_seconds for result in included)
-    head_seconds = dense_head_seconds + flashhead_seconds
-    body_seconds = max(
-        0.0,
-        total_self_spec_seconds
-        - head_seconds
-        - registration_seconds
-        - teardown_seconds,
-    )
-
     return BenchSummary(
         prompt_count_total=len(prompt_results),
         prompt_count_included=len(included),
-        warmup_prompts=len(prompt_results) - len(included),
+        warmup_prompts=warmup_prompts,
         total_self_spec_seconds=total_self_spec_seconds,
         total_normal_seconds=total_normal_seconds,
         total_self_spec_generated_tokens=total_self_spec_tokens,
@@ -668,26 +865,11 @@ def _summarize(
         std_prompt_speedup_per_generated_token=_sample_std_or_none(speedups),
         exact_match_count=exact_match_count,
         exact_match_rate=exact_match_rate,
-        internal_dense_head_seconds=dense_head_seconds
-        if measure_internal_timings
-        else None,
-        internal_flashhead_seconds=flashhead_seconds
-        if measure_internal_timings
-        else None,
-        internal_head_seconds=head_seconds if measure_internal_timings else None,
-        internal_body_seconds_estimate=body_seconds
-        if measure_internal_timings
-        else None,
-        internal_drafter_registration_seconds=registration_seconds
-        if measure_internal_timings
-        else None,
-        internal_drafter_teardown_seconds=teardown_seconds
-        if measure_internal_timings
-        else None,
         mean_self_spec_generated_tokens_per_prompt=_safe_div(
             total_self_spec_tokens,
             len(included),
-        ) or 0.0,
+        )
+        or 0.0,
         mean_normal_generated_tokens_per_prompt=(
             _safe_div(total_normal_tokens, len(compared)) if compared else None
         ),
@@ -695,10 +877,59 @@ def _summarize(
         self_spec_tokens_per_second=self_spec_tokens_per_second,
     )
 
+
+def _summarize_profile(
+    profile_results: list[ProfilePromptResult],
+) -> ProfileSummary | None:
+    if not profile_results:
+        return None
+
+    profile_total = sum(result.profile_seconds for result in profile_results)
+    generated_tokens = sum(result.generated_tokens for result in profile_results)
+
+    verifier_seconds = sum(result.verifier_seconds for result in profile_results)
+
+    drafter_total = sum(result.drafter_total_seconds for result in profile_results)
+    drafter_body = sum(result.drafter_body_seconds for result in profile_results)
+    drafter_dense_head = sum(
+        result.drafter_dense_head_seconds for result in profile_results
+    )
+    drafter_flashhead = sum(
+        result.drafter_flashhead_seconds for result in profile_results
+    )
+    drafter_head = drafter_dense_head + drafter_flashhead
+    drafter_overhead = max(0.0, drafter_total - drafter_body - drafter_head)
+
+    registration = sum(
+        result.drafter_registration_seconds for result in profile_results
+    )
+    teardown = sum(result.drafter_teardown_seconds for result in profile_results)
+
+    return ProfileSummary(
+        profile_prompt_count=len(profile_results),
+        profile_generated_tokens=generated_tokens,
+        profile_total_seconds=profile_total,
+        verifier_seconds=verifier_seconds,
+        drafter_total_seconds=drafter_total,
+        drafter_body_seconds=drafter_body,
+        drafter_dense_head_seconds=drafter_dense_head,
+        drafter_flashhead_seconds=drafter_flashhead,
+        drafter_head_seconds=drafter_head,
+        drafter_overhead_seconds=drafter_overhead,
+        drafter_body_fraction=_safe_div(drafter_body, drafter_total),
+        drafter_head_fraction=_safe_div(drafter_head, drafter_total),
+        drafter_overhead_fraction=_safe_div(drafter_overhead, drafter_total),
+        drafter_to_verifier_fraction=_safe_div(drafter_total, verifier_seconds),
+        drafter_registration_seconds=registration,
+        drafter_teardown_seconds=teardown,
+    )
+
+
 def _mean_int_or_none(values: list[int]) -> float | None:
     if not values:
         return None
     return float(sum(values)) / float(len(values))
+
 
 def _gpu_display_name() -> str:
     if not torch.cuda.is_available():
@@ -768,6 +999,7 @@ def _lm_head_parameter_fraction(model: Any) -> float | None:
 
     return head_params / total_params
 
+
 def _flashhead_acceptance_ratio(
     variants: list[dict[str, Any]],
 ) -> float | None:
@@ -802,12 +1034,15 @@ def _build_metadata(
     draft_block_size: int,
     max_new_tokens: int,
     compare_to_normal: bool,
-    measure_internal_timings: bool,
     flashhead_top_k_clusters: int,
     bridge_dtype: str,
     requested_max_prompts: int | None,
     available_prompt_count: int,
     run_prompt_count: int,
+    warmup_prompts: int,
+    profile_prompts: int,
+    profile_prompt_count: int,
+    speed_prompt_count: int,
 ) -> dict[str, Any]:
     model_config = getattr(bridged.model, "config", None)
     backend = (
@@ -824,7 +1059,7 @@ def _build_metadata(
     lm_total_params = _parameter_count(bridged.model)
     lm_head_fraction = _lm_head_parameter_fraction(bridged.model)
 
-    repo_state = get_git_revision()    
+    repo_state = get_git_revision()
 
     return {
         "created_at": datetime.now().isoformat(timespec="seconds"),
@@ -835,11 +1070,16 @@ def _build_metadata(
         "max_prompts": requested_max_prompts,
         "available_prompt_count": available_prompt_count,
         "run_prompt_count": run_prompt_count,
+        "warmup_prompts": warmup_prompts,
+        "requested_profile_prompts": profile_prompts,
+        "profile_prompt_count": profile_prompt_count,
+        "speed_prompt_count": speed_prompt_count,
         "use_chat_template": use_chat_template,
         "draft_block_size": draft_block_size,
         "max_new_tokens": max_new_tokens,
         "compare_to_normal": compare_to_normal,
-        "measure_internal_timings": measure_internal_timings,
+        "speed_measure_internal_timings": False,
+        "profile_measure_internal_timings": profile_prompt_count > 0,
         "flashhead_enabled": flashhead is not None,
         "flashhead_top_k_clusters": flashhead_top_k_clusters
         if flashhead is not None
@@ -912,9 +1152,12 @@ def _variant_payloads(payload: dict[str, Any]) -> list[dict[str, Any]]:
             else "Without FH",
             "metadata": payload["metadata"],
             "summary": payload["summary"],
+            "profile_summary": payload.get("profile_summary"),
+            "profile_results": payload.get("profile_results", []),
             "prompt_results": payload["prompt_results"],
         }
     ]
+
 
 def _draw_git_revision(fig: Any, metadata: dict[str, Any]) -> None:
     commit = metadata.get("git_commit_short") or metadata.get("git_commit")
@@ -924,9 +1167,9 @@ def _draw_git_revision(fig: Any, metadata: dict[str, Any]) -> None:
         return
 
     commit = str(commit)[:8]
-
     text = f"git commit {commit}"
-        
+    if tag:
+        text += f" ({tag})"
 
     fig.text(
         0.985,
@@ -1097,6 +1340,7 @@ def _styled_variant_payload(variant: dict[str, Any]) -> dict[str, Any]:
     key = str(variant.get("variant_key", ""))
     metadata = variant["metadata"]
     summary = variant["summary"]
+    profile_summary = variant.get("profile_summary")
     prompt_results = variant["prompt_results"]
     if key == "flashhead" or metadata.get("flashhead_enabled"):
         colors = {
@@ -1125,6 +1369,7 @@ def _styled_variant_payload(variant: dict[str, Any]) -> dict[str, Any]:
         "short_label": short_label,
         "metadata": metadata,
         "summary": summary,
+        "profile_summary": profile_summary,
         "speedups": speedups,
         "aggregate_speedup": _summary_speedup(summary),
         **colors,
@@ -1242,16 +1487,11 @@ def _draw_inline_legend(ax: Any, variants: list[dict[str, Any]]) -> None:
             color=variant["edge"],
         )
 
+
 def _fmt_int(value: Any) -> str:
     if value is None:
         return "n/a"
     return f"{int(value):,}"
-
-
-def _fmt_float_1(value: float | None) -> str:
-    if value is None:
-        return "n/a"
-    return f"{value:.1f}"
 
 
 def _fmt_pct_2(value: float | None) -> str:
@@ -1259,16 +1499,17 @@ def _fmt_pct_2(value: float | None) -> str:
         return "n/a"
     return f"{100.0 * value:.2f}%"
 
+
 def _fmt_bytes(value: Any) -> str:
     if value is None:
         return "n/a"
 
     value = float(value)
-    gib = value / (1024 ** 3)
+    gib = value / (1024**3)
     if gib >= 1.0:
         return f"{gib:.2f} GiB"
 
-    mib = value / (1024 ** 2)
+    mib = value / (1024**2)
     if mib >= 1.0:
         return f"{mib:.1f} MiB"
 
@@ -1277,6 +1518,7 @@ def _fmt_bytes(value: Any) -> str:
         return f"{kib:.1f} KiB"
 
     return f"{int(value)} B"
+
 
 def _gap_label(metadata: dict[str, Any]) -> str:
     gap_start = metadata.get("gap_start")
@@ -1290,6 +1532,7 @@ def _gap_label(metadata: dict[str, Any]) -> str:
     kept_end = int(num_layers) - int(gap_end)
 
     return f"({kept_start}, {kept_end})"
+
 
 def _fmt_compact_number(value: Any) -> str:
     if value is None:
@@ -1307,11 +1550,13 @@ def _fmt_compact_number(value: Any) -> str:
 
     return str(int(value))
 
+
 def _info_sections(
     variants: list[dict[str, Any]],
 ) -> list[tuple[str, list[tuple[str, str]]]]:
     first = variants[0]
     metadata = first["metadata"]
+    first_profile = first.get("profile_summary") or {}
     setup = [
         ("Prompt set", _prompt_set_display_name(metadata.get("prompt_set"))),
         ("Gap", _gap_label(metadata)),
@@ -1327,16 +1572,20 @@ def _info_sections(
         ("Backend", _value(metadata.get("attention_backend"))),
         ("Model dtype", _dtype_label(metadata.get("model_dtype"))),
         ("Bridge dtype", _dtype_label(metadata.get("loaded_bridge_dtype"))),
+        ("Speed internals", "no"),
         (
-            "Internal timing",
-            _yes_no(bool(metadata.get("measure_internal_timings"))),
+            "Profile prompts",
+            _value(
+                first_profile.get("profile_prompt_count")
+                if first_profile
+                else metadata.get("profile_prompt_count")
+            ),
         ),
-        ("Max tokens/ex", _value(metadata.get("max_new_tokens"))),
         ("Warmup prompts", _value(first["summary"].get("warmup_prompts"))),
         ("Measured prompts", _value(first["summary"].get("prompt_count_included"))),
     ]
 
-    head_rows: list[tuple[str, str]] = []
+    profile_rows: list[tuple[str, str]] = []
     flashhead_meta = next(
         (
             variant["metadata"]
@@ -1383,23 +1632,42 @@ def _info_sections(
                 ),
             ]
         )
-        head_seconds = summary.get("internal_head_seconds")
-        body_seconds = summary.get("internal_body_seconds_estimate")
 
-        if head_seconds is not None or body_seconds is not None:
-            head_rows.append(
+        profile_summary = variant.get("profile_summary") or {}
+        if profile_summary:
+            profile_rows.append(
                 (
-                    f"Head/Body ({prefix})",
-                    _fmt_head_body(head_seconds, body_seconds),
+                    f"Drafter split ({prefix})",
+                    _fmt_drafter_split(
+                        profile_summary.get("drafter_body_fraction"),
+                        profile_summary.get("drafter_head_fraction"),
+                        profile_summary.get("drafter_overhead_fraction"),
+                    ),
+                )
+            )
+            profile_rows.append(
+                (
+                    f"Drafter/verifier ({prefix})",
+                    _fmt_pct(profile_summary.get("drafter_to_verifier_fraction")),
+                )
+            )
+            profile_rows.append(
+                (
+                    f"Drafter sec ({prefix})",
+                    _fmt_head_body_overhead(
+                        profile_summary.get("drafter_body_seconds"),
+                        profile_summary.get("drafter_head_seconds"),
+                        profile_summary.get("drafter_overhead_seconds"),
+                    ),
                 )
             )
 
     fh_accuracy = _flashhead_acceptance_ratio(variants)
     if fh_accuracy is not None:
-        head_rows.append(("FH accuracy", _fmt_pct(fh_accuracy)))
+        profile_rows.append(("FH acceptance ratio", _fmt_pct(fh_accuracy)))
 
     if flashhead_meta:
-        head_rows.extend(
+        profile_rows.extend(
             [
                 (
                     "FH index",
@@ -1418,8 +1686,8 @@ def _info_sections(
         ("Results", results),
     ]
 
-    if head_rows:
-        sections.append(("FlashHead", head_rows))
+    if profile_rows:
+        sections.append(("Profile", profile_rows))
 
     return sections
 
@@ -1601,8 +1869,8 @@ def _speedup_per_generated_token(
     return _safe_div(self_tps, normal_tps)
 
 
-def _safe_div(numerator: float | int, denominator: float | int) -> float | None:
-    if denominator == 0:
+def _safe_div(numerator: float | int | None, denominator: float | int | None) -> float | None:
+    if numerator is None or denominator is None or denominator == 0:
         return None
     return float(numerator) / float(denominator)
 
@@ -1628,6 +1896,7 @@ def _sample_std_or_none(values: list[float]) -> float | None:
     variance = sum((value - mean) ** 2 for value in values) / (len(values) - 1)
     return math.sqrt(variance)
 
+
 def _cuda_peak_allocated_bytes() -> int | None:
     if not torch.cuda.is_available():
         return None
@@ -1646,6 +1915,7 @@ def _default_run_stem(
     draft_block_size: int,
     max_new_tokens: int,
     warmup_prompts: int,
+    profile_prompts: int,
     variants: VariantMode,
     flash_path: Path | None,
     bridged: BridgedGapModel,
@@ -1682,9 +1952,11 @@ def _default_run_stem(
         f"__block-{draft_block_size}"
         f"__max-{max_new_tokens}"
         f"__warmup-{warmup_prompts}"
+        f"__profile-{profile_prompts}"
         f"__{variant_label}"
         f"__{timestamp}"
     )
+
 
 def _gap_file_label(
     *,
@@ -1729,6 +2001,32 @@ def _fmt_head_body(head_seconds: Any, body_seconds: Any) -> str:
     head = float(head_seconds) if head_seconds is not None else None
     body = float(body_seconds) if body_seconds is not None else None
     return f"{_fmt_seconds_compact(head)}/{_fmt_seconds_compact(body)}"
+
+
+def _fmt_head_body_overhead(
+    body_seconds: Any,
+    head_seconds: Any,
+    overhead_seconds: Any,
+) -> str:
+    body = float(body_seconds) if body_seconds is not None else None
+    head = float(head_seconds) if head_seconds is not None else None
+    overhead = float(overhead_seconds) if overhead_seconds is not None else None
+    return (
+        f"B {_fmt_seconds_compact(body)} / "
+        f"H {_fmt_seconds_compact(head)} / "
+        f"O {_fmt_seconds_compact(overhead)}"
+    )
+
+
+def _fmt_drafter_split(
+    body_fraction: Any,
+    head_fraction: Any,
+    overhead_fraction: Any,
+) -> str:
+    body = float(body_fraction) if body_fraction is not None else None
+    head = float(head_fraction) if head_fraction is not None else None
+    overhead = float(overhead_fraction) if overhead_fraction is not None else None
+    return f"B {_fmt_pct(body)} / H {_fmt_pct(head)} / O {_fmt_pct(overhead)}"
 
 
 def _fmt_x(value: float | None) -> str:
