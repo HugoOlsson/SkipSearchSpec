@@ -328,9 +328,9 @@ def bench_self_spec(
     original_prompt_count = len(prompts)
     if max_prompts is not None:
         prompts = prompts[:max_prompts]
-    if warmup_prompts >= len(prompts):
+    if warmup_prompts + profile_prompts > len(prompts):
         raise ValueError(
-            "warmup_prompts must be smaller than the number of prompts "
+            "warmup_prompts + profile_prompts must be <= the number of selected prompts "
             f"({len(prompts)})."
         )
 
@@ -486,7 +486,7 @@ def _run_bench_variant(
 
     warmup_slice = prompts[:warmup_prompts]
     profile_slice = prompts[warmup_prompts : warmup_prompts + profile_prompts]
-    speed_slice = prompts[warmup_prompts:]
+    speed_slice = prompts
 
     _ = _run_prompt_phase(
         phase="warmup",
@@ -523,7 +523,7 @@ def _run_bench_variant(
         speculator=speculator,
         bridged=bridged,
         prompts=speed_slice,
-        start_index=warmup_prompts + 1,
+        start_index=1,
         normal_cache=normal_cache,
         use_chat_template=use_chat_template,
         max_new_tokens=max_new_tokens,
@@ -1701,7 +1701,7 @@ def _draw_report_footer(
     ax.set_ylim(0, 1)
 
     column_xs = [0.0, 0.265, 0.495, 0.755]
-    column_rights = [0.23, 0.455, 0.745, 1.0]
+    column_rights = [0.23, 0.455, 0.745, 1.1]
     title_color = "#050505"
     label_color = "#526D73"
     value_color = "#243E45"
