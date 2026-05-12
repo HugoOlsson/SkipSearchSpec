@@ -1360,7 +1360,7 @@ def _plot_variant_distribution(
         spine.set_visible(False)
 
     _draw_inline_legend(ax, plot_variants)
-    footer_ax = fig.add_axes([0.085, 0.075, 0.83, 0.225])
+    footer_ax = fig.add_axes([0.085, 0.095, 0.83, 0.225])
     _draw_report_footer(footer_ax, _info_sections(plot_variants))
     _draw_git_revision(fig, metadata)
 
@@ -1691,6 +1691,7 @@ def _info_sections(
             ]
         )
 
+
         profile_summary = variant.get("profile_summary") or {}
         if profile_summary:
             profile_rows.append(
@@ -1720,6 +1721,18 @@ def _info_sections(
             #     )
             # )
 
+    results.extend(
+            [
+                (
+                    f"Tokens gen",
+                    (
+                        f"s {_fmt_int(summary.get('total_self_spec_generated_tokens'))} / "
+                        f"n {_fmt_int(summary.get('total_normal_generated_tokens'))}"
+                    ),
+                ),
+            ]
+        )
+    
     fh_accuracy = _flashhead_acceptance_ratio(variants)
     if fh_accuracy is not None:
         profile_rows.append(("FH acceptance ratio", _fmt_pct(fh_accuracy)))
