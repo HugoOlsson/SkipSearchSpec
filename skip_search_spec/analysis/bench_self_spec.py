@@ -222,6 +222,14 @@ def run_cli(argv: list[str]) -> None:
             "path is supplied, otherwise no-flashhead only."
         ),
     )
+
+    parser.add_argument(
+        "--debug-argmax-ties",
+        action="store_true",
+        help="Print the first exact argmax tie per generation for self-spec and normal inference.",
+    )
+    
+
     parser.add_argument(
         "--variant-order",
         choices=("no-flashhead-first", "flashhead-first"),
@@ -260,6 +268,7 @@ def run_cli(argv: list[str]) -> None:
         bridge_dtype=args.bridge_dtype,
         output_dir=args.output_dir,
         output_prefix=args.output_prefix,
+        debug_argmax_ties=args.debug_argmax_ties,
     )
 
 
@@ -312,6 +321,7 @@ def bench_self_spec(
     bridge_dtype: str = "float32",
     output_dir: str | Path = "benchmarks/self_spec",
     output_prefix: str | None = None,
+    debug_argmax_ties: bool = False,
 ) -> Path:
     if draft_block_size < 1:
         raise ValueError("draft_block_size must be >= 1.")
@@ -372,6 +382,7 @@ def bench_self_spec(
                 bridge_dtype=bridge_dtype,
                 requested_max_prompts=max_prompts,
                 available_prompt_count=original_prompt_count,
+                debug_argmax_ties=debug_argmax_ties,
             )
         )
 
@@ -476,6 +487,7 @@ def _run_bench_variant(
     bridge_dtype: str,
     requested_max_prompts: int | None,
     available_prompt_count: int,
+    debug_argmax_ties: bool,
 ) -> dict[str, Any]:
     flash_path = variant["flash_path"]
     speculator = BridgeSelfSpeculator(
@@ -500,6 +512,7 @@ def _run_bench_variant(
         draft_block_size=draft_block_size,
         compare_to_normal=compare_to_normal,
         variant_label=variant["label"],
+        debug_argmax_ties=debug_argmax_ties,
     )
 
     profile_phase = _run_prompt_phase(
@@ -514,6 +527,7 @@ def _run_bench_variant(
         draft_block_size=draft_block_size,
         compare_to_normal=False,
         variant_label=variant["label"],
+        debug_argmax_ties=debug_argmax_ties,
     )
     profile_results = profile_phase.profile_results
     profile_summary = _summarize_profile(
@@ -533,6 +547,7 @@ def _run_bench_variant(
         draft_block_size=draft_block_size,
         compare_to_normal=compare_to_normal,
         variant_label=variant["label"],
+        debug_argmax_ties=debug_argmax_ties,
     )
     prompt_results = speed_phase.prompt_results
 
@@ -601,6 +616,7 @@ def _run_prompt_phase(
     draft_block_size: int,
     compare_to_normal: bool,
     variant_label: str,
+    debug_argmax_ties: bool
 ) -> PhaseRunResult:
     if not prompts:
         return PhaseRunResult(prompt_results=[], profile_results=[])
@@ -636,6 +652,7 @@ def _run_prompt_phase(
             use_chat_template=use_chat_template,
             build_token_trace=False,
             measure_internal_timings=measure_internal_timings,
+            debug_argmax_ties=debug_argmax_ties
         )
         self_spec_peak_allocated_bytes = _cuda_peak_allocated_bytes()
         timings = self_spec_result.timings
@@ -705,6 +722,7 @@ def _run_prompt_phase(
                     model=bridged.model,
                     tokenizer=bridged.tokenizer,
                     device=bridged.device,
+                    debug_argmax_ties=debug_argmax_ties
                 )
                 normal_peak_allocated_bytes = _cuda_peak_allocated_bytes()
                 normal_cache_entry = {

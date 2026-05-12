@@ -11,6 +11,7 @@ from skip_search_spec.helpers.tooling import (
     get_preferred_float_dtype,
     load_model_and_tokenizer,
 )
+from skip_search_spec.inference.self_spec_inference import argmax_debug_first_tie
 
 
 @dataclass(frozen=True, slots=True)
@@ -36,6 +37,7 @@ def generate_normal(
     model: Any | None = None,
     tokenizer: Any | None = None,
     device: torch.device | None = None,
+    debug_argmax_ties: bool = False,
 ) -> NormalInferenceResult:
     if (model is None) != (tokenizer is None):
         raise ValueError("model and tokenizer must be provided together.")
@@ -109,6 +111,7 @@ def generate_normal(
         use_cache=use_cache,
         device=device,
         total_start_time=total_start_time,
+        debug_argmax_ties=debug_argmax_ties,
     )
 
 
@@ -160,6 +163,7 @@ def _generate_normal_measured(
     use_cache: bool,
     device: torch.device,
     total_start_time: float,
+    debug_argmax_ties: bool
 ) -> NormalInferenceResult:
     backbone = get_causal_lm_backbone(model)
     lm_head = get_output_lm_head(model)
@@ -175,6 +179,8 @@ def _generate_normal_measured(
 
     body_seconds = 0.0
     head_seconds = 0.0
+
+    printed_tie = [False]
 
     with torch.inference_mode():
         for _ in range(max_new_tokens):
@@ -209,7 +215,13 @@ def _generate_normal_measured(
             head_start_time = time.perf_counter()
 
             logits = lm_head(head_input)
-            next_token = logits[:, -1, :].argmax(dim=-1, keepdim=True)
+            next_token = argmax_debug_first_tie(
+                logits[:, -1, :],
+                name="normal",
+                debug=debug_argmax_ties,
+                printed_tie=printed_tie,
+                generated_index_start=generated_ids.size(1) - input_ids.size(1),
+            ).view(1, 1)
 
             head_seconds += elapsed_seconds_since(
                 head_start_time,

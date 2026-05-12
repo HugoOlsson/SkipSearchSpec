@@ -157,19 +157,44 @@ class KVCacheHandler:
         )
 
 
-def verifier_argmax_with_tie_print(
+def argmax_debug_first_tie(
     logits: torch.Tensor,
     *,
     name: str,
+    debug: bool,
+    printed_tie: list[bool],
+    generated_index_start: int,
 ) -> torch.Tensor:
+    tokens = logits.argmax(dim=-1)
+
+    if not debug or printed_tie[0]:
+        return tokens
+
     max_vals = logits.max(dim=-1, keepdim=True).values
-    num_max = (logits == max_vals).sum(dim=-1)
+    is_max = logits == max_vals
+    num_max = is_max.sum(dim=-1)
 
-    if (num_max > 1).any():
-        print(f"[VERIFIER ARGMAX TIE] {name}")
-        print("tie counts:", num_max[num_max > 1].detach().cpu().tolist())
+    tie_pos = (num_max > 1).nonzero(as_tuple=False)
+    if tie_pos.numel() == 0:
+        return tokens
 
-    return logits.argmax(dim=-1)
+    pos = tie_pos[0]
+    pos_tuple = tuple(pos.tolist())
+
+    # For [1, vocab], pos is (0,)
+    # For [1, seq, vocab], pos is (0, seq_offset)
+    seq_offset = int(pos[-1].item()) if logits.ndim == 3 else 0
+    generated_index = generated_index_start + seq_offset
+
+    tied_ids = is_max[pos_tuple].nonzero(as_tuple=False).flatten()
+
+    print(f"[ARGMAX TIE] {name}")
+    print(f"  generated_index={generated_index}")
+    print(f"  chosen_id={int(tokens[pos_tuple].item())}")
+    print(f"  tied_ids={tied_ids.detach().cpu().tolist()}")
+
+    printed_tie[0] = True
+    return tokens
 
 
 class BridgeSelfSpeculator:
@@ -252,6 +277,7 @@ class BridgeSelfSpeculator:
         trace_json_path: str | Path | None = None,
         build_token_trace: bool = True,
         measure_internal_timings: bool = True,
+        debug_argmax_ties: bool = False,
     ) -> SelfSpecResult:
         timings = SelfSpecTimings()
         model_prompt = prompt
@@ -284,6 +310,7 @@ class BridgeSelfSpeculator:
         draft_block_index = 0
         token_trace: list[TokenData] | None = [] if build_token_trace else None
         saved_trace_json_path: Path | None = None
+        printed_tie = [False]
 
         add_tokens_to_trace(token_trace, input_ids, token_type="prompt")
         eos_token_id = self.tokenizer.eos_token_id
@@ -305,9 +332,12 @@ class BridgeSelfSpeculator:
             prompt_len=input_ids.size(1),
         )
 
-        bonus_token = verifier_argmax_with_tie_print(
+        bonus_token = argmax_debug_first_tie(
             verifier.logits[:, -1, :],
             name="initial_prompt_bonus",
+            debug=debug_argmax_ties,
+            printed_tie=printed_tie,
+            generated_index_start=generated_tokens,
         ).view(1, 1)
 
         accepted_ids = torch.cat([accepted_ids, bonus_token], dim=1)
@@ -370,17 +400,23 @@ class BridgeSelfSpeculator:
             verifier_logits_start = kv_cache.verifier_logits_start_for_draft_check(
                 accepted_len_before_draft=accepted_len_before_draft,
             )
-            verifier_draft_tokens = verifier_argmax_with_tie_print(
+            verifier_draft_tokens = argmax_debug_first_tie(
                 verifier.logits[
                     :,
                     verifier_logits_start : verifier_logits_start + draft_tokens.size(1),
                     :,
                 ],
                 name=f"block_{draft_block_index + 1}_verifier_draft_tokens",
+                debug=debug_argmax_ties,
+                printed_tie=printed_tie,
+                generated_index_start=generated_tokens,
             )
-            bonus_token = verifier_argmax_with_tie_print(
+            bonus_token = argmax_debug_first_tie(
                 verifier.logits[:, -1, :],
                 name=f"block_{draft_block_index + 1}_bonus",
+                debug=debug_argmax_ties,
+                printed_tie=printed_tie,
+                generated_index_start=generated_tokens + draft_tokens.size(1),
             ).view(1, 1)
 
             draft_block_token_count = draft_tokens.size(1)
