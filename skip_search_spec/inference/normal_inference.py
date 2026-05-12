@@ -215,6 +215,7 @@ def _generate_normal_measured(
             head_start_time = time.perf_counter()
 
             logits = lm_head(head_input)
+            print("Normal with argmax check does run")
             next_token = argmax_debug_first_tie(
                 logits[:, -1, :],
                 name="normal",
