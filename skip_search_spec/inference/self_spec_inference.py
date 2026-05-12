@@ -157,6 +157,21 @@ class KVCacheHandler:
         )
 
 
+def verifier_argmax_with_tie_print(
+    logits: torch.Tensor,
+    *,
+    name: str,
+) -> torch.Tensor:
+    max_vals = logits.max(dim=-1, keepdim=True).values
+    num_max = (logits == max_vals).sum(dim=-1)
+
+    if (num_max > 1).any():
+        print(f"[VERIFIER ARGMAX TIE] {name}")
+        print("tie counts:", num_max[num_max > 1].detach().cpu().tolist())
+
+    return logits.argmax(dim=-1)
+
+
 class BridgeSelfSpeculator:
     """
     Minimal greedy self-speculation using BridgedGapModel.
@@ -290,10 +305,10 @@ class BridgeSelfSpeculator:
             prompt_len=input_ids.size(1),
         )
 
-        bonus_token = verifier.logits[:, -1, :].argmax(
-            dim=-1,
-            keepdim=True,
-        )
+        bonus_token = verifier_argmax_with_tie_print(
+            verifier.logits[:, -1, :],
+            name="initial_prompt_bonus",
+        ).view(1, 1)
 
         accepted_ids = torch.cat([accepted_ids, bonus_token], dim=1)
         verifier_reference_hidden = verifier.reference_hidden
@@ -355,15 +370,18 @@ class BridgeSelfSpeculator:
             verifier_logits_start = kv_cache.verifier_logits_start_for_draft_check(
                 accepted_len_before_draft=accepted_len_before_draft,
             )
-            verifier_draft_tokens = verifier.logits[
-                :,
-                verifier_logits_start : verifier_logits_start + draft_tokens.size(1),
-                :,
-            ].argmax(dim=-1)
-            bonus_token = verifier.logits[:, -1, :].argmax(
-                dim=-1,
-                keepdim=True,
+            verifier_draft_tokens = verifier_argmax_with_tie_print(
+                verifier.logits[
+                    :,
+                    verifier_logits_start : verifier_logits_start + draft_tokens.size(1),
+                    :,
+                ],
+                name=f"block_{draft_block_index + 1}_verifier_draft_tokens",
             )
+            bonus_token = verifier_argmax_with_tie_print(
+                verifier.logits[:, -1, :],
+                name=f"block_{draft_block_index + 1}_bonus",
+            ).view(1, 1)
 
             draft_block_token_count = draft_tokens.size(1)
             decision_token_ids = torch.cat(

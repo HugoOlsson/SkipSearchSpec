@@ -1558,6 +1558,23 @@ def _fmt_compact_number(value: Any) -> str:
 
     return str(int(value))
 
+def _flashhead_head_speedup(
+    variants: list[dict[str, Any]],
+) -> float | None:
+    dense_head_seconds: float | None = None
+    flashhead_seconds: float | None = None
+
+    for variant in variants:
+        profile_summary = variant.get("profile_summary") or {}
+        if not profile_summary:
+            continue
+
+        if variant["metadata"].get("flashhead_enabled"):
+            flashhead_seconds = profile_summary.get("drafter_flashhead_seconds")
+        else:
+            dense_head_seconds = profile_summary.get("drafter_dense_head_seconds")
+
+    return _safe_div(dense_head_seconds, flashhead_seconds)
 
 def _info_sections(
     variants: list[dict[str, Any]],
@@ -1659,20 +1676,24 @@ def _info_sections(
                     _fmt_pct(profile_summary.get("drafter_to_verifier_fraction")),
                 )
             )
-            profile_rows.append(
-                (
-                    f"Drafter sec ({prefix})",
-                    _fmt_head_body_overhead(
-                        profile_summary.get("drafter_body_seconds"),
-                        profile_summary.get("drafter_head_seconds"),
-                        profile_summary.get("drafter_overhead_seconds"),
-                    ),
-                )
-            )
+            # profile_rows.append(
+            #     (
+            #         f"Drafter sec ({prefix})",
+            #         _fmt_head_body_overhead(
+            #             profile_summary.get("drafter_body_seconds"),
+            #             profile_summary.get("drafter_head_seconds"),
+            #             profile_summary.get("drafter_overhead_seconds"),
+            #         ),
+            #     )
+            # )
 
     fh_accuracy = _flashhead_acceptance_ratio(variants)
     if fh_accuracy is not None:
         profile_rows.append(("FH acceptance ratio", _fmt_pct(fh_accuracy)))
+
+    fh_head_speedup = _flashhead_head_speedup(variants)
+    if fh_head_speedup is not None:
+        profile_rows.append(("FH head speedup", _fmt_x(fh_head_speedup)))
 
     if flashhead_meta:
         profile_rows.extend(
