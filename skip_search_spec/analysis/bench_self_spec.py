@@ -453,12 +453,12 @@ def _resolve_variant_specs(
 
     no_flashhead = {
         "key": "no_flashhead",
-        "label": "Without FH",
+        "label": "Without ANNH",
         "flash_path": None,
     }
     with_flashhead = {
         "key": "flashhead",
-        "label": "With FH",
+        "label": "With ANNH",
         "flash_path": flash_path,
     }
 
@@ -1188,9 +1188,9 @@ def _variant_payloads(payload: dict[str, Any]) -> list[dict[str, Any]]:
             "variant_key": "flashhead"
             if payload.get("metadata", {}).get("flashhead_enabled")
             else "no_flashhead",
-            "variant_label": "With FH"
+            "variant_label": "With ANNH"
             if payload.get("metadata", {}).get("flashhead_enabled")
-            else "Without FH",
+            else "Without ANNH",
             "metadata": payload["metadata"],
             "summary": payload["summary"],
             "profile_summary": payload.get("profile_summary"),
@@ -1389,15 +1389,15 @@ def _styled_variant_payload(variant: dict[str, Any]) -> dict[str, Any]:
             "edge": "#9B007F",
             "fill": "#DCA6D2",
         }
-        label = "With FlashHead"
-        short_label = "w FH"
+        label = "With skipped layers + ANN head:"
+        short_label = "w ANNH"
     else:
         colors = {
             "edge": "#006E90",
             "fill": "#86BDCB",
         }
-        label = "Without FlashHead"
-        short_label = "w/o FH"
+        label = "With skipped layers:"
+        short_label = "w/o ANNH"
 
     speedups = [
         float(result["speedup_per_generated_token"])
@@ -1706,10 +1706,52 @@ def _info_sections(
                     ),
                 )
             )
+            normal_time_per_token = _safe_div(
+                summary.get("total_normal_seconds"),
+                summary.get("total_normal_generated_tokens"),
+            )
+
+            verifier_calls_minus_prefill = sum(
+                result["verifier_calls"] - 1
+                for result in variant.get("profile_results", [])
+            )
+
+            verifier_time_per_call = _safe_div(
+                profile_summary.get("verifier_seconds"),
+                verifier_calls_minus_prefill,
+            )
+
+            drafter_calls = sum(
+                result["drafter_calls"]
+                for result in variant.get("profile_results", [])
+            )
+
+            drafter_time_per_call = _safe_div(
+                profile_summary.get("drafter_total_seconds"),
+                drafter_calls,
+            )
+
+            verifier_to_normal_ratio = _safe_div(
+                verifier_time_per_call,
+                normal_time_per_token,
+            )
+
+            drafter_to_normal_ratio = _safe_div(
+                drafter_time_per_call,
+                normal_time_per_token,
+            )
+
             profile_rows.append(
                 (
-                    f"Drafter/verifier ({prefix})",
-                    _fmt_pct(profile_summary.get("drafter_to_verifier_fraction")),
+                    f"Verifier/normal ({prefix})",
+                    _fmt_x(verifier_to_normal_ratio),
+                )
+            )
+
+            profile_rows.append(
+                (
+                    f"Drafter/normal ({prefix})",
+                    _fmt_pct(drafter_to_normal_ratio),
                 )
             )
             # profile_rows.append(
@@ -1735,46 +1777,21 @@ def _info_sections(
             ]
         )
     
-    normal_time_per_token = _safe_div(
-        summary.get("total_normal_seconds"),
-        summary.get("total_normal_generated_tokens"),
-    )
-
-    verifier_calls_minus_prefill = sum(
-        result["verifier_calls"] - 1
-        for result in variant.get("profile_results", [])
-    )
-
-    verifier_time_per_call = _safe_div(
-        profile_summary.get("verifier_seconds"),
-        verifier_calls_minus_prefill,
-    )
-
-    verifier_to_normal_ratio = _safe_div(
-        verifier_time_per_call,
-        normal_time_per_token,
-    )
     
-    profile_rows.append(
-        (
-            f"Verifier/normal ({prefix})",
-            _fmt_x(verifier_to_normal_ratio),
-        )
-    )
     
     fh_accuracy = _flashhead_acceptance_ratio(variants)
     if fh_accuracy is not None:
-        profile_rows.append(("FH acceptance ratio", _fmt_pct(fh_accuracy)))
+        profile_rows.append(("ANNH acceptance ratio", _fmt_pct(fh_accuracy)))
 
     fh_head_speedup = _flashhead_head_speedup(variants)
     if fh_head_speedup is not None:
-        profile_rows.append(("FH head speedup", _fmt_x(fh_head_speedup)))
+        profile_rows.append(("ANNH head speedup", _fmt_x(fh_head_speedup)))
 
     if flashhead_meta:
         profile_rows.extend(
             [
                 (
-                    "FH index",
+                    "ANNH index",
                     (
                         f"{_value(flashhead_meta.get('flashhead_loaded_num_clusters'))} "
                         f"clusters; top-k "
