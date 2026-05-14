@@ -861,6 +861,17 @@ Each benchmark variant has three phases:
 + _Speed phase_: the full selected prompt set is run with internal timings disabled. These are the measurements used for acceptance rate, exact-match rate, memory usage, per-prompt speedup histograms, and total per-token speedup. The speed phase begins from the first prompt in the prompt set.
 
 
+=== Timing measurements
+
+All reported speedups use the speed phase. For both normal generation and self-speculation, timing starts after the prompt has been tokenized and moved to the device, and stops before decoding the output ids back to text. The timer is synchronized with the device at the start and end of the measured region. Normal generation is measured around a greedy `model.generate(...)` call with KV-cache enabled, so the normal time includes both prompt processing and generated-token decoding.
+
+The self-speculative total time is measured around the full self-speculative generation call. This includes the initial verifier pass over the prompt, the first verifier-produced token, all drafter blocks, all verifier calls, token acceptance logic, KV-cache cropping/adoption, and other Python overhead inside the generation loop. In the speed phase, no internal body/head/verifier timers are enabled.
+
+The profile phase uses the same self-speculative generation code, but enables internal timers. The profile records verifier time for verifier calls inside the speculative loop, drafter total time for each drafted block, drafter body time for the skipped-layer backbone forward pass, and drafter head time for either the dense LM-head or the ANNH lookup. The initial verifier prompt pass is included in total self-speculative time but not in the internal `verifier_seconds` bucket. This is why verifier-call profile ratios are computed from verifier calls after the prompt prefill.
+
+Peak GPU memory is measured per prompt by resetting CUDA peak allocation statistics before each normal or self-speculative run and reading the peak allocation after the run. In the speed phase, normal generation results are cached by prompt index so the same normal baseline is reused when both self-speculative variants are compared.
+
+
 
     
 = Results
