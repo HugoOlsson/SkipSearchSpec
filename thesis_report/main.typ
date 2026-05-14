@@ -1513,16 +1513,27 @@ which also roughly matches the measured 1.60x.
 = Discussion
 
 == Interpreting the results
+The results have given insight to what skipping ablations that seem to be the most useful interms of skipped compute to maintrained generation quality. It also showed that it seems possible to
 
 === Layer-skipping ablations
 // Why does gap-jump consistently outperform early-exit and late-start?
 // Why is the pattern consistent across model families?
 // What does this tell us about the role of early vs late layers?
 
+The skip ablation results consistantly showed that skipping an internal gap is better in terms of skipping many layers while still keeping generation quality. The results show that without HVC, the generation quality degrades very quickly. Doing an (N-1, 0) early exit where N is the number of model layers, gave a top1 agreement to the full model of 0.554 for Llama 3.2 1B and 0.784 on Mistral 7B Instruct 0.3v, both of these are quite far from 1.0 while only skipping a single layer. Mistral 7B Instruct 0.3v show a better ability to skip layers. This might partly be because it has more layers so skipping one of them is a smaller change relatively to its size.
+
+The layer skipping ablations also showed that it does not seem benificial to do non contiguous skips, such as skipping every other layer or every third. So since those would require more than one HVC bridge and they didn't show an obvious advantage, they are likely not a good direction.
+
+The results show that skipping the first and last layer seem to hurt performance the most [I NEED TO ADD KL PER SKIPPED LAYER PLOT]. This is reasonable since the first layer is the one trained to route the embedding vector and the last layer is trained to be the final routing to the unembedding. 
+
+The patterns seem to be stable across different model families. There are some variation in how well early-exit is handled compared to an internal gap but they all seem to favour the internal gap over late-start, early-exit and non-contiguous variations.
+
 === HVC bridge training
 // How well did the bridge recover generation quality?
 // What explains the differences in top-1 agreement across model families?
 // Why does (2,2) reach higher top-1 than (1,1) as expected from the notation?
+
+In 
 
 === FlashHead accuracy and speedup
 // What does the accuracy/clusters-probed tradeoff tell us?
