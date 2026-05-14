@@ -1624,6 +1624,8 @@ The tables also show that Llama 3.2 3B Instruct seem to get higher accuracy than
 
 === ANNH with self-speculation
 
+Running ANNH with speculative decoding is distinctively different than running the model normally with ANNH. With specualtive decoding any mistake from the ANNH (and the drafter in general) will be caught by the verifier. So mistakes from the ANNH will instead only reduce the acceptance rate, not produce any different output. For normal genration with ANNH to have high probability that the output won't diverge or degenerate, the accuracy would likely need to be around > 99.5%, but in specualtive decoding, it is okay if it lower becuase it will just be a factor that reduces the acceptance rate. If the acceprance rate is 50% without ANNH, and the ANNH with a choosen top-k has an accuracy of 95% the acceptance rate will be $0.95 times 0.5 = 47.5%$, but the output still guaranteed to be correct. Since the results show that its significantly easier to go from 0% to 95% than 95% to 99.5%, the ANNH head can be very performant during self-specualtion and it is enough to use a top-k of between 50 to 100.
+
 === Self-speculation speedups
 // Why do larger models benefit more than smaller ones?
 // Why does the theoretical formula predict measured speedups so closely?
