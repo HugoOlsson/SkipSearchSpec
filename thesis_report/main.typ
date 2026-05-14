@@ -1565,7 +1565,46 @@ The patterns seem to be stable across different model families. There are some v
 // What explains the differences in top-1 agreement across model families?
 // Why does (2,2) reach higher top-1 than (1,1) as expected from the notation?
 
-In 
+In figure @fig-gap11-training-top1-agreement and @fig-gap22-training-top1-agreement a very aggressive gap of (1,1) and (2,2) respectively is trained. The figures show that the top-1 agreement starts at approximately 0 which is coherent with what the skip-ablations showed, but that the top-1 agreement converges to around 50-70% depending on the model. This is a result that strongly shows that the HVC-bridge can partially compensate for a large gap. The same pattern shows for the verifier to drafter KL metrics in figure @fig-gap11-training-kl-verifier-to-drafter and @fig-gap22-training-kl-verifier-to-drafter. For gap (1,1) the KL starts very high, over 16.0 for Qwen3 1.7B, but converges to between 0.89 to 1.63 depending on the model.
+
+Using a gap (2,2) results in a better KL and top-1 for almost all models, but not much better. Top-1 for Mistral 7B Instruct went from 69.5% to 71.5%, for Llama 3.1 8B 63.9% to 67.8%, for Qwen2.5 Instruct 54.6% to 56.4%. These are improvements but the number of layers used doubled. To produce a drafter that can give speedups in self-speculation, it is highly advantageous if it is cheap.
+
+This can be shown directly from the speedup equation @selfs-speedup. Solving for the required acceptance rate gives
+$
+a = frac(S (v + gamma d) - 1, gamma).
+$
+For a target speedup of $S = 1.4 times$, a block size of $gamma = 2$, and a verifier cost of $v = 1.05$, the needed acceptance rate increases quickly as the drafter becomes more expensive. For sufficiently expensive drafters, the required acceptance rate is above 100%, meaning that the target speedup is impossible even if every drafted token is accepted. This means that using more layers is only beneficial if the improved drafter quality is large enough to compensate for the increased draft cost.
+
+#figure(
+  text(size: 8pt)[
+  #table(
+    columns: (50%, 50%),
+    inset: 4pt,
+    align: (left, center),
+    fill: (x, y) => if y == 0 { luma(230) },
+    stroke: 0.5pt + luma(200),
+
+    table.header(
+      [*Drafter cost $d$ of full model*] , [*Acceptance needed for $1.4 times$*],
+    ),
+
+    [$5%$], [$30.5%$],
+    [$10%$], [$37.5%$],
+    [$15%$], [$44.5%$],
+    [$20%$], [$51.5%$],
+    [$25%$], [$58.5%$],
+    [$30%$], [$65.5%$],
+    [$40%$], [$79.5%$],
+    [$50%$], [$93.5%$],
+    [$60%$], [Impossible ($107.5%$ required)],
+    [$70%$], [Impossible ($121.5%$ required)],
+    [$80%$], [Impossible ($135.5%$ required)],
+  )
+  ],
+  caption: [Acceptance rate required to reach a theoretical self-speculation speedup of $1.4 times$ with block size $gamma = 2$ and verifier cost $v = 1.05$.],
+  kind: "table",
+  supplement: [Table],
+) <tab-required-acceptance-14x>
 
 === FlashHead accuracy and speedup
 // What does the accuracy/clusters-probed tradeoff tell us?
