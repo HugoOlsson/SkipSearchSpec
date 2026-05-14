@@ -1606,10 +1606,23 @@ For a target speedup of $S = 1.4 times$, a block size of $gamma = 1$, and a veri
   supplement: [Table],
 ) <tab-required-acceptance-14x>
 
-=== FlashHead accuracy and speedup
+
+=== ANNH cluster building
+
+The FlashHead-alike ANNH cluster took between 57 and 309 seconds to build on an Apple M5 24GB depending on the model. The more clusters, higher hidden dimensions and larger vocabulary size, the longer the clustering takes. The clusters files are not notably big, the Llama 3.2 3B 8016 cluster has a file size of 99 MB. The clusterings in the result sections used a max iterations of 40. However, figure @clustering-llama3.2-1B-instruct-img and the clusterings made internally during the project show that the process converges after around 15 iterations. Therefore using 40 iterations is not strictly needed.
+
+
+=== ANNH accuracy
 // What does the accuracy/clusters-probed tradeoff tell us?
 // Why does more clusters strictly improve accuracy per percentage probed?
 // When is ANNH worth using and when is it not (e.g. Mistral head fraction too small)?
+
+The result shows that the most important parameter to the ANNH inference accuracy is the topk parameter. The tables @evaluation-sweep-cluster-llama32-1B-instruct-table, @evaluation-sweep-cluster-llama32-1b-instruct-2672-table, @evaluation-sweep-cluster-llama32-1b-instruct-8016-table, @evaluation-sweep-cluster-llama32-1b-instruct-16032-table and @evaluation-sweep-cluster-llama32-3b-instruct-16032-table all show that to get a 99% accuracy, a topk of 200-300 is needed. An interesting observation is that this means that ANNH's with more clusters need a smaller portion of the total number of clusters probed to reach a certain threashold in accuracy. Probing 300 of 16032 is a significantly smaller portion probed than 300 of 2672. One possible reason for this is that using more clusters mean fewer vectors per cluster, the centroids which are the average of the cluster-vectors thus become a less approximated representation of the content. So with more clusters, given a query hidden vector, the probability that the scoring with a centroid gives good routing increases. This means that topk = constant returns fewer candidate vectors when using more clusters, but those candidates were routed with less approximation. This pattern should continue with increasing cluster size, the extreme is that the number of clusters is the same as the vocabulary size, at that point the accuracy will be 1.0 with topk = 1. The problem then is of course that the cluster scorring matrix multiplication is as big as the one we tried to avoid in the original LM-head. So There needs to be a balance between centroid representation for its cluster vectors and having a cluster matrix that is significantly cheaper than the original LM-head.
+
+The tables also show that Llama 3.2 3B Instruct seem to get higher accuracy than Llama 3.2 1B Instruct for the same topk, same number of clusters and having the same vocabulary. For topk = 100 with 8016 clusters the accuracy for 1B was 97.19% and for 3B 98.39%. One possible explanation for this is that the 3B version has larger hidden dimensions. This means that there is more space to distribute the vocabulary and therefore possibly more separatation between clusters. [DO CLUSTERING FOR LLAMA 3.1 8B INSTRUCT TO SEE IF IT FOLLOWS THE PATTERN]
+
+
+=== ANNH with self-speculation
 
 === Self-speculation speedups
 // Why do larger models benefit more than smaller ones?
