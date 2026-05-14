@@ -1573,7 +1573,7 @@ This can be shown directly from the speedup equation @selfs-speedup. Solving for
 $
 a = frac(S (v + gamma d) - 1, gamma).
 $
-For a target speedup of $S = 1.4 times$, a block size of $gamma = 2$, and a verifier cost of $v = 1.05$, the needed acceptance rate increases quickly as the drafter becomes more expensive. For sufficiently expensive drafters, the required acceptance rate is above 100%, meaning that the target speedup is impossible even if every drafted token is accepted. This means that using more layers is only beneficial if the improved drafter quality is large enough to compensate for the increased draft cost.
+For a target speedup of $S = 1.4 times$, a block size of $gamma = 1$, and a verifier cost of $v = 1.05$, the needed acceptance rate increases quickly as the drafter becomes more expensive. For sufficiently expensive drafters, the required acceptance rate is above 100%, meaning that the target speedup is impossible even if every drafted token is accepted. This means that using more layers is only beneficial if the improved drafter quality is large enough to compensate for the increased draft cost.
 
 #figure(
   text(size: 8pt)[
@@ -1588,20 +1588,20 @@ For a target speedup of $S = 1.4 times$, a block size of $gamma = 2$, and a veri
       [*Drafter cost $d$ of full model*] , [*Acceptance needed for $1.4 times$*],
     ),
 
-    [$5%$], [$30.5%$],
-    [$10%$], [$37.5%$],
-    [$15%$], [$44.5%$],
-    [$20%$], [$51.5%$],
-    [$25%$], [$58.5%$],
-    [$30%$], [$65.5%$],
-    [$40%$], [$79.5%$],
-    [$50%$], [$93.5%$],
-    [$60%$], [Impossible ($107.5%$ required)],
-    [$70%$], [Impossible ($121.5%$ required)],
-    [$80%$], [Impossible ($135.5%$ required)],
+    [$5%$], [$54.0%$],
+    [$10%$], [$61.0%$],
+    [$15%$], [$68.0%$],
+    [$20%$], [$75.0%$],
+    [$25%$], [$82.0%$],
+    [$30%$], [$89.0%$],
+    [$40%$], [Impossible ($103.0%$ required)],
+    [$50%$], [Impossible ($117.0%$ required)],
+    [$60%$], [Impossible ($131.0%$ required)],
+    [$70%$], [Impossible ($145.0%$ required)],
+    [$80%$], [Impossible ($159.0%$ required)],
   )
   ],
-  caption: [Acceptance rate required to reach a theoretical self-speculation speedup of $1.4 times$ with block size $gamma = 2$ and verifier cost $v = 1.05$.],
+  caption: [Acceptance rate required to reach a theoretical self-speculation speedup of $1.4 times$ with block size $gamma = 1$ and verifier cost $v = 1.05$.],
   kind: "table",
   supplement: [Table],
 ) <tab-required-acceptance-14x>
