@@ -83,6 +83,6 @@
     ],
     caption: caption,
     kind: "table",
-    supplement: [Table],
+    supplement: [T],
   )
 }
