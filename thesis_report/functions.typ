@@ -82,5 +82,7 @@
       )
     ],
     caption: caption,
+    kind: "table",
+    supplement: [Table],
   )
 }

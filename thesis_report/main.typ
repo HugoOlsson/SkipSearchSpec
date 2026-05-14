@@ -5,9 +5,35 @@
 #show raw: set text(font: "New Computer Modern Mono")
 #import "functions.typ": *
 
-#show link: set text(fill: blue)
-#show link: underline
+#show link: it => {
+  if type(it.dest) == str {
+    text(fill: blue, underline(it.body))
+  } else {
+    it
+  }
+}
 #show raw.where(block: false): set text(size: 1.1em)
+
+#show ref: it => {
+  let el = it.element
+  if el != none and el.func() == figure {
+    if el.kind == image {
+      context {
+        let n = el.counter.at(el.location()).first()
+        link(it.target, "F" + str(n))
+      }
+    } else if el.kind == "algorithm" {
+      context {
+        let n = el.counter.at(el.location()).first()
+        link(it.target, "A" + str(n))
+      }
+    } else {
+      it
+    }
+  } else {
+    it
+  }
+}
 
 #show raw.where(block: true): it => {
   block(
@@ -314,7 +340,7 @@ The dataset used to train on is 18% "HuggingFaceTB/cosmopedia-100k", 18% "codeli
   caption: [Structure of skipping layers.],
 ) <skipping-layers-structure-img>
 
-The @skipping-layers-structure-img illustrates the architecture when skipping layers. The figure illustrates the case of a gap-jump. If the variant is early-exit then the hidden vector goes directly into the final norm. If the case is late-start, then the hidden vector goes from the embedding to the first layer and then progresses from there. Naive early exit is achieved by turning off the HVC. 
+Figure @skipping-layers-structure-img illustrates the architecture when skipping layers. The figure illustrates the case of a gap-jump. If the variant is early-exit then the hidden vector goes directly into the final norm. If the case is late-start, then the hidden vector goes from the embedding to the first layer and then progresses from there. Naive early exit is achieved by turning off the HVC. 
 
 
 
@@ -385,7 +411,7 @@ Internally in the code, the HVC is sometimes called _bridge_ due to the inherent
   caption: [The input to the HVC bridge. It gets a stacked vector of the final hidden vector from token position t-1 and the hidden vector from the last layer before the gap at position t.],
 ) <finalvsreentry-img>
 
-The bridge is implemented as a linear transformation in PyTorch with residual update and layer normalizations for the two input vectors. It takes a the hidden vector from the last layer before the gap and a hidden vector from the previous position t-1. As the @finalvsreentry-img shows, the HVC bridge gets the hidden vector from the last layer before the gap and the final hidden vector from position t-1. In the code `prev_reference_hidden` is a tensor with previous position hidden vectors. The code to forward the bridge is this:
+The bridge is implemented as a linear transformation in PyTorch with residual update and layer normalizations for the two input vectors. It takes a the hidden vector from the last layer before the gap and a hidden vector from the previous position t-1. As figure @finalvsreentry-img shows, the HVC bridge gets the hidden vector from the last layer before the gap and the final hidden vector from position t-1. In the code `prev_reference_hidden` is a tensor with previous position hidden vectors. The code to forward the bridge is this:
 
 
 #```python
@@ -446,9 +472,9 @@ def train_skipping_layers(
 
 The training aims to produce a good drafter for the full model. When running in self-speculation, the drafter will run from where the verifier last stopped. It will do so by continuing from the KV-cache the verifier produced. The training objective is therefore to "cast" a hidden vector through the gap using the input hidden vectors, but to also do so when starting from the verifiers KV-cache. 
 
-To train for this, the teacher runs next-token prediction on the training window and its logits for all positions and the created KV-cache are stored. The window is then conceptually split into multiple sections like @training_window-img shows. The student will do next-token prediction runs on the sections from one starting point to the next. At each boundary, it will start from the KV-cache the teacher has produced at that position. This simulates the objective to start from a verifier prefix and generate from there. 
+To train for this, the teacher runs next-token prediction on the training window and its logits for all positions and the created KV-cache are stored. The window is then conceptually split into multiple sections like figure @training_window-img shows. The student will do next-token prediction runs on the sections from one starting point to the next. At each boundary, it will start from the KV-cache the teacher has produced at that position. This simulates the objective to start from a verifier prefix and generate from there. 
 
-If the intended block size for the self-speculation is 1-5, then dividing the window into sections of that size would make sense. However, that would be a lot of compute to produce so many versions of the teacher KV-cache history and to run so many small drafter trainings. Therefore, a number of sections that balances compute and realism will have to be selected. The parameter to set the number of sections is `num_draft_sections`. In @training_window-img `num_draft_sections = 5`.
+If the intended block size for the self-speculation is 1-5, then dividing the window into sections of that size would make sense. However, that would be a lot of compute to produce so many versions of the teacher KV-cache history and to run so many small drafter trainings. Therefore, a number of sections that balances compute and realism will have to be selected. The parameter to set the number of sections is `num_draft_sections`. In figure @training_window-img, `num_draft_sections = 5`.
 
 Every HVC-training produces a run.json file that includes training and loss values for every Nth step. These will be used to then plot training convergence and to do analysis. Examples of such values are:
 
@@ -485,6 +511,8 @@ Every HVC-training produces a run.json file that includes training and loss valu
     ],
   ),
   caption: [Summary of HVC training metrics],
+  kind: "table",
+  supplement: [Table],
 ) <metric-summary-table>
 
 
@@ -576,7 +604,7 @@ The algorithm that is used to produce the clustering is the following:
 ]   ],
   caption: "Algorithm to build FlashHead-like cluster of token vectors.",
   kind: "algorithm",
-  supplement: [A],
+  supplement: [Algorithm],
 ) <alg:strict-equal-lm-head-clustering>
 
 
@@ -652,7 +680,7 @@ class BuiltANNHClusters:
 // ]   ],
 //   caption: "Algorithm to convert built token clusters into the fast FlashHead inference index.",
 //   kind: "algorithm",
-//   supplement: [A],
+//   supplement: [Algorithm],
 // ) <alg:build-fast-flashhead-index>
 
 
@@ -709,7 +737,7 @@ clusters. Its algorithm is:
 ]   ],
   caption: "Algorithm for approximate greedy best matching token lookup using built FlashHead clusters.",
   kind: "algorithm",
-  supplement: [A],
+  supplement: [Algorithm],
 ) <alg:flashhead-find-token>
 
 == Inference
@@ -792,10 +820,10 @@ Here is a pseudocode of how the self-speculative decoding works:
 ]   ],
   caption: "",
   kind: "algorithm",
-  supplement: [A],
+  supplement: [Algorithm],
 ) <alg:self-spec>
 
-As shown in @finalvsreentry-img, the HVC bridge takes the hidden vector from the previous layer but also a hidden vector from the previous position t-1. During speculation when the draft block has a size of more than 1, the hidden vector at draft step 1 is from the verifier, but from step 2 and forward, it is from the drafter itself.
+As shown in figure @finalvsreentry-img, the HVC bridge takes the hidden vector from the previous layer but also a hidden vector from the previous position t-1. During speculation when the draft block has a size of more than 1, the hidden vector at draft step 1 is from the verifier, but from step 2 and forward, it is from the drafter itself.
 
 The real implementation records the generated text, the output token ids, the number of verifier calls, the number of drafted tokens and the number of accepted draft tokens. 
 
@@ -803,7 +831,7 @@ It can optionally also store a token-level trace JSON file for visualization. Ea
 
 ==== KV-cache
 
-A single KV-cache $C$ is used by both the verifier and the drafter, see @alg:self-spec. The drafter will start where the verifier left off and manipulate $C$ in place. Just before a draft block is started, the length of $C$ is stored as $C_0$. After the drafter has processed a draft block, $C$ will be cropped back to $C_0$ so that then when the verifier runs, it will start from the prefix of $C$ that is guaranteed to be correct. Then when it verifies the proposed draft block, it will update $C$ with the KV-cache up until the mismatch if there is any or for the entire draft block if it is accepted.
+A single KV-cache $C$ is used by both the verifier and the drafter, see algorithm @alg:self-spec. The drafter will start where the verifier left off and manipulate $C$ in place. Just before a draft block is started, the length of $C$ is stored as $C_0$. After the drafter has processed a draft block, $C$ will be cropped back to $C_0$ so that then when the verifier runs, it will start from the prefix of $C$ that is guaranteed to be correct. Then when it verifies the proposed draft block, it will update $C$ with the KV-cache up until the mismatch if there is any or for the entire draft block if it is accepted.
 
 This approach gives that only a single KV-cache needs to be stored instead of having one for the verifier and one for the drafter. The KV-cache is mutated in place with cropping. This avoids having memory spikes that would be created if the rollback position $C_0$ was a copy. The KV-cache memory pressure is therefore not higher than running the model normally.
 
@@ -940,6 +968,8 @@ The benchmark plots include both setup information and measured quantities. The 
   )
   ],
   caption: [Setup and runtime fields shown in the benchmark plot footers.],
+  kind: "table",
+  supplement: [Table],
 ) <tab-benchmark-plot-setup-fields>
 
 #figure(
@@ -994,6 +1024,8 @@ The benchmark plots include both setup information and measured quantities. The 
   )
   ],
   caption: [Measured result and profile fields shown in the benchmark plot footers.],
+  kind: "table",
+  supplement: [Table],
 ) <tab-benchmark-plot-result-fields>
 
 
@@ -1056,7 +1088,7 @@ Here are results regarding building a cluster presented. The most relevant examp
   caption: [Mean assigned cosine similarity during FlashHead clustering of `meta-llama/Llama-3.2-1B-Instruct` LM-head vectors over clustering iterations.],
 ) <clustering-llama3.2-1B-instruct-img>
 
-@clustering-llama3.2-1B-instruct-img shows the process of clustering 5344 clusters for the 128,256 token vectors of Llama-3.2-1B-Instruct. It reaches a plateau after around 15 iterations. The total 40 iterations took around 102 seconds on an Apple M5 chip. The clustering produces these quality metrics:
+Figure @clustering-llama3.2-1B-instruct-img shows the process of clustering 5344 clusters for the 128,256 token vectors of Llama-3.2-1B-Instruct. It reaches a plateau after around 15 iterations. The total 40 iterations took around 102 seconds on an Apple M5 chip. The clustering produces these quality metrics:
 
 
 #```python
@@ -1400,7 +1432,7 @@ The prompt set `concrete-completion-style` is used together with a static block 
   ],
 ) <fig:self-spec-llama-31-8b-concrete>
 
-From @fig:self-spec-llama-31-8b-concrete a speedup of 1.45x with skipped layers and a speedup of 1.56x with skipped layers and ANNH can be seen. The peak memory usage is 15.12 GiB for the normal inference, 15.13 GiB for the self-spec with skipped layers and 15.19 GiB when skipping layers and using ANNH.
+From figure @fig:self-spec-llama-31-8b-concrete a speedup of 1.45x with skipped layers and a speedup of 1.56x with skipped layers and ANNH can be seen. The peak memory usage is 15.12 GiB for the normal inference, 15.13 GiB for the self-spec with skipped layers and 15.19 GiB when skipping layers and using ANNH.
 
 The figure shows that the head has a speedup with 7.68x when going from full LM-head to ANNH and an resulting accuracy of 97.6%. This makes the acceptance rate go from 47.6% without ANNH to 46.5% with it. The fraction of when the outputs exactly match normal generation is 43.3% both with and without ANNH. This does not mean that the self-speculation is incorrect or that it is approximate. See the discussion for why this happens even without approximation. 
 
@@ -1427,7 +1459,7 @@ which aligns closely with the measured 1.45x. For the version with ANNH, setting
   ],
 ) <fig:self-spec-llama-32-3b-concrete>
 
-The @fig:self-spec-llama-32-3b-concrete shows the same pattern of speedup as @fig:self-spec-llama-31-8b-concrete. The speedups are here smaller, 1.3x and 1.44x respectively. This illustrates the hypothesis of overhead for easy tokens. When the model is smaller, there is less overhead for easy tokens resulting in less gain. The figure shows that the ANNH is 7.02x faster than the normal LM-head and that the memory usage is approximately the same for all three versions
+Figure @fig:self-spec-llama-32-3b-concrete shows the same pattern of speedup as figure @fig:self-spec-llama-31-8b-concrete. The speedups are here smaller, 1.3x and 1.44x respectively. This illustrates the hypothesis of overhead for easy tokens. When the model is smaller, there is less overhead for easy tokens resulting in less gain. The figure shows that the ANNH is 7.02x faster than the normal LM-head and that the memory usage is approximately the same for all three versions
 
 #figure(
   move(
@@ -1444,7 +1476,7 @@ The @fig:self-spec-llama-32-3b-concrete shows the same pattern of speedup as @fi
 ) <fig:self-spec-llama-32-1b-concrete>
 
 
-@fig:self-spec-llama-32-1b-concrete shows that the Llama 3.2 1B Instruct also gets speedups of 1.13x and 1.27x. The speedups are here smaller and again following the idea of overhead. The self-speculation runs use approximately the same amount of memory as normal inference.
+Figure @fig:self-spec-llama-32-1b-concrete shows that the Llama 3.2 1B Instruct also gets speedups of 1.13x and 1.27x. The speedups are here smaller and again following the idea of overhead. The self-speculation runs use approximately the same amount of memory as normal inference.
 
 
 #figure(
@@ -1462,7 +1494,7 @@ The @fig:self-spec-llama-32-3b-concrete shows the same pattern of speedup as @fi
 ) <fig:self-spec-mistral-7b-concrete>
 
 
-The Mistral 7B Instruct shows a relatively large speedup of 1.61x with skipped layers but a speedup of 1.60x with skipped layers + ANNH, even though it made the head 3.06x faster. @fig:self-spec-mistral-7b-concrete shows that the LM-head portion is 1.85% of the parameters, so the win from speeding up the head is erased from the slight drop in acceptance rate by doing so.
+The Mistral 7B Instruct shows a relatively large speedup of 1.61x with skipped layers but a speedup of 1.60x with skipped layers + ANNH, even though it made the head 3.06x faster. Figure @fig:self-spec-mistral-7b-concrete shows that the LM-head portion is 1.85% of the parameters, so the win from speeding up the head is erased from the slight drop in acceptance rate by doing so.
 
 Using @selfs-speedup with $v = 1.05$, $gamma = 2$, $a = 51.3%$, and $d = 10.3%$ (skipped layers only), the predicted speedup is
 $
@@ -1490,7 +1522,7 @@ which also roughly matches the measured 1.60x.
 ) <fig:self-spec-qwen3-4b-concrete>
 
 
-@fig:self-spec-qwen3-4b-concrete shows that the implementation also gives speedups for Qwen3. The acceptance rates are relatively low of 36.2% and 35.8%. This manages to result in speedups of 1.25x and 1.34x. A block size of 2 can be to big for this drafter. 
+Figure @fig:self-spec-qwen3-4b-concrete shows that the implementation also gives speedups for Qwen3. The acceptance rates are relatively low of 36.2% and 35.8%. This manages to result in speedups of 1.25x and 1.34x. A block size of 2 can be to big for this drafter. 
 
 === float32 debug test
 
@@ -1507,7 +1539,7 @@ which also roughly matches the measured 1.60x.
   ],
 ) <fig:self-spec-llama32-1b-float32-concrete>
 
-@fig:self-spec-llama32-1b-float32-concrete shows a debug run with float32. Here the match between normal generation and self-speculation generation is 100% for both drafter versions. The number of tokens generated is also exactly the same with 16811 in for normal and with the self-speculation implementation. 
+Figure @fig:self-spec-llama32-1b-float32-concrete shows a debug run with float32. Here the match between normal generation and self-speculation generation is 100% for both drafter versions. The number of tokens generated is also exactly the same with 16811 in for normal and with the self-speculation implementation. 
 
 
 = Discussion
