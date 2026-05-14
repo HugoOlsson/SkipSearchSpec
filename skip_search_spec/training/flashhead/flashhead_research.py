@@ -23,7 +23,7 @@ from skip_search_spec.training.flashhead.building_clusters import build_clusters
 from skip_search_spec.training.flashhead.flashhead_inference_testing import (
     evaluate_topk_cluster_sweep_on_token_windows,
 )
-from skip_search_spec.training.flashhead.next_token_adapter import FlashHeadModule
+from skip_search_spec.training.flashhead.next_token_adapter import ANNHModule
 from skip_search_spec.training.flashhead.storage import save_flashhead
 
 
@@ -244,7 +244,7 @@ def evaluate_flashhead(stored_path: str, model_name: str) -> None:
     model.to(device=device, dtype=compute_dtype)
     model.eval()
 
-    flashhead = FlashHeadModule.from_model(
+    flashhead = ANNHModule.from_model(
         model=model,
         flashhead_path=stored_path,
         top_k_clusters=500,

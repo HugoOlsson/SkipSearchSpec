@@ -9,7 +9,7 @@ from torch import Tensor, nn
 from skip_search_spec.training.flashhead.storage import load_flashhead
 
 
-class FlashHeadModule(nn.Module):
+class ANNHModule(nn.Module):
     """
     Memory-light FlashHead module for greedy next-token lookup.
 
@@ -100,7 +100,7 @@ class FlashHeadModule(nn.Module):
 
         # Plain attributes on purpose:
         # these borrow the model's existing LM-head tensors and should not be
-        # saved, copied, or moved by FlashHeadModule.to().
+        # saved, copied, or moved by ANNHModule.to().
         self.lm_head_vector_table = lm_head_vector_table.detach()
         self.lm_head_bias = None if lm_head_bias is None else lm_head_bias.detach()
 
@@ -111,7 +111,7 @@ class FlashHeadModule(nn.Module):
         model: Any,
         flashhead_path: str | Path,
         top_k_clusters: int,
-    ) -> FlashHeadModule:
+    ) -> ANNHModule:
         stored = load_flashhead(flashhead_path)
         lm_head_vector_table, lm_head_bias = extract_lm_head(model)
 

@@ -12,7 +12,7 @@ from skip_search_spec.helpers.tooling import (
     get_preferred_float_dtype,
     load_model_and_tokenizer,
 )
-from skip_search_spec.training.flashhead.next_token_adapter import FlashHeadModule
+from skip_search_spec.training.flashhead.next_token_adapter import ANNHModule
 
 
 @dataclass(frozen=True, slots=True)
@@ -89,7 +89,7 @@ def generate_with_flashhead(
     prompt: str = "",
     *,
     flashhead_path: str | Path | None = None,
-    flashhead: FlashHeadModule | None = None,
+    flashhead: ANNHModule | None = None,
     flashhead_top_k_clusters: int = 50,
     max_new_tokens: int = 100,
     tokenizer_name_or_path: str | None = None,
@@ -135,7 +135,7 @@ def generate_with_flashhead(
         if flashhead_path is None:
             raise ValueError("flashhead_path is required when no flashhead is provided.")
 
-        flashhead = FlashHeadModule.from_model(
+        flashhead = ANNHModule.from_model(
             model=model,
             flashhead_path=flashhead_path,
             top_k_clusters=flashhead_top_k_clusters,

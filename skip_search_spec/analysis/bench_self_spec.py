@@ -1214,13 +1214,29 @@ def _draw_git_revision(fig: Any, metadata: dict[str, Any]) -> None:
 
     fig.text(
         0.985,
-        0.018,
+        0.01,
         text,
         ha="right",
         va="bottom",
         fontsize=11,
         color="#292929",
     )
+
+def _normal_baseline_payload(metadata: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "key": "normal",
+        "label": "Normal inference:",
+        "short_label": "normal",
+        "metadata": metadata,
+        "summary": {},
+        "profile_summary": None,
+        "profile_results": [],
+        "speedups": [],
+        "aggregate_speedup": 1.0,
+        "edge": "#6E6E6E",
+        "fill": "#CFCFCF",
+        "is_baseline": True,
+    }
 
 
 def _plot_variant_distribution(
@@ -1242,7 +1258,15 @@ def _plot_variant_distribution(
     plot_variants = [
         _styled_variant_payload(variant) for variant in _ordered_plot_variants(variants)
     ]
-    all_speedups = [value for variant in plot_variants for value in variant["speedups"]]
+
+    normal_baseline = _normal_baseline_payload(plot_variants[0]["metadata"])
+    plot_variants_with_baseline = [*plot_variants, normal_baseline]
+
+    all_speedups = [
+        value
+        for variant in plot_variants
+        for value in variant["speedups"]
+    ]
     if not all_speedups:
         raise ValueError(
             "No speedup values found. Run the benchmark with normal comparison."
@@ -1333,7 +1357,7 @@ def _plot_variant_distribution(
             solid_capstyle="round",
         )
 
-    for variant in plot_variants:
+    for variant in plot_variants_with_baseline:
         speedup = variant["aggregate_speedup"]
         if speedup is None:
             continue
@@ -1359,7 +1383,7 @@ def _plot_variant_distribution(
     for spine in ax.spines.values():
         spine.set_visible(False)
 
-    _draw_inline_legend(ax, plot_variants)
+    _draw_inline_legend(ax, plot_variants_with_baseline)
     footer_ax = fig.add_axes([0.085, 0.095, 0.83, 0.225])
     _draw_report_footer(footer_ax, _info_sections(plot_variants))
     _draw_git_revision(fig, metadata)
@@ -1434,7 +1458,7 @@ def _summary_speedup(summary: dict[str, Any]) -> float | None:
 def _plot_x_limits(values: list[float]) -> tuple[float, float]:
     lower = math.floor((min(values) - 0.16) / 0.1) * 0.1
     upper = math.ceil((max(values) + 0.12) / 0.1) * 0.1
-    lower = min(lower, 0.5)
+    lower = min(lower, 0.2)
     upper = max(upper, 1.4)
     if upper - lower < 0.7:
         midpoint = (upper + lower) / 2.0

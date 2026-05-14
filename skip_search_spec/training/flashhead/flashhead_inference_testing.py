@@ -9,7 +9,7 @@ from torch import Tensor
 from transformers import PreTrainedModel, PreTrainedTokenizerBase
 
 from skip_search_spec.helpers.versioning import get_git_revision
-from skip_search_spec.training.flashhead.next_token_adapter import FlashHeadModule
+from skip_search_spec.training.flashhead.next_token_adapter import ANNHModule
 
 
 @dataclass(frozen=True, slots=True)
@@ -116,7 +116,7 @@ def save_top1_match_rate_table_image(
 def evaluate_topk_containment_on_token_windows(
     model: PreTrainedModel,
     tokenizer: PreTrainedTokenizerBase,
-    flashhead: FlashHeadModule,
+    flashhead: ANNHModule,
     token_windows: Iterable[Tensor],
     *,
     max_windows: int | None = None,
@@ -247,7 +247,7 @@ def evaluate_topk_containment_on_token_windows(
 def evaluate_topk_cluster_sweep_on_token_windows(
     model: PreTrainedModel,
     tokenizer: PreTrainedTokenizerBase,
-    flashhead: FlashHeadModule,
+    flashhead: ANNHModule,
     token_windows: Iterable[Tensor],
     *,
     top_k_clusters_values: Iterable[int] = DEFAULT_TOP_K_CLUSTER_SWEEP,

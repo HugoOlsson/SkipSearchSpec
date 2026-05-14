@@ -448,7 +448,7 @@ def main() -> None:
 
         from skip_search_spec.inference.flashhead_inference import generate_with_flashhead
         from skip_search_spec.helpers.tooling import get_preferred_device, get_preferred_float_dtype, load_model_and_tokenizer
-        from skip_search_spec.training.flashhead.next_token_adapter import FlashHeadModule
+        from skip_search_spec.training.flashhead.next_token_adapter import ANNHModule
 
         parser = argparse.ArgumentParser(add_help=False)
         parser.add_argument(
@@ -477,7 +477,7 @@ def main() -> None:
         if tokenizer.pad_token_id is None:
             tokenizer.pad_token = tokenizer.eos_token
 
-        flashhead = FlashHeadModule.from_model(
+        flashhead = ANNHModule.from_model(
             model=model,
             flashhead_path=flashhead_path,
             top_k_clusters=flashhead_top_k_clusters,

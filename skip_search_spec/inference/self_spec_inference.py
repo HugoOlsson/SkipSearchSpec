@@ -11,7 +11,7 @@ import torch
 from skip_search_spec.helpers.tooling import TokenData, add_tokens_to_trace
 from skip_search_spec.helpers.shared_decoding_tools import crop_past_key_values
 from skip_search_spec.training.bridged_gap_model import BridgedGapModel
-from skip_search_spec.training.flashhead.next_token_adapter import FlashHeadModule
+from skip_search_spec.training.flashhead.next_token_adapter import ANNHModule
 
 
 @dataclass(slots=True)
@@ -226,7 +226,7 @@ class BridgeSelfSpeculator:
         self.flashhead = (
             None
             if flashhead_path is None
-            else FlashHeadModule.from_model(
+            else ANNHModule.from_model(
                 model=self.model,
                 flashhead_path=flashhead_path,
                 top_k_clusters=flashhead_top_k_clusters,

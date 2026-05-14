@@ -9,7 +9,7 @@ torch.set_num_interop_threads(1)
 
 
 @dataclass(frozen=True, slots=True)
-class BuiltFlashHeadClusters:
+class BuiltANNHClusters:
     cluster_to_token_ids: Tensor      # [num_clusters, cluster_size], no padding
     centroids: Tensor                 # [num_clusters, hidden_size]
 
@@ -251,7 +251,7 @@ def build_clusters(
     seed: int = 0,
     build_device: torch.device | str | None = None,
     on_iteration_metrics: Callable[[int, dict[str, float]], None] | None = None,
-) -> BuiltFlashHeadClusters:
+) -> BuiltANNHClusters:
     if lm_head_vector_table.ndim != 2:
         raise ValueError("lm_head_vector_table must have shape [vocab_size, hidden_size]")
 
@@ -363,7 +363,7 @@ def build_clusters(
 
     print_clustering_quality(quality)
 
-    return BuiltFlashHeadClusters(
+    return BuiltANNHClusters(
         cluster_to_token_ids=cluster_to_token_ids.cpu(),
         centroids=centroids.cpu(),
     )
