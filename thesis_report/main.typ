@@ -809,9 +809,19 @@ This approach gives that only a single KV-cache needs to be stored instead of ha
 
 == Benchmarking
 
-=== Prompts
+The benchmark measures total speedup compared to the normal generation baseline and captures internal details. The self-speculative generation is run in these two variants:
 
-Two sets of prompts in are used to test acceptance rates and speedups, one with hard and one with easier prompts. The prompts are only in English and are on a difficulty level that a small LLM in the parameter range 0.5-10B can handle without producing pure guesses. All prompts are completion-style, and not chat-style. This means that the LM will continue from the prompts given rather then parsing and treating it like a assistant-user chat conversation. The prompts used can be found in the file `inference_prompts.py`. Here is an example of prompts from the hard prompt set:
++ _Skipped layers_: the drafter uses the HVC-bridge and skipped-layer body, but still uses the dense LM-head.
++ _Skipped layers + ANNH_: the same drafter body is used, but token selection in the drafter uses the ANNH head instead of the dense LM-head.
+
+
+=== Prompt sets
+
+The benchmark uses two completion-style prompt sets: a concrete set and a general set. The concrete set contains tasks with relatively unambiguous answers. 
+
+The general set is intended to complement this with prompts that are more open ended and possibly harded to speculate future tokens for the drafter, not because the drafter necessarly is wrong but because it might not be exactly what the verifier would generate.
+
+A short example from the concrete prompt set is:
 
 
 
@@ -820,61 +830,38 @@ Two sets of prompts in are used to test acceptance rates and speedups, one with 
 [
   ...
   (
-        "encyclopedic_biology_photosynthesis",
+        "concrete_math_total_price",
         (
-            "Article: Photosynthesis\n\n"
-            "Photosynthesis is the process by which plants, algae, and some bacteria "
-            "convert light energy into chemical energy. In green plants, this process "
-            "takes place mainly in the leaves, where chlorophyll absorbs sunlight. "
-            "The process uses carbon dioxide from the air and water from the soil to"
-        ),
-    ),
-    ...
-    (
-        "math_recipe",
-        (
-            "Problem:\n"
-            "A recipe uses 3 cups of flour for one cake. Lena wants to bake 5 cakes, "
-            "but she already has 4 cups of flour at home. How many more cups of flour "
-            "does she need?\n\n"
-            "Solution:\n"
-        ),
-    ),
-    ...
-```
-
-Here is an example of prompts from the easier dataset:
-
-#```python
-[
-    ...
-     (
-        "easy_fact_animals",
-        (
-            "Article: Elephants\n\n"
-            "Elephants are large mammals known for their long trunks, wide ears, and "
-            "strong social bonds. They live in groups and use their trunks to"
-        ),
-    ),
-    ...
-   (
-        "easy_qa_plants",
-        (
-            "Question:\n"
-            "Why do plants need sunlight?\n\n"
+            "Task: Compute the total cost.\n"
+            "A notebook costs 4 dollars. A pen costs 2 dollars. Buy 3 notebooks "
+            "and 5 pens.\n"
+            "Return only the total number of dollars.\n\n"
             "Answer:\n"
         ),
     ),
     ...
-
+    (
+        "concrete_extract_email",
+        (
+            "Task: Extract the email address.\n"
+            "Text: Please send the invoice to billing@example.com before Friday.\n"
+            "Return only the email address.\n\n"
+            "Output:\n"
+        ),
+    ),
+    ...
 ```
 
-// === FlashHead-only testing
+=== Benchmark phases
 
-// Using FlashHead alone is also tested. This can be a good ablation on smaller models where the head is proportionally larger. Here the model is run normally but with the FlashHead module used to find next token instead of using the full head projection. Without self-speculation, the mistakes from head approximation will leak to the generated output, there is not a verifier to catch them. Therefore, both accuracy and speedup is measured compared to the original model.
+Each benchmark variant has three phases:
 
-== Timing setups
-To measure speedups, the timing performed must be accurate and fair. The functions to run self-speculation and normal generation, `self_spec_inference_test(..)` and `generate_normal(..)` respectively, are equipped with code that measure total inference time and also internal time. The internal time includes total head time (full LM-head or FlashHead) and mount/unmount time. The mount time is the time taken to transform the model from running with normal inference logic to using drafter inference logic (skipping layers+FlashHead). The unmount time is the time is to transform the model from drafter to verifier. When making internal timings, synchronization is performed to get fair timing. When doing total speedup measurements, all internal timings are turned off since their synchronizations can disturb the inference and make it slower.
++ _Warmup phase_: the first `N` prompts are run before any reported measurement, where `N` is a benchmark setting. These runs are discarded. Their purpose is to remove any bias for where initial prompts might be processed slower.
++ _Profile phase_: the next `M` prompts are run with internal timings enabled, where `M` is a benchmark setting. These results are saved separately and are used for diagnostic quantities such as verifier cost, drafter cost, drafter body/head/overhead split, ANNH head speedup, and verifier-to-normal ratios. They are not used for the total speedup numbers because internal profiling inserts device synchronizations around sub-operations which can affect total performance.
++ _Speed phase_: the full selected prompt set is run with internal timings disabled. These are the measurements used for acceptance rate, exact-match rate, memory usage, per-prompt speedup histograms, and total per-token speedup. The speed phase begins from the first prompt in the prompt set.
+
+
+
     
 = Results
 
