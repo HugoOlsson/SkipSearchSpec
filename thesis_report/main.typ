@@ -872,6 +872,131 @@ The profile phase uses the same self-speculative generation code, but enables in
 Peak GPU memory is measured per prompt by resetting CUDA peak allocation statistics before each normal or self-speculative run and reading the peak allocation after the run. In the speed phase, normal generation results are cached by prompt index so the same normal baseline is reused when both self-speculative variants are compared.
 
 
+=== Plot metrics
+
+The benchmark plots include both setup information and measured quantities. The setup and runtime fields are defined in @tab-benchmark-plot-setup-fields, while the measured result fields are defined in @tab-benchmark-plot-result-fields.
+
+#figure(
+  text(size: 8pt)[
+  #table(
+    columns: (24%, 22%, 54%),
+    inset: 4pt,
+    align: (left, left, left),
+    fill: (x, y) => if y == 0 { luma(230) },
+    stroke: 0.5pt + luma(200),
+
+    table.header(
+      [*Plot field*], [*Format*], [*Meaning*],
+    ),
+
+    [`Prompt set`], [name], [
+      The prompt set used for the benchmark run.
+    ],
+    [`Gap`], [`(a, b)`], [
+      The layer-skipping shape, where `a` is the number of kept layers before the skipped gap and `b` is the number of kept layers after it.
+    ],
+    [`Block size`], [integer], [
+      The number of draft tokens proposed before each verifier call, denoted $gamma$ in the speedup equation.
+    ],
+    [`Layers`], [integer], [
+      The total number of transformer layers in the base model.
+    ],
+    [`LM vocab`], [integer], [
+      The vocabulary size used by the model's LM-head.
+    ],
+    [`LM params`], [`e.g. 1.2B`], [
+      The total number of parameters in the loaded language model.
+    ],
+    [`Head params`], [`e.g. 262M`], [
+      The number of parameters in the output LM-head.
+    ],
+    [`Head portion`], [percent], [
+      `Head params` divided by `LM params`.
+    ],
+    [`GPU`], [name], [
+      The GPU used for the benchmark run.
+    ],
+    [`Backend`], [name], [
+      The attention implementation used by the loaded model.
+    ],
+    [`Model dtype`], [dtype], [
+      The datatype used for the base model parameters during inference.
+    ],
+    [`Bridge dtype`], [dtype], [
+      The datatype used for the loaded HVC-bridge.
+    ],
+    [`Speed internals`], [`yes`/`no`], [
+      Whether internal body/head/verifier timers were enabled during the speed phase. For reported speedups this is disabled.
+    ],
+    [`Profile prompts`], [integer], [
+      Number of prompts run in the profile phase.
+    ],
+    [`Warmup prompts`], [integer], [
+      Number of prompts run in the warmup phase before measured runs.
+    ],
+    [`Measured prompts`], [integer], [
+      Number of prompts included in the speed-phase metrics.
+    ],
+  )
+  ],
+  caption: [Setup and runtime fields shown in the benchmark plot footers.],
+) <tab-benchmark-plot-setup-fields>
+
+#figure(
+  text(size: 8pt)[
+  #table(
+    columns: (24%, 22%, 54%),
+    inset: 4pt,
+    align: (left, left, left),
+    fill: (x, y) => if y == 0 { luma(230) },
+    stroke: 0.5pt + luma(200),
+
+    table.header(
+      [*Plot field*], [*Format*], [*Meaning*],
+    ),
+
+    [`Peak mem normal`], [`GiB`/`MiB`], [
+      Mean CUDA peak allocated memory over normal generation runs.
+    ],
+    [`Mean speedup`], [`1.23x`], [
+      Aggregate per-token speedup for the variant. It is computed as self-speculative tokens per second divided by normal tokens per second after summing seconds and generated tokens over measured prompts.
+    ],
+    [`Acceptance rate`], [percent], [
+      Accepted draft tokens divided by drafted tokens.
+    ],
+    [`Exact match`], [percent], [
+      Fraction of measured prompts where the decoded self-speculative output exactly matches the decoded normal-generation output.
+    ],
+    [`Peak mem self`], [`GiB`/`MiB`], [
+      Mean CUDA peak allocated memory over self-speculative runs for the variant.
+    ],
+    [`Tokens gen`], [`s X / n Y`], [
+      Total generated tokens in the speed phase, where `X` is the self-speculative token count (`s`) and `Y` is the normal-generation token count (`n`).
+    ],
+    [`Drafter split`], [`B x% / H y% / O z%`], [
+      Profile-phase split of drafter time, where `x` is body time (`B`), `y` is head time (`H`), and `z` is remaining overhead (`O`).
+    ],
+    [`Verifier/normal`], [`1.23x`], [
+      Mean verifier-call time divided by normal time per generated token. The initial prompt prefill verifier call is excluded.
+    ],
+    [`Drafter/normal`], [percent], [
+      Mean drafter-token time divided by normal time per generated token.
+    ],
+    [`ANNH acceptance ratio`], [percent], [
+      Acceptance rate with ANNH divided by acceptance rate without ANNH.
+    ],
+    [`ANNH head speedup`], [`1.23x`], [
+      Dense LM-head time divided by ANNH head lookup time in the profile phase.
+    ],
+    [`ANNH index`], [`C clusters; top-k K`], [
+      ANNH search setup, where `C` is the number of clusters in the loaded index and `K` is the number of top clusters searched per token.
+    ],
+  )
+  ],
+  caption: [Measured result and profile fields shown in the benchmark plot footers.],
+) <tab-benchmark-plot-result-fields>
+
+
 
     
 = Results
