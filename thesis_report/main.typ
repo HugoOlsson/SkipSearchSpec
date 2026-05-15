@@ -1684,13 +1684,26 @@ This gives $d_1 = 6.94%$ for the (1,1) + ANNH drafter. With 65% top-1 accuracy, 
   supplement: [T],
 ) <tab-less-skipped-required-top1-block1>
 
-The estimates in @tab-less-skipped-required-top1-block1 show that when keeping more layers, the acceptance threashold to achive the same speedup increases rapidly. if the top1 is 65% with (1,1) then it needs to be 73.8% for (2,2) and 82.5% for (3,3). This is not the increase we see when using smaller gaps which suggests that it will not be a viable alternative to test for smaller gaps. The table also shows that its impossible to reach the same speedup as the (1,1) with (5,5) or smaller gaps, which for this model is to keep 30.7% or more of the layers. So it doesn't matter how good the a skipping ablation is that keeps more than 30.7% of the layers, it won't produce a self-specualtive system faster than the (1,1) baseline.
+The estimates in @tab-less-skipped-required-top1-block1 show that when keeping more layers, the acceptance threashold to achive the same speedup increases rapidly. If the top1 is 65% with (1,1) then it needs to be 73.8% for (2,2) and 82.5% for (3,3). This is not the increase we see when using smaller gaps which suggests that it will not be a viable alternative to test for smaller gaps. The table also shows that its impossible to reach the same speedup as the (1,1) with (5,5) or smaller gaps, which for this model is to keep 30.7% or more of the layers. So it doesn't matter how good the a skipping ablation is that keeps more than 30.7% of the layers, it won't produce a self-specualtive system faster than the (1,1) baseline.
 
 
-=== Self-speculation speedups
+=== Self-speculation speedups and memory usage
 // Why do larger models benefit more than smaller ones?
 // Why does the theoretical formula predict measured speedups so closely?
 // What does the Amdahl framing tell us about the ceiling for each model?
+
+
+All models tested resulted in a speedup with the self-specualtive system. All of them except Mistral 7B Instruct 0.3v has a larger speedup when the drafter used skipping layers and ANNH. The measured average speedups were in the range 1.27x to 1.61x in bfloat16 with block size 2. The lowest measured average speedup were for Llama 3.2 1B and the largest speedup were for Mistral 7B Instruct 0.3v. 
+
+The measured speedups are prompt dependent and forms an approxiamte normal distribution. Mistral 7B Instruct had a max speedup of around 1.95x and a minimal speedup of around 1.2x for the concrete dataset. With a constant block size 2, Llama 3.2 3B Instruct had the biggest variance in speedup between different prompts on the concrete dataset. With skipped layers + ANNH it had an average speedup of 1.44x but a minimal speedup of 0.85x and a maximial speedup of 2.3x.
+
+On NVIDIA L4, the ANNH made the head 3.06x to 7.68x faster with used top-k between 50 and 70. The model with largest relative additinoal speedup from using ANNH in the self-speculative setup was Llama 3.2 1B that went from 1.13x to 1.27x in average per token speedup. Large speedups for the LM-head does not directly translate to large speedup in the self-speculative setup, but it seems to help and it seems to confirm the Amdahl's law idea. For Mistral 7B Instruct 0.3v, ANNH made the head 3.06x faster, but the total self-speculative speedup went from 1.61x to 1.60x. The reason for why this can happen is that the head is there proportionally very small, 1.85% of the paramters, and the slight drop in acceptance rate when using ANNH with top-k = 50 removes more speedup than what the speedup head contributes. This follows Amdahl's law reasoning exactly. 
+
+All models seem to use approximatly the same amount of VRAM as the normal inference. Loading the ANNH index into memory adds slightly to memory usage but the observed overhead is only around 0.3%. The advantage of using the same model for the verifier and the drafter to do self-speculation and also to share the KV-cache therefore results in a solution that doesn't need more memory than normal inference. 
+
+=== Does this approach make sense?
+
+
 
 == Answering the research questions
 
