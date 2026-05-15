@@ -1766,13 +1766,19 @@ ANNH cluster-building times are only included where they are reported above.
 
 === Does this approach make sense?
 
-This method does seem to produce a satisfying set of properties:
+This method does seem to produce a useful set of properties:
 
 + No more memory usage than normal inference.
 + Lossless generation quality relative to the stock model, up to numerical tie-breaking effects.
 + Observed speedups between 1.27x and 1.61x.
 + Total training time for the HVC bridge and the ANNH index of less than 1 hour.
 + A concrete recipe to turn a model into a drafter for itself.
+
+
+The main drawback is that the potential speedup is dependent on the nature of the prompt. If the prompt is concrete and has a less open ended future, then the acceptance rate seems to be higher and thus resulting in a larger speedup. If the prompt is open ended like telling a story then its harder for the drafter to generate the exact same choice as the verifier which lowers the acceptance rate and thus the potential speedup. The bridge likely also needs to be trained on a dataset that is somewhat representative of the task it will perform to achive its full potential.
+
+
+
 
 
 
