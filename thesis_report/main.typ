@@ -1638,7 +1638,6 @@ The tables also show that Llama 3.2 3B Instruct seem to get higher accuracy than
 
 Running ANNH with speculative decoding is distinctively different than running the model normally with ANNH. With specualtive decoding any mistake from the ANNH (and the drafter in general) will be caught by the verifier. So mistakes from the ANNH will instead only reduce the acceptance rate, not produce any different output. For normal genration with ANNH to have high probability that the output won't diverge or degenerate, the accuracy would likely need to be around > 99.5%, but in specualtive decoding, it is okay if it lower becuase it will just be a factor that reduces the acceptance rate. If the acceprance rate is 50% without ANNH, and the ANNH with a choosen top-k has an accuracy of 95% the acceptance rate will be $0.95 times 0.5 = 47.5%$, but the output still guaranteed to be correct. Since the results show that its significantly easier to go from 0% to 95% than 95% to 99.5%, the ANNH head can be very performant during self-specualtion and it is enough to use a top-k of between 50 to 100.
 
-=== Why the Method Preserves Output Quality
 
 
 === Exact match and numerical precision
@@ -1809,6 +1808,13 @@ The answer to the third research question is therefore that the proposed combina
 
 
 === Hypothesis about easy and hard tokens
+
+The fundamental idea behind this project that there are easier and more diffcult tokens to predict given a context. In the generation "Usain Bolt runs very fast and has the reco.." then it is likely to be statistically obvious that the next token should be "rd" to complete the word "record". But in the same genration but for another token "Usain Bolt runs very fast and has the record in 100m. ?" Then it is not necessarily obvious what the next token should be becuase it is the start of a new sentence and that might require more strategic and complex selection. So the idea is that there are obivous tokens and non-obvious tokens and a spectrum between these.
+
+To then use all layers for all tokens is somewhat wasteful with this perspective. The capacity of all layers is mostly useful for key positions that decides the quality of the generation. With this perspective, self-specualtive decoding is rather a practical approach to engineer the inference to not use the full capacity for all tokens. The alternative could be that you have a model that can skip layers but does so dynamically based on the percived difficulty of the current token to generate. The problem with that solution is to design the mechanism that decides how many layers will be needed to compute the next token. If that mechanism is to conservative, then it leaves efficiency on the table, but if it is too aggressive then it is likely to underestimate the number of layers needed to produce the same token the full model would. In that setup there would be no verifier to catch the mistakes, so they would leak into the generation. 
+
+
+For small models, one could imagine that the overhead for easy tokens is smaller than on larger models. That if you decrease the processing with $X$ percent, then the share of tokens still possible to predict is smaller on smaller models than larger ones, because they did not have the same headroom to begin with. With that, the capacity for speedup should be larger for bigger models and that is what has been observed in this project.
 
 
 == Limitations and sources of error
