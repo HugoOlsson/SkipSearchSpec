@@ -1701,7 +1701,18 @@ On NVIDIA L4, the ANNH made the head 3.06x to 7.68x faster with used top-k betwe
 
 All models seem to use approximatly the same amount of VRAM as the normal inference. Loading the ANNH index into memory adds slightly to memory usage but the observed overhead is only around 0.3%. The advantage of using the same model for the verifier and the drafter to do self-speculation and also to share the KV-cache therefore results in a solution that doesn't need more memory than normal inference. 
 
+
+=== How long is the total training time?
+
 === Does this approach make sense?
+
+This method does seem to produce a satisfying set of properties:
+
++ No more memory usage than normal inference.
++ Lossless generation quality relative to the stock model, up to numerical tie-breaking effects.
++ Observed speedups between 1.27x and 1.61x.
++ Total training time for the HVC bridge and the ANNH index of less than 1 hour.
++ A concrete recipe to turn a model into a drafter for itself.
 
 
 
