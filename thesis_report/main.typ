@@ -1638,6 +1638,9 @@ The tables also show that Llama 3.2 3B Instruct seem to get higher accuracy than
 
 Running ANNH with speculative decoding is distinctively different than running the model normally with ANNH. With specualtive decoding any mistake from the ANNH (and the drafter in general) will be caught by the verifier. So mistakes from the ANNH will instead only reduce the acceptance rate, not produce any different output. For normal genration with ANNH to have high probability that the output won't diverge or degenerate, the accuracy would likely need to be around > 99.5%, but in specualtive decoding, it is okay if it lower becuase it will just be a factor that reduces the acceptance rate. If the acceprance rate is 50% without ANNH, and the ANNH with a choosen top-k has an accuracy of 95% the acceptance rate will be $0.95 times 0.5 = 47.5%$, but the output still guaranteed to be correct. Since the results show that its significantly easier to go from 0% to 95% than 95% to 99.5%, the ANNH head can be very performant during self-specualtion and it is enough to use a top-k of between 50 to 100.
 
+=== Why the Method Preserves Output Quality
+
+
 === Exact match and numerical precision
 // bfloat16 vs float32 exact match discrepancy — not a correctness bug, explain why
 As shown in the figures @fig:self-spec-llama-31-8b-concrete, @fig:self-spec-llama-32-3b-concrete, @fig:self-spec-llama-32-1b-concrete, @fig:self-spec-mistral-7b-concrete, and @fig:self-spec-qwen3-4b-concrete the exact match to the normal generation is not 100%, even though it is greedy argmax generation. This was a strange result and the project investigated why it is the case because the generation should not be approximate or lossy compared to the normal model. The reason is that when selecting next token, there are a lot of ties when using bfloat16, tokens that get the exact same score. These ties happen in both normal generation and in self-speculation. So in bfloat16 there is not enough information to select an unambiguous winner. To debug if this was really the case the project added a flag `--debug-argmax-ties` in `bench_self_spec.py` that makes the normal generation and self-speculation implementation print if there is ever a logit tie when doing argmax, see the function `argmax_debug_first_tie(..)` in the open source repository. When using this, there were usually 1-5 ties detected for each generation of at max 200 tokens. If this is the case, then there should be a 100% match rate when using float32 because then the limitation of precision is mostly removed. As figure @fig:self-spec-llama32-1b-float32-concrete shows but also all internal runs, float32 generations did always get a 100% match rate which heavily suggests that the self-speculation setup and logic is not faulty but that there needs to be high enough precision to make unambiguous choices, both for the normal and self-speculative generation.
@@ -1784,9 +1787,29 @@ The main drawback is that the potential speedup is dependent on the nature of th
 
 == Answering the research questions
 
-// RQ1: Which layer-skipping strategy minimizes damage to generation quality?
-// RQ2: Can the HVC bridge recover enough quality to serve as an effective drafter?
-// RQ3: Does approximating both head and body produce higher speedup than either alone?
+=== Which layer-skipping strategy minimizes damage to generation quality per layer skipped, and does this pattern hold across model families?
+
+The experiments indicate that skipping one contiguous internal gap is the best tested strategy. The skip-ablation results show that early-exit and late-start strategies damage the output distribution more for the same number of skipped layers, while non-contiguous skip patterns such as skipping every other layer do not give a clear advantage. The useful pattern is therefore to keep the first layers, keep the last layers, and skip a block in the middle.
+
+This pattern is also coherent with the role of the layers. The first layers transform the token embeddings into the model's internal representation, and the last layers prepare the hidden vector for the final unembedding. Skipping either end therefore changes the representation at a sensitive point. A middle gap is less destructive because it leaves both the input-side and output-side parts of the model intact. The strongest evidence in the report is shown for Llama-3.2-1B-Instruct and Mistral-7B-Instruct-v0.3, and internal experiments showed the same qualitative pattern for Llama-3.2-3B-Instruct, Qwen models, and Llama-3.1-8B-Instruct. The answer to the first research question is therefore yes: a contiguous middle gap is the best found layer-skipping strategy, and the pattern appears stable across the tested model families.
+
+=== Can a lightweight HVC bridge recover the generation quality lost from skipping layers well enough to produce an effective drafter?
+
+The HVC bridge does recover a large part of the lost quality, but not enough to make the skipped model a high-quality standalone model. This distinction is important. The goal is not to make the drafter independently correct; the goal is to make it cheap and accurate enough that the verifier accepts enough draft tokens for self-speculation to be faster than normal generation.
+
+For the very aggressive $(1, 1)$ gap, the untrained skipped models start with almost no top-1 agreement with the verifier. After HVC training, the top-1 agreement converges to roughly 50--70% depending on model, and the verifier-to-drafter KL drops substantially. In the final self-speculation benchmarks this translated into acceptance rates between 35.8% and 51.3% for the tested models with block size 2. These acceptance rates were enough to produce real speedups because the drafter was much cheaper than the full verifier. The $(2, 2)$ gap improved KL and top-1 metrics somewhat, but not enough to clearly justify the doubled layer cost for the speed-focused setup. The answer to the second research question is therefore yes, within the self-speculative setting: the HVC bridge recovers enough quality to create an effective drafter, even though it does not fully reproduce the verifier distribution.
+
+=== To what extent can inference be sped up by making the draft model cheaper in both body and head?
+
+On the concrete prompt set using NVIDIA L4, bfloat16 model execution, float32 HVC bridges, and block size 2, the full system produced average per-token speedups from 1.27x to 1.60x compared to normal generation. The measured skipped-layers + ANNH speedups were 1.27x for Llama-3.2-1B-Instruct, 1.34x for Qwen3-4B-Instruct-2507, 1.44x for Llama-3.2-3B-Instruct, 1.56x for Llama-3.1-8B-Instruct, and 1.60x for Mistral-7B-Instruct-v0.3. The setup also kept approximately the same memory usage as normal inference because the drafter and verifier are the same model and share the KV-cache.
+
+The results support the Amdahl's law framing, but they also show that approximating the head is not always beneficial in total runtime. Adding ANNH improved speedup for Llama-3.2-1B-Instruct, Llama-3.2-3B-Instruct, Llama-3.1-8B-Instruct, and Qwen3-4B-Instruct-2507. For Mistral-7B-Instruct-v0.3, however, speedup changed from 1.61x without ANNH to 1.60x with ANNH, because the LM-head is already a small fraction of total compute and the small acceptance-rate drop outweighed the faster head. This means the body approximation is the main contributor to speedup, while ANNH gives additional benefit when the LM-head is a meaningful part of the drafter cost.
+
+The answer to the third research question is therefore that the proposed combination can give meaningful real inference speedups, in this report up to about 1.6x, without increasing memory usage and without changing the verifier-defined output distribution except for numerical tie-breaking effects. The benefit is conditional: it depends on the prompt distribution, the acceptance rate, the model's head-to-body compute ratio, and the implementation efficiency. It is most useful when the task has enough predictability for the drafter to match the verifier often, and when the model has enough head cost for ANNH to reduce the drafter cost without hurting acceptance too much.
+
+
+=== Hypothesis about easy and hard tokens
+
 
 == Limitations and sources of error
 
