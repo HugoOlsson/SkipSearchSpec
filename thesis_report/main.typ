@@ -1644,6 +1644,49 @@ As shown in the figures @fig:self-spec-llama-31-8b-concrete, @fig:self-spec-llam
 
 A simple sanity check supports that this is plausible. Consider logits around 12 as an example. The value 12 is not special, but just an example of a value logits might be. It will illustrate what happens when several token logits are close to each other around the same magnitude. In bfloat16, numbers around 12 are in the exponent range $[8, 16)$ and have 7 explicit mantissa bits. The spacing between representable values is therefore $2^(3 - 7) = 2^(-4) = 0.0625$. Between 12.0 and 12.1 there are only two bfloat16 values: 12.0 and 12.0625. The next representable value is 12.125, which is already outside the interval. Float32 has 23 mantissa bits, so the spacing in the same range is $2^(3 - 23) = 2^(-20) approx 9.54 dot 10^(-7)$. This means that the interval from 12.0 to 12.1 contains about $floor(0.1 dot 2^20) + 1 = 104858$ representable float32 values. Since the vocabulary contains many tokens and the top logits can be close to each other, it is therefore not surprising that bfloat16 can collapse distinct logits into exact ties while float32 usually separates them.
 
+
+=== Why not test with less skipped layers
+
+The project decided to mostly focus on very large gaps of skipped layers. The primary benchmarks are for (1,1), (2,2) and (1,2) gaps. The question is then whether bigger speedups could have been achieved with smaller gaps so the drafter accuracy gets higher. From extensive internal experiments and optimization to reach as large speedups as possible, it is considered to be quite hard to compensate for a more expensive drafter from the accuracy increase of keeping more layers. Even with many layers kept, it is difficult to reach a top1 of > 80%. The fundamental reason for this is probably because the choices of the verifier are not gold tokens; they are just the subjective calculation the full model happens to produce. The drafter is therefore not learning a fundamental truth but is instead guessing what the verifier would do. So it is not easy to reach \~100% because there is no stable foundation to converge to. The project thus found that only a few layers gave the large jump in top-1 but that then adding more layers made the result incrementally better, while making the drafter linearly more expensive.
+
+The theoretical estimation from @selfs-speedup can be used to check if a smaller gap will have a chance of producing a better drafter than (1,1) or (2,2). Assume the head is 5% of the compute, that ANNH makes the head 5x faster and that (1,1) with HVC gives a top1 accuracy of 65%. For a 32-layer model, assuming that body compute is linear in the number of kept layers, the drafter cost for a gap $(N, N)$ is
+$
+d_N = 0.95 dot frac(2N, 32) + frac(0.05, 5).
+$
+This gives $d_1 = 6.94%$ for the (1,1) + ANNH drafter. With 65% top-1 accuracy, this baseline gives a theoretical speedup of $1.47 times$ for block size 1. For greedy self-speculation with block size 1, top-1 agreement is approximately the same as the acceptance rate because each speculative round drafts only one token. The table below therefore shows what acceptance rate a more expensive $(N, N)$ drafter would need to match that baseline speedup.
+
+#figure(
+  text(size: 8pt)[
+  #table(
+    columns: (20%, 20%, 25%, 35%),
+    inset: 4pt,
+    align: (left, center, center, center),
+    fill: (x, y) => if y == 0 { luma(230) },
+    stroke: 0.5pt + luma(200),
+
+    table.header(
+      [*Gap*], [*Layers kept*], [*Drafter cost $d_N$*], [*Acceptance needed for $1.47 times$*],
+    ),
+
+    [$(1,1)$], [2], [$6.94%$], [$65.0%$],
+    [$(2,2)$], [4], [$12.9%$], [$73.8%$],
+    [$(3,3)$], [6], [$18.8%$], [$82.5%$],
+    [$(4,4)$], [8], [$24.8%$], [$91.3%$],
+    [$(5,5)$], [10], [$30.7%$], [Impossible ($100.01%$ required)],
+    [$(6,6)$], [12], [$36.6%$], [Impossible ($108.8%$ required)],
+    [$(8,8)$], [16], [$48.5%$], [Impossible ($126.3%$ required)],
+    [$(12,12)$], [24], [$72.2%$], [Impossible ($161.3%$ required)],
+    [$(16,16)$], [32], [$96.0%$], [Impossible ($196.3%$ required)],
+  )
+  ],
+  caption: [Acceptance rate needed for a larger $(N, N)$ drafter with ANNH to match the $1.47 times$ theoretical speedup of a (1,1) + ANNH drafter with 65% acceptance rate, using block size $gamma = 1$, verifier cost $v = 1.05$, and a 32-layer model.],
+  kind: "table",
+  supplement: [T],
+) <tab-less-skipped-required-top1-block1>
+
+The estimates in @tab-less-skipped-required-top1-block1 show that when keeping more layers, the acceptance threashold to achive the same speedup increases rapidly. if the top1 is 65% with (1,1) then it needs to be 73.8% for (2,2) and 82.5% for (3,3). This is not the increase we see when using smaller gaps which suggests that it will not be a viable alternative to test for smaller gaps. The table also shows that its impossible to reach the same speedup as the (1,1) with (5,5) or smaller gaps, which for this model is to keep 30.7% or more of the layers. So it doesn't matter how good the a skipping ablation is that keeps more than 30.7% of the layers, it won't produce a self-specualtive system faster than the (1,1) baseline.
+
+
 === Self-speculation speedups
 // Why do larger models benefit more than smaller ones?
 // Why does the theoretical formula predict measured speedups so closely?
