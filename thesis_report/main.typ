@@ -1704,6 +1704,66 @@ All models seem to use approximatly the same amount of VRAM as the normal infere
 
 === How long is the total training time?
 
+The speedup benchmarks in @fig:self-spec-llama-31-8b-concrete,
+@fig:self-spec-llama-32-3b-concrete, @fig:self-spec-llama-32-1b-concrete,
+@fig:self-spec-mistral-7b-concrete, and @fig:self-spec-qwen3-4b-concrete
+use the following setup times. The HVC-bridge times are taken from the final
+`total_duration_seconds` entry in the corresponding training `run.json` files.
+ANNH cluster-building times are only included where they are reported above.
+
+#figure(
+  text(size: 8pt)[
+    #table(
+      columns: (32%, 18%, 20%, 18%, 12%),
+      inset: 4pt,
+      align: (left, center, center, center, center),
+      fill: (x, y) => if y == 0 { luma(230) },
+      stroke: 0.5pt + luma(200),
+
+      table.header(
+        [*Setup*],
+        [*HVC bridge*],
+        [*ANNH build*],
+        [*Total*],
+        [*Clusters*],
+      ),
+
+      // Sources:
+      // - Benchmark plot JSON: benchmarks/self_spec/L4/bench_self_spec__llama-3-2-1b-instruct__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260512_164626.json
+      // - HVC time: measurements/2026-05-09-96fe48/middle_gap_skip/for_thesis_13582146_MY09__meta-llama_Llama-3_2-1B-Instruct_1_14_1/run.json, final total_duration_seconds = 836.9591489480226
+      // - ANNH time: reported above in this file for Llama-3.2-1B-Instruct, 8016 clusters, clustering_time = 153 seconds
+      [`Llama-3.2-1B-Instruct`], [13 min 57 s], [2 min 33 s], [16 min 30 s], [8016],
+
+      // Sources:
+      // - Benchmark plot JSON: benchmarks/self_spec/L4/bench_self_spec__llama-3-2-3b-instruct__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260512_175238.json
+      // - HVC time: measurements/2026-05-09-f9a0d3/middle_gap_skip/for_thesis_15154000_MY09__meta-llama_Llama-3_2-3B-Instruct_1_26_1/run.json, final total_duration_seconds = 1383.7320335829863
+      // - ANNH time: reported above in this file for Llama-3.2-3B-Instruct, 8016 clusters, clustering_time = 230 seconds
+      [`Llama-3.2-3B-Instruct`], [23 min 04 s], [3 min 50 s], [26 min 54 s], [8016],
+
+      // Sources:
+      // - Benchmark plot JSON: benchmarks/self_spec/L4/bench_self_spec__llama-3-1-8b-instruct__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260512_190545.json
+      // - HVC time: measurements/2026-05-09-50b567/middle_gap_skip/for_thesis_17580058_MY09__meta-llama_Llama-3_1-8B-Instruct_1_30_1/run.json, final total_duration_seconds = 2059.3276825470384
+      // - ANNH time: benchmark JSON uses flashhead_llama31_8b_8016c_v2.pt, but no matching clustering_time is reported above yet
+      [`Llama-3.1-8B-Instruct`], [34 min 19 s], [?], [?], [8016],
+
+      // Sources:
+      // - Benchmark plot JSON: benchmarks/self_spec/L4/bench_self_spec__mistral-7b-instruct-v0-3__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260512_202037.json
+      // - HVC time: measurements/2026-05-09-9551a4/middle_gap_skip/for_thesis_18451838_MY09__mistralai_Mistral-7B-Instruct-v0_3_1_30_1/run.json, final total_duration_seconds = 1604.747312018997
+      // - ANNH time: benchmark JSON uses flashhead_mistral_7b_4096c_v2.pt, but no matching clustering_time is reported above yet
+      [`Mistral-7B-Instruct-v0.3`], [26 min 45 s], [?], [?], [4096],
+
+      // Sources:
+      // - Benchmark plot JSON: benchmarks/self_spec/L4/bench_self_spec__qwen3-4b-instruct-2507__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260512_210900.json
+      // - HVC time: measurements/2026-05-10-605df1/middle_gap_skip/for_thesis_day2_18182995_MY10__Qwen_Qwen3-4B-Instruct-2507_1_34_1/run.json, final total_duration_seconds = 1738.677955474006
+      // - ANNH time: benchmark JSON uses flashhead_qwen3_4b_instruct_9496c_v2.pt, but no matching clustering_time is reported above yet
+      [`Qwen3-4B-Instruct-2507`], [28 min 59 s], [?], [?], [9496],
+    )
+  ],
+  caption: [Total setup time for the HVC bridge and ANNH index used in the self-speculation speedup benchmarks.],
+  kind: "table",
+  supplement: [T],
+) <tab-total-training-time>
+
 === Does this approach make sense?
 
 This method does seem to produce a satisfying set of properties:
