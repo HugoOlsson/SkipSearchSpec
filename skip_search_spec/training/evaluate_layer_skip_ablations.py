@@ -236,8 +236,9 @@ class AblationGenerationConfig:
       thesis_gap_grid:          35  # (N,M), 0 <= N,M <= 5, excluding (0,0)
       extended_edge_gaps:       10  # (6,0)..(10,0) and (0,6)..(0,10)
       periodic:                  2
+      periodic_holes:            4
       ------------------
-      total:                   ~48 before deduplication
+      total:                   ~52 before deduplication
     """
 
     include_keep_all: bool = True
@@ -272,23 +273,18 @@ class AblationGenerationConfig:
     internal_gap_left_keep_share_min: float = 0.15
     internal_gap_left_keep_share_max: float = 0.85
 
-    # 4. Periodic masks
-    periodic_steps: tuple[int, ...] = (2,)
-
-    # drop_every_n = skip one layer every n layers.
-    # Example: drop_every_3 keeps roughly 2/3 of layers.
-    include_periodic_drop_every_n: bool = True
-
-    # keep_every_n = keep one layer every n layers.
-    # Example: keep_every_3 keeps roughly 1/3 of layers.
-    include_periodic_keep_every_n: bool = True
-
-    # None means include all phases.
-    # With steps (2, 3), 2 phases per step gives 4 masks per periodic family.
-    periodic_max_phases_per_step: int | None = 2
-
     # If True, always force layer 0 and layer num_layers - 1 to be kept for periodic masks.
     periodic_anchor_edges: bool = True
+
+    # Each tuple is (mode, step, phase). Mode is "drop" or "keep".
+    periodic_patterns: tuple[tuple[str, int, int], ...] = (
+        ("drop", 2, 0),
+        ("keep", 2, 0),
+        ("drop", 3, 0),
+        ("drop", 3, 1),
+        ("drop", 3, 2),
+        ("drop", 4, 0),
+    )
 
 
 def _downsample_sorted_values(
@@ -667,22 +663,6 @@ def _make_internal_gap_masks(
             )
 
 
-def _sample_periodic_phases(
-    *,
-    step: int,
-    max_phases_per_step: int | None,
-) -> tuple[int, ...]:
-    phases = list(range(step))
-
-    if max_phases_per_step is None:
-        return tuple(phases)
-
-    return _downsample_sorted_values(
-        phases,
-        count=max_phases_per_step,
-    )
-
-
 def _maybe_anchor_edges(
     *,
     kept: set[int],
@@ -702,55 +682,42 @@ def _make_periodic_masks(
     config: AblationGenerationConfig,
     dedup: dict[tuple[int, ...], AblationMaskSpec],
 ) -> None:
-    for step in config.periodic_steps:
+    for mode, step, phase in config.periodic_patterns:
         if step <= 1 or step > num_layers:
             continue
 
-        phases = _sample_periodic_phases(
-            step=step,
-            max_phases_per_step=config.periodic_max_phases_per_step,
+        if phase < 0 or phase >= step:
+            continue
+
+        if mode == "drop":
+            name = f"drop_every_{step}__phase_{phase}"
+            kept = {
+                i
+                for i in range(num_layers)
+                if (i % step) != phase
+            }
+        elif mode == "keep":
+            name = f"keep_every_{step}__phase_{phase}"
+            kept = {
+                i
+                for i in range(num_layers)
+                if (i % step) == phase
+            }
+        else:
+            continue
+
+        kept = _maybe_anchor_edges(
+            kept=kept,
+            num_layers=num_layers,
+            anchor_edges=config.periodic_anchor_edges,
         )
 
-        for phase in phases:
-            if config.include_periodic_drop_every_n:
-                kept = {
-                    i
-                    for i in range(num_layers)
-                    if (i % step) != phase
-                }
-
-                kept = _maybe_anchor_edges(
-                    kept=kept,
-                    num_layers=num_layers,
-                    anchor_edges=config.periodic_anchor_edges,
-                )
-
-                _add_unique_mask(
-                    dedup=dedup,
-                    num_layers=num_layers,
-                    name=f"drop_every_{step}__phase_{phase}",
-                    indices=kept,
-                )
-
-            if config.include_periodic_keep_every_n:
-                kept = {
-                    i
-                    for i in range(num_layers)
-                    if (i % step) == phase
-                }
-
-                kept = _maybe_anchor_edges(
-                    kept=kept,
-                    num_layers=num_layers,
-                    anchor_edges=config.periodic_anchor_edges,
-                )
-
-                _add_unique_mask(
-                    dedup=dedup,
-                    num_layers=num_layers,
-                    name=f"keep_every_{step}__phase_{phase}",
-                    indices=kept,
-                )
+        _add_unique_mask(
+            dedup=dedup,
+            num_layers=num_layers,
+            name=name,
+            indices=kept,
+        )
 
 
 def _make_basic_ablation_masks(
@@ -909,10 +876,6 @@ def evaluate_layer_skip_ablations(
             num_late_begin_masks=0,
             num_internal_gap_lengths=0,
             internal_gap_positions_per_length=0,
-            periodic_steps=(2,),
-            include_periodic_drop_every_n=True,
-            include_periodic_keep_every_n=True,
-            periodic_max_phases_per_step=2,
             periodic_anchor_edges=True,
         ),
     )
