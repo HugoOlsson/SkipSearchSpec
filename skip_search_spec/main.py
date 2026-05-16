@@ -166,12 +166,12 @@ def main() -> None:
             top_k=None,   # or e.g. 50
         )
 
-        # plot_ablation_json(
-        #     file_path,
-        #     metric="kl_per_removed_layer",
-        #     ascending=True,
-        #     top_k=None,   # or e.g. 50
-        # )
+        plot_ablation_json(
+            file_path,
+            metric="kl_per_removed_layer",
+            ascending=True,
+            top_k=None,   # or e.g. 50
+        )
 
         plot_ablation_json(
             file_path,

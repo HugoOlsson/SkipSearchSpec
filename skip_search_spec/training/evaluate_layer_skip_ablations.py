@@ -232,30 +232,37 @@ class AblationGenerationConfig:
     Centralized ablation-budget settings.
 
     Default approximate count:
-      keep_all:       1
-      early_exit:    24
-      late_begin:     8
-      internal_gaps:  8 * 5 = 40
-      periodic:      18
+      keep_all:                  1
+      thesis_gap_grid:          35  # (N,M), 0 <= N,M <= 5, excluding (0,0)
+      extended_edge_gaps:       10  # (6,0)..(10,0) and (0,6)..(0,10)
+      periodic:                  2
       ------------------
-      total:         ~91 before deduplication
+      total:                   ~48 before deduplication
     """
 
     include_keep_all: bool = True
 
+    # Thesis notation: (N,M) keeps the first N and last M layers, and skips
+    # the middle. These are the key cheap-drafter ablations.
+    include_thesis_gap_grid: bool = True
+    thesis_gap_min_keep_each_side: int = 0
+    thesis_gap_max_keep_each_side: int = 5
+    thesis_gap_edge_max_keep_each_side: int = 10
+    include_zero_layer_thesis_gap: bool = False
+
     # 1. Early exits: keep prefix [0, k)
-    num_early_exit_masks: int = 24
+    num_early_exit_masks: int = 0
     early_exit_min_keep: int = 1
     early_exit_max_keep: int | None = None
 
     # 2. Late-begin: keep suffix [num_layers - k, num_layers)
-    num_late_begin_masks: int = 8
+    num_late_begin_masks: int = 0
     late_begin_min_keep: int = 1
     late_begin_max_keep: int | None = None
 
     # 3. Internal gaps: remove one contiguous internal block
-    num_internal_gap_lengths: int = 8
-    internal_gap_positions_per_length: int = 5
+    num_internal_gap_lengths: int = 0
+    internal_gap_positions_per_length: int = 0
     internal_gap_min_length: int = 2
     internal_gap_max_remove_fraction: float = 0.85
 
@@ -266,7 +273,7 @@ class AblationGenerationConfig:
     internal_gap_left_keep_share_max: float = 0.85
 
     # 4. Periodic masks
-    periodic_steps: tuple[int, ...] = (2, 3, 4)
+    periodic_steps: tuple[int, ...] = (2,)
 
     # drop_every_n = skip one layer every n layers.
     # Example: drop_every_3 keeps roughly 2/3 of layers.
@@ -277,11 +284,11 @@ class AblationGenerationConfig:
     include_periodic_keep_every_n: bool = True
 
     # None means include all phases.
-    # For steps (2, 3, 4), all phases gives 2 + 3 + 4 = 9 masks per periodic family.
-    periodic_max_phases_per_step: int | None = None
+    # With steps (2, 3), 2 phases per step gives 4 masks per periodic family.
+    periodic_max_phases_per_step: int | None = 2
 
     # If True, always force layer 0 and layer num_layers - 1 to be kept for periodic masks.
-    periodic_anchor_edges: bool = False
+    periodic_anchor_edges: bool = True
 
 
 def _downsample_sorted_values(
@@ -386,6 +393,7 @@ def _add_unique_mask(
     num_layers: int,
     name: str,
     indices: Iterable[int],
+    allow_empty: bool = False,
 ) -> None:
     kept = tuple(sorted({
         int(i)
@@ -393,13 +401,88 @@ def _add_unique_mask(
         if 0 <= int(i) < num_layers
     }))
 
-    if len(kept) == 0:
+    if len(kept) == 0 and not allow_empty:
         return
 
     if kept not in dedup:
         dedup[kept] = AblationMaskSpec(
             name=name,
             keep_layer_indices=kept,
+        )
+
+
+def _make_thesis_gap_grid_masks(
+    *,
+    num_layers: int,
+    config: AblationGenerationConfig,
+    dedup: dict[tuple[int, ...], AblationMaskSpec],
+) -> None:
+    """
+    Build the thesis (N,M) gap grid.
+
+    (N,M) keeps the first N layers and last M layers, skipping everything
+    between them. The full grid stays concentrated on 0..5, with longer
+    early-exit and late-start edge cases extending to 10. Sorting by N+M
+    evaluates the cheapest drafters first.
+    """
+    if not config.include_thesis_gap_grid:
+        return
+
+    low = max(0, config.thesis_gap_min_keep_each_side)
+    grid_high = min(num_layers, config.thesis_gap_max_keep_each_side)
+    edge_high = min(
+        num_layers,
+        max(
+            config.thesis_gap_max_keep_each_side,
+            config.thesis_gap_edge_max_keep_each_side,
+        ),
+    )
+
+    if grid_high < low:
+        return
+
+    pairs = {
+        (left_keep, right_keep)
+        for left_keep in range(low, grid_high + 1)
+        for right_keep in range(low, grid_high + 1)
+    }
+
+    for edge_keep in range(grid_high + 1, edge_high + 1):
+        pairs.add((edge_keep, 0))
+        pairs.add((0, edge_keep))
+
+    sorted_pairs = list(pairs)
+    sorted_pairs.sort(
+        key=lambda pair: (
+            pair[0] + pair[1],
+            abs(pair[0] - pair[1]),
+            pair[0],
+            pair[1],
+        )
+    )
+
+    for left_keep, right_keep in sorted_pairs:
+        num_kept = left_keep + right_keep
+
+        if num_kept == 0 and not config.include_zero_layer_thesis_gap:
+            continue
+
+        # N + M >= num_layers leaves no skipped middle gap. keep_all covers
+        # the full model baseline, so skip overlapping/no-op grid entries.
+        if num_kept >= num_layers:
+            continue
+
+        kept_indices = [
+            *range(0, left_keep),
+            *range(num_layers - right_keep, num_layers),
+        ]
+
+        _add_unique_mask(
+            dedup=dedup,
+            num_layers=num_layers,
+            name=f"thesis_gap_nm__N_{left_keep}__M_{right_keep}",
+            indices=kept_indices,
+            allow_empty=True,
         )
 
 
@@ -678,10 +761,11 @@ def _make_basic_ablation_masks(
     Strategic bounded ablation set.
 
     Main families:
-      1. early exits / prefix keeps
-      2. internal contiguous gaps with different lengths and placements
-      3. late-begin / suffix keeps
-      4. periodic skip/keep patterns
+      1. thesis (N,M) gap grid, where first N and last M layers are kept
+      2. optional early exits / prefix keeps
+      3. optional internal contiguous gaps with sampled lengths and placements
+      4. optional late-begin / suffix keeps
+      5. small periodic skip/keep comparison set
 
     The number of masks is controlled by AblationGenerationConfig rather than
     scaling explosively with num_layers.
@@ -701,6 +785,12 @@ def _make_basic_ablation_masks(
             name="keep_all",
             indices=range(num_layers),
         )
+
+    _make_thesis_gap_grid_masks(
+        num_layers=num_layers,
+        config=config,
+        dedup=dedup,
+    )
 
     _make_early_exit_masks(
         num_layers=num_layers,
@@ -812,13 +902,18 @@ def evaluate_layer_skip_ablations(
     masks = _make_basic_ablation_masks(
         num_layers,
         config=AblationGenerationConfig(
-            num_early_exit_masks=20,
-            num_late_begin_masks=12,
-            num_internal_gap_lengths=8,
-            internal_gap_positions_per_length=5,
-            periodic_steps=(2, 3, 4),
+            thesis_gap_max_keep_each_side=5,
+            thesis_gap_edge_max_keep_each_side=10,
+            include_zero_layer_thesis_gap=False,
+            num_early_exit_masks=0,
+            num_late_begin_masks=0,
+            num_internal_gap_lengths=0,
+            internal_gap_positions_per_length=0,
+            periodic_steps=(2,),
             include_periodic_drop_every_n=True,
             include_periodic_keep_every_n=True,
+            periodic_max_phases_per_step=2,
+            periodic_anchor_edges=True,
         ),
     )
     num_ablations = len(masks)
@@ -850,10 +945,6 @@ def evaluate_layer_skip_ablations(
             num_layers=num_layers,
             active_layer_indices=mask_spec.keep_layer_indices,
         )
-
-        if len(pattern.active_layer_indices) == 0:
-            print(f"Skipping mask {mask_spec.name} because it keeps zero layers.")
-            continue
 
         keep_set = set(pattern.active_layer_indices)
 

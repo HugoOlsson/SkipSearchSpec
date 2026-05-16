@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import math
 from pathlib import Path
+import re
 from typing import Any
 
 from matplotlib.patches import Patch
@@ -43,9 +44,22 @@ def metric_header(metric: str) -> str:
 
 def classify_ablation(mask_name: str) -> str:
     family = mask_name.partition("__")[0]
-    
-    if family == "keep_suffix":
+
+    thesis_gap_match = re.fullmatch(r"thesis_gap_nm__N_(\d+)__M_(\d+)", mask_name)
+    if thesis_gap_match is not None:
+        left_keep = int(thesis_gap_match.group(1))
+        right_keep = int(thesis_gap_match.group(2))
+
+        if right_keep == 0 and left_keep > 0:
+            return "early_exit"
+
+        if left_keep == 0 and right_keep > 0:
             return "late_start"
+
+        return "gap-jump"
+
+    if family == "keep_suffix":
+        return "late_start"
 
     if family in {"drop_internal_block", "drop_internal_gap", "keep_edges"}:
         return "gap-jump"
