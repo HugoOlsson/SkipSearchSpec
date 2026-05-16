@@ -18,6 +18,8 @@ from skip_search_spec.experiments.inference_prompts import (
     INFERENCE_TEST_PROMPTS_CONCRETE_SWEDISH,
     INFERENCE_TEST_PROMPTS_EASY,
     INFERENCE_TEST_PROMPTS_HARD,
+    INFERENCE_TEST_PROMPTS_PYTHON_COMPLETION,
+    INFERENCE_TEST_PROMPTS_PYTHON_DIVERSE,
 )
 from skip_search_spec.helpers.versioning import get_git_revision
 from skip_search_spec.inference.normal_inference import generate_normal
@@ -30,6 +32,8 @@ PromptSetName = Literal[
     "chat-style",
     "hard-completion-style",
     "concrete-completion-style",
+    "python-completion-style",
+    "python-diverse-completion-style",
     "swedish-concrete-completion-style",
 ]
 VariantMode = Literal["auto", "flashhead", "no-flashhead", "both"]
@@ -42,6 +46,11 @@ PROMPT_SETS: dict[PromptSetName, tuple[list[tuple[str, str]], bool]] = {
     "completion-style": (INFERENCE_TEST_PROMPTS_EASY, False),
     "hard-completion-style": (INFERENCE_TEST_PROMPTS_HARD, False),
     "concrete-completion-style": (INFERENCE_TEST_PROMPTS_CONCRETE, False),
+    "python-completion-style": (INFERENCE_TEST_PROMPTS_PYTHON_COMPLETION, False),
+    "python-diverse-completion-style": (
+        INFERENCE_TEST_PROMPTS_PYTHON_DIVERSE,
+        False,
+    ),
     "swedish-concrete-completion-style": (
         INFERENCE_TEST_PROMPTS_CONCRETE_SWEDISH,
         False,
@@ -1969,6 +1978,8 @@ def _prompt_set_display_name(value: Any) -> str:
         "completion-style": "completion",
         "hard-completion-style": "hard completion",
         "concrete-completion-style": "concrete",
+        "python-completion-style": "python completion",
+        "python-diverse-completion-style": "python diverse",
         "swedish-concrete-completion-style": "swedish concrete",
     }
     text = _value(value)

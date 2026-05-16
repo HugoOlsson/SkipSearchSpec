@@ -14,6 +14,8 @@ from skip_search_spec.experiments.inference_prompts import (
     INFERENCE_TEST_PROMPTS_CONCRETE_SWEDISH,
     INFERENCE_TEST_PROMPTS_EASY,
     INFERENCE_TEST_PROMPTS_HARD,
+    INFERENCE_TEST_PROMPTS_PYTHON_COMPLETION,
+    INFERENCE_TEST_PROMPTS_PYTHON_DIVERSE,
 )
 
 
@@ -250,6 +252,8 @@ def main() -> None:
                 "completion-style",
                 "chat-style",
                 "concrete-completion-style",
+                "python-completion-style",
+                "python-diverse-completion-style",
                 "swedish-concrete-completion-style",
             ),
             default="completion-style",
@@ -269,6 +273,14 @@ def main() -> None:
             "chat-style": (CHAT_TEST_PROMPTS, True),
             "completion-style": (INFERENCE_TEST_PROMPTS_EASY, False),
             "concrete-completion-style": (INFERENCE_TEST_PROMPTS_CONCRETE, False),
+            "python-completion-style": (
+                INFERENCE_TEST_PROMPTS_PYTHON_COMPLETION,
+                False,
+            ),
+            "python-diverse-completion-style": (
+                INFERENCE_TEST_PROMPTS_PYTHON_DIVERSE,
+                False,
+            ),
             "swedish-concrete-completion-style": (
                 INFERENCE_TEST_PROMPTS_CONCRETE_SWEDISH,
                 False,
@@ -621,6 +633,8 @@ def main() -> None:
                 "chat-style",
                 "hard-completion-style",
                 "concrete-completion-style",
+                "python-completion-style",
+                "python-diverse-completion-style",
                 "swedish-concrete-completion-style",
             ),
             default="chat-style",
@@ -670,6 +684,14 @@ def main() -> None:
             "completion-style": (INFERENCE_TEST_PROMPTS_EASY, False),
             "hard-completion-style": (INFERENCE_TEST_PROMPTS_HARD, False),
             "concrete-completion-style": (INFERENCE_TEST_PROMPTS_CONCRETE, False),
+            "python-completion-style": (
+                INFERENCE_TEST_PROMPTS_PYTHON_COMPLETION,
+                False,
+            ),
+            "python-diverse-completion-style": (
+                INFERENCE_TEST_PROMPTS_PYTHON_DIVERSE,
+                False,
+            ),
             "swedish-concrete-completion-style": (
                 INFERENCE_TEST_PROMPTS_CONCRETE_SWEDISH,
                 False,
