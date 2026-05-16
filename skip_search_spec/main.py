@@ -61,7 +61,7 @@ def main() -> None:
 
         # models = ["meta-llama/Llama-3.2-3B-Instruct", "meta-llama/Llama-3.2-1B-Instruct", "mistralai/Mistral-7B-Instruct-v0.3", "Qwen/Qwen3-1.7B", "Qwen/Qwen2.5-0.5B-Instruct"]
         models = ["Qwen/Qwen2.5-14B-Instruct"]
-        active_start_end_lengths = [(3,3)]
+        active_start_end_lengths = [(2,3)]
 
         for active_start_layers, active_end_layers in active_start_end_lengths: 
 
