@@ -61,7 +61,7 @@ def main() -> None:
 
         # models = ["meta-llama/Llama-3.2-3B-Instruct", "meta-llama/Llama-3.2-1B-Instruct", "mistralai/Mistral-7B-Instruct-v0.3", "Qwen/Qwen3-1.7B", "Qwen/Qwen2.5-0.5B-Instruct"]
         models = ["Qwen/Qwen2.5-14B-Instruct"]
-        active_start_end_lengths = [(2,2)]
+        active_start_end_lengths = [(3,3)]
 
         for active_start_layers, active_end_layers in active_start_end_lengths: 
 
@@ -120,8 +120,17 @@ def main() -> None:
         #     batch_size=1,
         # )
 
+        # results = evaluate_layer_skip_ablations(
+        #     model_name="meta-llama/Llama-3.2-1B-Instruct",
+        #     dataset_spec=DATASET_SPEC,
+        #     context_len=256,
+        #     max_examples=100,
+        #     num_windows_to_use=20,
+        #     batch_size=4,
+        # )
+
         results = evaluate_layer_skip_ablations(
-            model_name="meta-llama/Llama-3.2-1B-Instruct",
+            model_name="Qwen/Qwen2.5-14B-Instruct",
             dataset_spec=DATASET_SPEC,
             context_len=256,
             max_examples=100,
