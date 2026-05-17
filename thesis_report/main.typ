@@ -857,39 +857,70 @@ The benchmark measures total speedup compared to the normal generation baseline 
 
 === Prompt sets
 
-The benchmark uses two completion-style prompt sets: a concrete set and a general set. The concrete set contains tasks with relatively unambiguous answers. 
+The benchmark  uses three completion-style prompt sets. 
 
 The general set is intended to complement this with prompts that are more open ended and possibly harded to speculate future tokens for the drafter, not because the drafter necessarly is wrong but because it might not be exactly what the verifier would generate.
 
-A short example from the concrete prompt set is:
+Here are examples from each prompt set:
 
+#figure(
+  text(size: 8pt)[
+    #table(
+      columns: (32%, 10%, 29%, 29%),
+      inset: 4pt,
+      align: (left, center, left, left),
+      fill: (x, y) => if y == 0 { luma(230) },
+      stroke: 0.5pt + luma(200),
 
+      table.header(
+        [*Prompt set*],
+        [*Prompts*],
+        [*Purpose*],
+        [*Example task*],
+      ),
 
+      [`concrete-completion-style`],
+      [120],
+      [Narrow tasks with concrete answers.],
+      [Compute a price, extract an email address, sort values, produce a JSON row.],
 
-#```python
-[
-  ...
-  (
-        "concrete_math_total_price",
-        (
-            "Task: Compute the total cost.\n"
-            "A notebook costs 4 dollars. A pen costs 2 dollars. Buy 3 notebooks "
-            "and 5 pens.\n"
-            "Return only the total number of dollars.\n\n"
-            "Answer:\n"
-        ),
-    ),
-    ...
-    (
-        "concrete_extract_email",
-        (
-            "Task: Extract the email address.\n"
-            "Text: Please send the invoice to billing@example.com before Friday.\n"
-            "Return only the email address.\n\n"
-            "Output:\n"
-        ),
-    ),
-    ...
+      [`open-ended`],
+      [100],
+      [Natural-language continuations with many valid next-token paths.],
+      [Give advice, write an email, tell a short story etc.],
+
+      [`python-diverse-completion-style`],
+      [100],
+      [Python code-completion prompts with varied programming tasks.],
+      [Validate brackets, parse semantic versions, fix a bug, write tests.],
+    )
+  ],
+  caption: [Prompt sets used in the main self-speculation benchmark.],
+  kind: "table",
+  supplement: [T],
+) <tab-main-prompt-sets>
+
+Short examples from the three prompt sets are:
+
+#```text
+# concrete-completion-style:
+
+Task: Compute the total cost.
+A notebook costs 4 dollars. A pen costs 2 dollars. Buy 3 notebooks and 5 pens.
+Return only the total number of dollars.
+
+Answer:
+
+# open-ended:
+
+What are some benefits and drawbacks of remote work for a small software team?
+
+# python-diverse-completion-style:
+
+# Validate mixed bracket pairs
+# Support (), [], and {}.
+# Ignore all other characters.
+def validate_brackets(text: str) -> bool:
 ```
 
 === Benchmark phases
@@ -1442,7 +1473,7 @@ The self-speculation is first run with the drafter skipping layers but using the
 
 === Gap (1,1), block size 2, bfloat16
 
-The main benchmark matrix uses the same five models as the skip-ablation and HVC-training sections.
+The benchmark uses the same five models as the skip-ablation and HVC-training sections and the prompt sets described in @tab-main-prompt-sets.
 Unless stated otherwise, the runs use bfloat16 model execution, bfloat16 HVC bridge execution, ANNH top-k 100, both variants, 5 warmup prompts, 15 profiled prompts, and all available prompts in the prompt set.
 These results are with the gap $(1,1)$, which means that all layers are skipped except the first and the last one.
 No internal timing is used when measuring speedup to avoid synchronization that would affect performance.
@@ -1831,13 +1862,13 @@ The estimates in @tab-less-skipped-required-top1-block1 show that when keeping m
 // What does the Amdahl framing tell us about the ceiling for each model?
 
 
-All combinations in the main benchmark matrix resulted in a speedup with the self-speculative system. At the precision reported in the table, adding ANNH never reduced speedup compared with skipping layers alone. When selecting the best tested setup for each model and prompt set, the skipped-layers + ANNH speedups were in the range 1.21x to 1.63x in bfloat16. The lower end was Qwen3 4B on open-ended prompts with block size 1, and the upper end was Mistral 7B Instruct v0.3 on the concrete prompt set with block size 2.
+All combinations in the benchmark resulted in a speedup with the self-speculative system. At the precision reported in the table, adding ANNH never reduced speedup compared with skipping layers alone. When selecting the best tested setup for each model and prompt set, the skipped-layers + ANNH speedups were in the range 1.21x to 1.63x in bfloat16. The lower end was Qwen3 4B on open-ended prompts with block size 1, and the upper end was Mistral 7B Instruct v0.3 on the concrete prompt set with block size 2.
 
 The measured speedups are prompt dependent and form an approximate normal distribution. With skipped layers + ANNH on the concrete prompt set, Mistral 7B Instruct had an overall speedup of 1.63x and per-prompt speedups from 1.21x to 1.90x. With the same prompt set and block size, Llama 3.2 3B Instruct had an overall speedup of 1.46x and per-prompt speedups from 0.86x to 2.27x.
 
-On NVIDIA L4, replacing the dense LM-head with ANNH made the profiled drafter head 2.80x to 7.53x faster across the main benchmark matrix. The model with largest relative additional speedup from using ANNH in the concrete block-size-2 setup was Llama 3.2 1B, which went from 1.13x to 1.28x in average per-token speedup. Large speedups for the LM-head do not directly translate to large speedup in the self-speculative setup, but the results show that it helps most when the head is a meaningful part of the drafter cost. For Mistral 7B Instruct v0.3 the head is proportionally small, so ANNH gives little extra speedup even when the head itself becomes faster. This follows Amdahl's law reasoning exactly.
+On NVIDIA L4, replacing the dense LM-head with ANNH made the profiled drafter head 2.80x to 7.53x faster across the benchmark. The model with largest relative additional speedup from using ANNH in the concrete block-size-2 setup was Llama 3.2 1B, which went from 1.13x to 1.28x in average per-token speedup. Large speedups for the LM-head do not directly translate to large speedup in the self-speculative setup, but the results show that it helps most when the head is a meaningful part of the drafter cost. For Mistral 7B Instruct v0.3 the head is proportionally small, so ANNH gives little extra speedup even when the head itself becomes faster. This follows Amdahl's law reasoning exactly.
 
-All models seem to use approximately the same amount of VRAM as the normal inference. Loading the ANNH index into memory adds slightly to memory usage, but across the main matrix the observed peak-allocation overhead for the skipped-layers + ANNH variant is small: about 0.9% on average, with a maximum of about 2.1%. The advantage of using the same model for the verifier and the drafter to do self-speculation and also to share the KV-cache therefore results in a solution that does not need meaningfully more memory than normal inference. 
+All models seem to use approximately the same amount of VRAM as the normal inference. Loading the ANNH index into memory adds slightly to memory usage, but across the benchmarks the observed peak-allocation overhead for the skipped-layers + ANNH variant is small: about 0.9% on average, with a maximum of about 2.1%. The advantage of using the same model for the verifier and the drafter to do self-speculation and also to share the KV-cache therefore results in a solution that does not need meaningfully more memory than normal inference. 
 
 
 === How long is the total training time?
