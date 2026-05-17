@@ -16,26 +16,27 @@ MetricAlias = Literal[
 ]
 
 
+THESIS_SKIP_ABLATION_MODEL_ORDER = [
+    "meta-llama/Llama-3.2-1B-Instruct",
+    "meta-llama/Llama-3.2-3B-Instruct",
+    "Qwen/Qwen3-4B-Instruct-2507",
+    "meta-llama/Llama-3.1-8B-Instruct",
+    "mistralai/Mistral-7B-Instruct-v0.3",
+]
+
 THESIS_GAP_1_1_JSON_PATHS = [
+    "measurements/2026-05-09-96fe48/middle_gap_skip/for_thesis_13582146_MY09__meta-llama_Llama-3_2-1B-Instruct_1_14_1/run.json",
+    "measurements/2026-05-09-f9a0d3/middle_gap_skip/for_thesis_15154000_MY09__meta-llama_Llama-3_2-3B-Instruct_1_26_1/run.json",
+    "measurements/2026-05-10-605df1/middle_gap_skip/for_thesis_day2_18182995_MY10__Qwen_Qwen3-4B-Instruct-2507_1_34_1/run.json",
     "measurements/2026-05-09-50b567/middle_gap_skip/for_thesis_17580058_MY09__meta-llama_Llama-3_1-8B-Instruct_1_30_1/run.json",
     "measurements/2026-05-09-9551a4/middle_gap_skip/for_thesis_18451838_MY09__mistralai_Mistral-7B-Instruct-v0_3_1_30_1/run.json",
-    "measurements/2026-05-09-96fe48/middle_gap_skip/for_thesis_13582146_MY09__meta-llama_Llama-3_2-1B-Instruct_1_14_1/run.json",
-    "measurements/2026-05-09-99c392/middle_gap_skip/for_thesis_15465604_MY09__Qwen_Qwen3-1_7B_1_26_1/run.json",
-    "measurements/2026-05-09-9af545/middle_gap_skip/for_thesis_17360671_MY09__Qwen_Qwen2_5-0_5B-Instruct_1_22_1/run.json",
-    "measurements/2026-05-09-87166f/middle_gap_skip/for_thesis_16125454_MY09__Qwen_Qwen2_5-14B-Instruct_1_46_1/run.json",
-    "measurements/2026-05-10-d6c39c/middle_gap_skip/for_thesis_day2_16164811_MY10__Qwen_Qwen2_5-7B-Instruct_1_26_1/run.json",
-    "measurements/2026-05-10-605df1/middle_gap_skip/for_thesis_day2_18182995_MY10__Qwen_Qwen3-4B-Instruct-2507_1_34_1/run.json",
-    "measurements/2026-05-09-f9a0d3/middle_gap_skip/for_thesis_15154000_MY09__meta-llama_Llama-3_2-3B-Instruct_1_26_1/run.json",
 ]
 
 THESIS_GAP_2_2_JSON_PATHS = [
     "measurements/2026-05-10-f7dea8/middle_gap_skip/for_thesis_day2_10500516_MY10__meta-llama_Llama-3_2-1B-Instruct_2_12_2/run.json",
     "measurements/2026-05-10-076f2b/middle_gap_skip/for_thesis_day2_11122915_MY10__meta-llama_Llama-3_2-3B-Instruct_2_24_2/run.json",
-    "measurements/2026-05-10-215d9b/middle_gap_skip/for_thesis_day2_11401601_MY10__meta-llama_Llama-3_1-8B-Instruct_2_28_2/run.json",
-    "measurements/2026-05-10-381530/middle_gap_skip/for_thesis_day2_12422559_MY10__Qwen_Qwen2_5-0_5B-Instruct_2_20_2/run.json",
-    "measurements/2026-05-10-d6c39c/middle_gap_skip/for_thesis_day2_16511074_MY10__Qwen_Qwen2_5-7B-Instruct_2_24_2/run.json",
-    "measurements/2026-05-10-381530/middle_gap_skip/for_thesis_day2_12214343_MY10__Qwen_Qwen3-1_7B_2_24_2/run.json",
     "measurements/2026-05-10-605df1/middle_gap_skip/for_thesis_day2_18471135_MY10__Qwen_Qwen3-4B-Instruct-2507_2_32_2/run.json",
+    "measurements/2026-05-10-215d9b/middle_gap_skip/for_thesis_day2_11401601_MY10__meta-llama_Llama-3_1-8B-Instruct_2_28_2/run.json",
     "measurements/2026-05-10-7ad273/middle_gap_skip/for_thesis_day2_10081712_MY10__mistralai_Mistral-7B-Instruct-v0_3_2_28_2/run.json",
 ]
 
@@ -109,7 +110,14 @@ MODEL_COLORS = {
     "meta-llama/Llama-3.2-3B-Instruct": "#6A51A3",
 }
 
-MODEL_ORDER = list(MODEL_COLORS)
+MODEL_ORDER = [
+    *THESIS_SKIP_ABLATION_MODEL_ORDER,
+    *(
+        model_name
+        for model_name in MODEL_COLORS
+        if model_name not in THESIS_SKIP_ABLATION_MODEL_ORDER
+    ),
+]
 
 DEFAULT_SMOOTH_WINDOW = 5
 RAW_PREFIX_POINTS = 10

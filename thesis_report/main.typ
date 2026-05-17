@@ -1426,6 +1426,11 @@ max_cluster_size                 = 8
   ],
 ) <fig-gap22-training-kl-verifier-to-drafter>
 
+The HVC bridge training plots use the same five-model set as the layer-skipping ablation evaluation:
+Llama 3.2 1B Instruct, Llama 3.2 3B Instruct, Qwen3 4B Instruct, Llama 3.1 8B Instruct, and Mistral 7B Instruct v0.3.
+For the $(1, 1)$ gap, the final top-1 agreement is between 60.1% and 69.5%, and the final verifier-to-drafter KL is between 0.89 and 1.32.
+For the $(2, 2)$ gap, final top-1 agreement is between 61.9% and 71.7%, and final KL is between 0.77 and 1.21.
+
 == Measuring speedups and memory usage
 
 The real world speedup is benchmarked with the produced implementation. Speedup per generated token is as the main measurement but detailed numbers of measured memory usage, acceptance rate, verifier cost, LM-head compute split, ANNH accuracy and ANNH vs full LM-head speedup is also included.
@@ -1591,9 +1596,9 @@ The patterns seem to be stable across different model families. There are some v
 // What explains the differences in top-1 agreement across model families?
 // Why does (2,2) reach higher top-1 than (1,1) as expected from the notation?
 
-In figure @fig-gap11-training-top1-agreement and @fig-gap22-training-top1-agreement a very aggressive gap of (1,1) and (2,2) respectively is trained. The figures show that the top-1 agreement starts at approximately 0 which is coherent with what the skip-ablations showed, but that the top-1 agreement converges to around 50-70% depending on the model. This is a result that strongly shows that the HVC-bridge can partially compensate for a large gap. The same pattern shows for the verifier to drafter KL metrics in figure @fig-gap11-training-kl-verifier-to-drafter and @fig-gap22-training-kl-verifier-to-drafter. For gap (1,1) the KL starts very high, over 16.0 for Qwen3 1.7B, but converges to between 0.89 to 1.63 depending on the model.
+In figure @fig-gap11-training-top1-agreement and @fig-gap22-training-top1-agreement a very aggressive gap of (1,1) and (2,2) respectively is trained. The figures show that the top-1 agreement starts at approximately 0 which is coherent with what the skip-ablations showed, but that the top-1 agreement converges to around 60-72% depending on the model. This is a result that strongly shows that the HVC-bridge can partially compensate for a large gap. The same pattern shows for the verifier to drafter KL metrics in figure @fig-gap11-training-kl-verifier-to-drafter and @fig-gap22-training-kl-verifier-to-drafter. For gap (1,1) the KL starts very high, but converges to between 0.89 to 1.32 depending on the model.
 
-Using a gap (2,2) results in a better KL and top-1 for almost all models, but not much better. Top-1 for Mistral 7B Instruct went from 69.5% to 71.5%, for Llama 3.1 8B 63.9% to 67.8%, for Qwen2.5 Instruct 54.6% to 56.4%. These are improvements but the number of layers used doubled. To produce a drafter that can give speedups in self-speculation, it is highly advantageous if it is cheap.
+Using a gap (2,2) results in a better KL and top-1 for all five plotted models, but not much better. Top-1 for Mistral 7B Instruct went from 69.5% to 71.7%, for Llama 3.1 8B from 63.9% to 67.8%, and for Qwen3 4B from 60.1% to 61.9%. These are improvements but the number of layers used doubled. To produce a drafter that can give speedups in self-speculation, it is highly advantageous if it is cheap.
 
 This can be shown directly from the speedup equation @selfs-speedup. Solving for the required acceptance rate gives
 $
