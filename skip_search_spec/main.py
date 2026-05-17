@@ -112,26 +112,8 @@ def main() -> None:
             text_field="text",
         )
 
-        # results = evaluate_layer_skip_ablations(
-        #     model_name="mistralai/Mistral-7B-Instruct-v0.3",
-        #     dataset_spec=DATASET_SPEC,
-        #     context_len=256,
-        #     max_examples=100,
-        #     num_windows_to_use=20,
-        #     batch_size=1,
-        # )
-
-        # results = evaluate_layer_skip_ablations(
-        #     model_name="meta-llama/Llama-3.2-1B-Instruct",
-        #     dataset_spec=DATASET_SPEC,
-        #     context_len=256,
-        #     max_examples=100,
-        #     num_windows_to_use=20,
-        #     batch_size=4,
-        # )
-
         results = evaluate_layer_skip_ablations(
-            model_name="Qwen/Qwen2.5-14B-Instruct",
+            model_name="mistralai/Mistral-7B-Instruct-v0.3",
             dataset_spec=DATASET_SPEC,
             context_len=256,
             max_examples=100,
@@ -139,23 +121,42 @@ def main() -> None:
             batch_size=4,
         )
 
-        # results = evaluate_layer_skip_ablations(
-        #     model_name="meta-llama/Llama-3.2-3B",
-        #     dataset_spec=DATASET_SPEC,
-        #     context_len=256,
-        #     max_examples=100,
-        #     num_windows_to_use=20,
-        #     batch_size=2,
-        # )
+        results = evaluate_layer_skip_ablations(
+            model_name="meta-llama/Llama-3.2-1B-Instruct",
+            dataset_spec=DATASET_SPEC,
+            context_len=256,
+            max_examples=100,
+            num_windows_to_use=20,
+            batch_size=4,
+        )
 
-        # results = evaluate_layer_skip_ablations(
-        #     model_name="meta-llama/Llama-3.1-8B",
-        #     dataset_spec=DATASET_SPEC,
-        #     context_len=256,
-        #     max_examples=100,
-        #     num_windows_to_use=20,
-        #     batch_size=10,
-        # )
+        results = evaluate_layer_skip_ablations(
+            model_name="meta-llama/Llama-3.2-3B-Instruct",
+            dataset_spec=DATASET_SPEC,
+            context_len=256,
+            max_examples=100,
+            num_windows_to_use=20,
+            batch_size=4,
+        )
+
+        results = evaluate_layer_skip_ablations(
+            model_name="meta-llama/Llama-3.1-8B-Instruct",
+            dataset_spec=DATASET_SPEC,
+            context_len=256,
+            max_examples=100,
+            num_windows_to_use=20,
+            batch_size=4,
+        )
+
+
+        results = evaluate_layer_skip_ablations(
+            model_name="Qwen/Qwen3-4B-Instruct-2507",
+            dataset_spec=DATASET_SPEC,
+            context_len=256,
+            max_examples=100,
+            num_windows_to_use=20,
+            batch_size=4,
+        )
 
     elif mode == "plot_layer_ablation_results":
         from skip_search_spec.analysis.plot_ablations_results import plot_ablation_json
