@@ -1047,47 +1047,61 @@ The benchmark plots include both setup information and measured quantities. The 
 
 
 == Skip ablations
-To know what layers are the best to skip, different skip-ablations was evaluated. The plot shows different skip ablations in a format like this "`███████··███████`" which would mean that two middle layers are skipped and all other are activated, so a gap-jump. This "`█████████████···`" would mean that we skip the last 3 layers, and thus an early-exit, and so on. By using these, different skip ablations can be presented in a way that gives an intuitive visual overview how they compare. Two different measurements are used to compare to the full model with all layers activated: top1, KL full model to skip ablation and CE gap on dataset tokens. The dataset used to measure the performance of the ablations is `codelion/fineweb-edu-1B`.
+To know what layers are best to skip, different skip-ablations were evaluated. The plots show different skip ablations visually: #layer-mask(7, 2, 7) means that two middle layers are skipped and all other layers are activated, so a gap-jump. The format #layer-mask(13, 3, 0) means that the last three layers are skipped, corresponding to an early-exit. This gives an intuitive visual overview of how skip patterns compare.
 
-*Results for  Mistral-7B-Instruct-v0.3:*
-
-
-#figure(
-  image("my-figures/plots/skip-ablations/layer_ablations_mistralai_Mistral-7B-Instruct-v0.3_20260506_222825_mean_ce_gap_multicolumn.png", width: 100%),
-  caption: [Mean next-token cross-entropy increase on dataset tokens relative to the full model for different skip ablations of `mistralai/Mistral-7B-Instruct-v0.3`],
-) <mistral-klp-skip-ablations-img>
+The first metric plotted for each model is KL divergence from the full model distribution to the skipped model distribution, divided by the number of skipped layers. Lower values are better. Normalizing by skipped layers makes it easier to compare ablations that remove different amounts of compute. The second metric is top-1 agreement with the full model, where higher values are better. The dataset used to measure the ablations is `codelion/fineweb-edu-1B`.
 
 #figure(
-  image("my-figures/plots/skip-ablations/layer_ablations_mistralai_Mistral-7B-Instruct-v0.3_20260506_222825_mean_kl_full_to_masked_multicolumn.png", width: 100%),
-  caption: [KL divergence from full model distribution to skipped ablation distribution for different skip-ablations of `mistralai/Mistral-7B-Instruct-v0.3`],
-) <mistral-klp-skip-ablations-img>
-
-
-#figure(
-  image("my-figures/plots/skip-ablations/layer_ablations_mistralai_Mistral-7B-Instruct-v0.3_20260506_222825_mean_top1_agreement_multicolumn.png", width: 100%),
-  caption: [Mean Top1 agreement compared to full model for different skip-ablations of `mistralai/Mistral-7B-Instruct-v0.3`],
-) <mistral-top1-skip-ablations-img>
-
-
-*Results for  Llama-3.2-1B-Instruct:*
+  image("my-figures/plots/skip-ablations/layer_ablations_meta-llama_Llama-3.2-1B-Instruct_20260517_132725_kl_per_removed_layer_multicolumn.png", width: 110%),
+  caption: [KL divergence per skipped layer for skip ablations of `meta-llama/Llama-3.2-1B-Instruct`.],
+) <fig-skip-ablations-llama32-1b>
 
 #figure(
-  image("my-figures/plots/skip-ablations/layer_ablations_meta-llama_Llama-3.2-1B_20260506_214633_mean_ce_gap_multicolumn.png", width: 100%),
-  caption: [Mean next-token cross-entropy increase on dataset tokens relative to the full model for different skip ablations of `mistralai/Mistral-7B-Instruct-v0.3`],
-) <mistral-klp-skip-ablations-img>
+  image("my-figures/plots/skip-ablations/layer_ablations_meta-llama_Llama-3.2-1B-Instruct_20260517_132725_mean_top1_agreement_multicolumn.png", width: 110%),
+  caption: [Top-1 agreement with the full model for skip ablations of `meta-llama/Llama-3.2-1B-Instruct`.],
+) <fig-skip-ablations-llama32-1b-top1>
 
 #figure(
-  image("my-figures/plots/skip-ablations/layer_ablations_meta-llama_Llama-3.2-1B_20260506_214633_mean_kl_full_to_masked_multicolumn.png", width: 100%),
-  caption: [KL divergence from full model distribution to skipped ablation distribution for different skip-ablations of `mistralai/Mistral-7B-Instruct-v0.3`],
-) <mistral-klp-skip-ablations-img>
-
+  image("my-figures/plots/skip-ablations/layer_ablations_meta-llama_Llama-3.2-3B-Instruct_20260517_132758_kl_per_removed_layer_multicolumn.png", width: 110%),
+  caption: [KL divergence per skipped layer for skip ablations of `meta-llama/Llama-3.2-3B-Instruct`.],
+) <fig-skip-ablations-llama32-3b>
 
 #figure(
-  image("my-figures/plots/skip-ablations/layer_ablations_meta-llama_Llama-3.2-1B_20260506_214633_mean_top1_agreement_multicolumn.png", width: 100%),
-  caption: [Mean Top1 agreement compared to full model for different skip-ablations of `mistralai/Mistral-7B-Instruct-v0.3`],
-) <mistral-top1-skip-ablations-img>
+  image("my-figures/plots/skip-ablations/layer_ablations_meta-llama_Llama-3.2-3B-Instruct_20260517_132758_mean_top1_agreement_multicolumn.png", width: 110%),
+  caption: [Top-1 agreement with the full model for skip ablations of `meta-llama/Llama-3.2-3B-Instruct`.],
+) <fig-skip-ablations-llama32-3b-top1>
 
-The results show a clear pattern that skipping a gap in the middle seems to do less damage to the generation quality. By interpreting these graphs it's clear that it should be advantageous to utilize a gap-jump in the middle instead of early-exit or late-start. They also show that patterns that have multiple holes instead of a contiguous gap don't seem to perform better than a gap in the middle. These plots show the results for Llama-3.2-1B-Instruct and Mistral-7B-Instruct-v0.3, but from testing the same pattern appears in other models such as Llama-3.2-3B-Instruct, Qwen2.5 series, and meta-llama/Llama-3.1-8B.
+#figure(
+  image("my-figures/plots/skip-ablations/layer_ablations_mistralai_Mistral-7B-Instruct-v0.3_20260517_132707_kl_per_removed_layer_multicolumn.png", width: 110%),
+  caption: [KL divergence per skipped layer for skip ablations of `mistralai/Mistral-7B-Instruct-v0.3`.],
+) <fig-skip-ablations-mistral-7b>
+
+#figure(
+  image("my-figures/plots/skip-ablations/layer_ablations_mistralai_Mistral-7B-Instruct-v0.3_20260517_132707_mean_top1_agreement_multicolumn.png", width: 110%),
+  caption: [Top-1 agreement with the full model for skip ablations of `mistralai/Mistral-7B-Instruct-v0.3`.],
+) <fig-skip-ablations-mistral-7b-top1>
+
+#figure(
+  image("my-figures/plots/skip-ablations/layer_ablations_meta-llama_Llama-3.1-8B-Instruct_20260517_132853_kl_per_removed_layer_multicolumn.png", width: 110%),
+  caption: [KL divergence per skipped layer for skip ablations of `meta-llama/Llama-3.1-8B-Instruct`.],
+) <fig-skip-ablations-llama31-8b>
+
+#figure(
+  image("my-figures/plots/skip-ablations/layer_ablations_meta-llama_Llama-3.1-8B-Instruct_20260517_132853_mean_top1_agreement_multicolumn.png", width: 110%),
+  caption: [Top-1 agreement with the full model for skip ablations of `meta-llama/Llama-3.1-8B-Instruct`.],
+) <fig-skip-ablations-llama31-8b-top1>
+
+#figure(
+  image("my-figures/plots/skip-ablations/layer_ablations_Qwen_Qwen3-4B-Instruct-2507_20260517_132930_kl_per_removed_layer_multicolumn.png", width: 110%),
+  caption: [KL divergence per skipped layer for skip ablations of `Qwen/Qwen3-4B-Instruct-2507`.],
+) <fig-skip-ablations-qwen3-4b>
+
+#figure(
+  image("my-figures/plots/skip-ablations/layer_ablations_Qwen_Qwen3-4B-Instruct-2507_20260517_132930_mean_top1_agreement_multicolumn.png", width: 110%),
+  caption: [Top-1 agreement with the full model for skip ablations of `Qwen/Qwen3-4B-Instruct-2507`.],
+) <fig-skip-ablations-qwen3-4b-top1>
+
+The results show a clear pattern that skipping a contiguous gap in the middle tends to do less damage to generation quality than early-exit or late-start ablations. The best-ranked ablations for all five models are internal gaps, while periodic patterns with multiple holes do not show an obvious advantage. This makes the gap-jump setup the most promising starting point for adding an HVC bridge.
 
 == FlashHead cluster building and evaluation
 

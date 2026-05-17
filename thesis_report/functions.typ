@@ -86,3 +86,45 @@
     supplement: [T],
   )
 }
+
+#let layer-mask(
+  left,
+  skipped,
+  right,
+  cell: 0.38em,
+  gap: 0.06em,
+  kept-fill: rgb("#1f2937"),
+  skipped-fill: rgb("#e5e7eb"),
+  skipped-stroke: rgb("#4d5055"),
+) = {
+  let kept-cells = range(left).map(i => rect(
+    width: cell,
+    height: cell,
+    radius: 0.06em,
+    fill: kept-fill,
+  ))
+  let skipped-cells = range(skipped).map(i => rect(
+    width: cell,
+    height: cell,
+    radius: 0.06em,
+    fill: skipped-fill,
+    stroke: 0.35pt + skipped-stroke,
+  ))
+  let right-cells = range(right).map(i => rect(
+    width: cell,
+    height: cell,
+    radius: 0.06em,
+    fill: kept-fill,
+  ))
+
+  box(
+    baseline: -0.05em,
+    grid(
+      columns: left + skipped + right,
+      gutter: gap,
+      ..kept-cells,
+      ..skipped-cells,
+      ..right-cells,
+    ),
+  )
+}
