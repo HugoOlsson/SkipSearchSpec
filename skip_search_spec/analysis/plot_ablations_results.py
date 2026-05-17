@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 import math
 from pathlib import Path
-import re
 from typing import Any
 
 from matplotlib.patches import Patch
@@ -37,13 +36,6 @@ CATEGORY_COLORS = {
     "other": "#007F1E",
 }
 
-CATEGORY_LABELS = {
-    "early_exit": "early exit",
-    "late_start": "late begin",
-    "gap-jump": "gap jump",
-    "other": "other",
-}
-
 
 def metric_header(metric: str) -> str:
     return METRIC_HEADERS.get(metric, metric)
@@ -52,17 +44,7 @@ def metric_header(metric: str) -> str:
 def classify_ablation(mask_name: str) -> str:
     family = mask_name.partition("__")[0]
 
-    thesis_gap_match = re.fullmatch(r"thesis_gap_nm__N_(\d+)__M_(\d+)", mask_name)
-    if thesis_gap_match is not None:
-        left_keep = int(thesis_gap_match.group(1))
-        right_keep = int(thesis_gap_match.group(2))
-
-        if right_keep == 0 and left_keep > 0:
-            return "early_exit"
-
-        if left_keep == 0 and right_keep > 0:
-            return "late_start"
-
+    if family == "thesis_gap_nm":
         return "gap-jump"
 
     if family == "keep_suffix":
@@ -253,7 +235,7 @@ def plot_ablation_json(
     x_upper = x_max_value
     x_span = max(x_upper - x_lower, 1e-12)
     left_pad = 0.04 * x_span
-    right_pad = 0.45 * x_span
+    right_pad = 0.3 * x_span
     global_xlim = (x_lower - left_pad, x_upper + right_pad)
 
     label_fontsize = 1.3*min(8.0, max(3.0, 240.0 / max(max_rows_in_any_column, 1)))
@@ -264,7 +246,7 @@ def plot_ablation_json(
     t = max(0.0, min(1.0, t))
     visual_divisor = 1.0 + t * (1.4 - 1.0)
     visual_fontsize = label_fontsize / visual_divisor
-    title_fontsize = 15.0
+    title_fontsize = 16.0
 
     # Inches needed for the visual column, given monospace at visual_fontsize.
     # ~0.6 em per char; em ≈ fontsize in points; 72 pt/inch.
@@ -277,13 +259,7 @@ def plot_ablation_json(
     column_width_in = idx_width_in + visual_width_in + bar_width_in
 
     fig_width = max(12.0, column_width_in * actual_num_columns)
-
-    header_height_in = 1.25
-    bottom_height_in = 0.45
-    body_height_in = max(4.0, 0.25 * max_rows_in_any_column + 0.45)
-    fig_height = header_height_in + body_height_in + bottom_height_in
-    header_top = 1.0 - (header_height_in / fig_height)
-    bottom = bottom_height_in / fig_height
+    fig_height = max(4.6, 0.25 * max_rows_in_any_column + 1.55)
 
     fig = plt.figure(figsize=(fig_width, fig_height), dpi=dpi)
     outer = fig.add_gridspec(1, actual_num_columns, wspace=0)
@@ -379,7 +355,7 @@ def plot_ablation_json(
                 va="center",
                 fontsize=value_fontsize,
                 fontfamily="monospace",
-                clip_on=False,
+                clip_on=True,
             )
 
         start_rank = running_rank
@@ -390,15 +366,11 @@ def plot_ablation_json(
     for bar_ax in bar_axes[1:]:
         bar_ax.tick_params(axis="x", labelbottom=True)
 
-    title_y = 1.0 - (0.12 / fig_height)
-    model_y = 1.0 - (0.42 / fig_height)
-    legend_y = 1.0 - (0.62 / fig_height)
-
-    fig.suptitle(title, fontsize=title_fontsize, y=title_y)
+    fig.suptitle(title, fontsize=title_fontsize, y=0.98)
     if isinstance(model_name, str) and len(model_name) > 0:
         fig.text(
             0.5,
-            model_y,
+            0.95,
             f"Model: {model_name}",
             ha="center",
             va="top",
@@ -412,7 +384,7 @@ def plot_ablation_json(
             f"commit {short_commit}",
             ha="right",
             va="bottom",
-            fontsize=8,
+            fontsize=12,
             color="#666",
             family="monospace",
         )
@@ -423,7 +395,7 @@ def plot_ablation_json(
     }
 
     legend_handles = [
-        Patch(facecolor=color, label=CATEGORY_LABELS.get(category, category))
+        Patch(facecolor=color, label=category)
         for category, color in CATEGORY_COLORS.items()
         if category in used_categories
     ]
@@ -433,15 +405,15 @@ def plot_ablation_json(
         loc="upper center",
         ncol=5,
         frameon=False,
-        bbox_to_anchor=(0.5, legend_y),
+        bbox_to_anchor=(0.5, 0.93),
         fontsize=title_fontsize/1.4,
     )
 
     fig.subplots_adjust(
         left=0.02,
         right=0.995,
-        top=header_top,
-        bottom=bottom,
+        top=0.86,
+        bottom=0.08,
     )
 
     if output_path is None:

@@ -1,7 +1,6 @@
-# Main (1,1) benchmark matrix
+# Main benchmark matrix
 #
 # All commands use:
-# - gap: (1,1)
 # - draft block size: 2
 # - bridge dtype: bfloat16
 # - flashhead top-k clusters: 100
@@ -47,3 +46,46 @@
 [RUNNING] poetry run skip_search_spec bench_self_spec 2 measurements/2026-05-09-50b567/middle_gap_skip/for_thesis_17580058_MY09__meta-llama_Llama-3_1-8B-Instruct_1_30_1/checkpoint_final_step_010000.pt checkpoints/flashhead_llama31_8b_8016c_v2.pt --prompt-set open-ended --flashhead-top-k-clusters 100 --variants both --bridge-dtype bfloat16
 
 [RUNNING] poetry run skip_search_spec bench_self_spec 2 measurements/2026-05-10-605df1/middle_gap_skip/for_thesis_day2_18182995_MY10__Qwen_Qwen3-4B-Instruct-2507_1_34_1/checkpoint_final_step_010000.pt checkpoints/flashhead_qwen3_4b_instruct_9496c_v2.pt --prompt-set open-ended --flashhead-top-k-clusters 100 --variants both --bridge-dtype bfloat16
+
+
+
+
+
+
+## (2,2) python-diverse-completion-style
+
+[RUNNING] poetry run skip_search_spec bench_self_spec 2 measurements/2026-05-10-f7dea8/middle_gap_skip/for_thesis_day2_10500516_MY10__meta-llama_Llama-3_2-1B-Instruct_2_12_2/checkpoint_final_step_010000.pt checkpoints/flashhead_llama32_1b_8016c_v2.pt --prompt-set python-diverse-completion-style --flashhead-top-k-clusters 100 --variants both --bridge-dtype bfloat16
+
+poetry run skip_search_spec bench_self_spec 2 measurements/2026-05-10-076f2b/middle_gap_skip/for_thesis_day2_11122915_MY10__meta-llama_Llama-3_2-3B-Instruct_2_24_2/checkpoint_final_step_010000.pt checkpoints/flashhead_llama32_3b_8016c_v2.pt --prompt-set python-diverse-completion-style --flashhead-top-k-clusters 100 --variants both --bridge-dtype bfloat16
+
+poetry run skip_search_spec bench_self_spec 2 measurements/2026-05-10-7ad273/middle_gap_skip/for_thesis_day2_10081712_MY10__mistralai_Mistral-7B-Instruct-v0_3_2_28_2/checkpoint_final_step_010000.pt checkpoints/flashhead_mistral_7b_4096c_v2.pt --prompt-set python-diverse-completion-style --flashhead-top-k-clusters 100 --variants both --bridge-dtype bfloat16
+
+poetry run skip_search_spec bench_self_spec 2 measurements/2026-05-10-215d9b/middle_gap_skip/for_thesis_day2_11401601_MY10__meta-llama_Llama-3_1-8B-Instruct_2_28_2/checkpoint_final_step_010000.pt checkpoints/flashhead_llama31_8b_8016c_v2.pt --prompt-set python-diverse-completion-style --flashhead-top-k-clusters 100 --variants both --bridge-dtype bfloat16
+
+poetry run skip_search_spec bench_self_spec 2 measurements/2026-05-10-605df1/middle_gap_skip/for_thesis_day2_18471135_MY10__Qwen_Qwen3-4B-Instruct-2507_2_32_2/checkpoint_final_step_010000.pt checkpoints/flashhead_qwen3_4b_instruct_9496c_v2.pt --prompt-set python-diverse-completion-style --flashhead-top-k-clusters 100 --variants both --bridge-dtype bfloat16
+
+
+## (2,2) concrete-completion-style
+
+poetry run skip_search_spec bench_self_spec 2 measurements/2026-05-10-f7dea8/middle_gap_skip/for_thesis_day2_10500516_MY10__meta-llama_Llama-3_2-1B-Instruct_2_12_2/checkpoint_final_step_010000.pt checkpoints/flashhead_llama32_1b_8016c_v2.pt --prompt-set concrete-completion-style --flashhead-top-k-clusters 100 --variants both --bridge-dtype bfloat16
+
+poetry run skip_search_spec bench_self_spec 2 measurements/2026-05-10-076f2b/middle_gap_skip/for_thesis_day2_11122915_MY10__meta-llama_Llama-3_2-3B-Instruct_2_24_2/checkpoint_final_step_010000.pt checkpoints/flashhead_llama32_3b_8016c_v2.pt --prompt-set concrete-completion-style --flashhead-top-k-clusters 100 --variants both --bridge-dtype bfloat16
+
+poetry run skip_search_spec bench_self_spec 2 measurements/2026-05-10-7ad273/middle_gap_skip/for_thesis_day2_10081712_MY10__mistralai_Mistral-7B-Instruct-v0_3_2_28_2/checkpoint_final_step_010000.pt checkpoints/flashhead_mistral_7b_4096c_v2.pt --prompt-set concrete-completion-style --flashhead-top-k-clusters 100 --variants both --bridge-dtype bfloat16
+
+poetry run skip_search_spec bench_self_spec 2 measurements/2026-05-10-215d9b/middle_gap_skip/for_thesis_day2_11401601_MY10__meta-llama_Llama-3_1-8B-Instruct_2_28_2/checkpoint_final_step_010000.pt checkpoints/flashhead_llama31_8b_8016c_v2.pt --prompt-set concrete-completion-style --flashhead-top-k-clusters 100 --variants both --bridge-dtype bfloat16
+
+poetry run skip_search_spec bench_self_spec 2 measurements/2026-05-10-605df1/middle_gap_skip/for_thesis_day2_18471135_MY10__Qwen_Qwen3-4B-Instruct-2507_2_32_2/checkpoint_final_step_010000.pt checkpoints/flashhead_qwen3_4b_instruct_9496c_v2.pt --prompt-set concrete-completion-style --flashhead-top-k-clusters 100 --variants both --bridge-dtype bfloat16
+
+
+## (2,2) open-ended
+
+poetry run skip_search_spec bench_self_spec 2 measurements/2026-05-10-f7dea8/middle_gap_skip/for_thesis_day2_10500516_MY10__meta-llama_Llama-3_2-1B-Instruct_2_12_2/checkpoint_final_step_010000.pt checkpoints/flashhead_llama32_1b_8016c_v2.pt --prompt-set open-ended --flashhead-top-k-clusters 100 --variants both --bridge-dtype bfloat16
+
+poetry run skip_search_spec bench_self_spec 2 measurements/2026-05-10-076f2b/middle_gap_skip/for_thesis_day2_11122915_MY10__meta-llama_Llama-3_2-3B-Instruct_2_24_2/checkpoint_final_step_010000.pt checkpoints/flashhead_llama32_3b_8016c_v2.pt --prompt-set open-ended --flashhead-top-k-clusters 100 --variants both --bridge-dtype bfloat16
+
+poetry run skip_search_spec bench_self_spec 2 measurements/2026-05-10-7ad273/middle_gap_skip/for_thesis_day2_10081712_MY10__mistralai_Mistral-7B-Instruct-v0_3_2_28_2/checkpoint_final_step_010000.pt checkpoints/flashhead_mistral_7b_4096c_v2.pt --prompt-set open-ended --flashhead-top-k-clusters 100 --variants both --bridge-dtype bfloat16
+
+poetry run skip_search_spec bench_self_spec 2 measurements/2026-05-10-215d9b/middle_gap_skip/for_thesis_day2_11401601_MY10__meta-llama_Llama-3_1-8B-Instruct_2_28_2/checkpoint_final_step_010000.pt checkpoints/flashhead_llama31_8b_8016c_v2.pt --prompt-set open-ended --flashhead-top-k-clusters 100 --variants both --bridge-dtype bfloat16
+
+poetry run skip_search_spec bench_self_spec 2 measurements/2026-05-10-605df1/middle_gap_skip/for_thesis_day2_18471135_MY10__Qwen_Qwen3-4B-Instruct-2507_2_32_2/checkpoint_final_step_010000.pt checkpoints/flashhead_qwen3_4b_instruct_9496c_v2.pt --prompt-set open-ended --flashhead-top-k-clusters 100 --variants both --bridge-dtype bfloat16
