@@ -1632,21 +1632,21 @@ Table @tab-main-benchmark-speedups summarizes the benchmark matrix.
 The table comes after the main Python-diverse and concrete plots because it is meant as an overview rather than a replacement for the full distributions.
 
 #figure(
-  text(size: 7.4pt)[
+  text(size: 8.5pt)[
     #table(
-      columns: (26%, 14.8%, 14.8%, 14.8%, 14.8%, 14.8%),
-      inset: 3pt,
+      columns: (31%, 14.2%, 14.2%, 14.2%, 14.2%, 14.2%),
+      inset: 5pt,
       align: (left, center, center, center, center, center, center),
       fill: (x, y) => if y == 0 { luma(230) },
       stroke: 0.45pt + luma(200),
 
       table.header(
         [*Benchmark combination*],
-        [*Llama* #linebreak() *3.2 1B*],
-        [*Llama* #linebreak() *3.2 3B*],
-        [*Qwen3* #linebreak() *4B*],
-        [*Llama* #linebreak() *3.1 8B*],
-        [*Mistral* #linebreak() *7B*],
+        [*Llama* #linebreak() *3.2 1B-Inst*],
+        [*Llama* #linebreak() *3.2 3B-Inst*],
+        [*Qwen3* #linebreak() *4B-Inst*],
+        [*Llama* #linebreak() *3.1 8B-Inst*],
+        [*Mistral* #linebreak() *7B-Inst*],
       ),
 
       [$(1,1)$, Python-diverse, block size 2], [1.24x / 40%], [*1.47x / 45%*], [*1.40x / 38%*], [*1.51x / 44%*], [*1.55x / 47%*],
