@@ -444,11 +444,24 @@ def bench_self_spec(
 
     print()
     print("Saved benchmark JSON:", json_path)
+    runpod_ssh_command = _runpod_ssh_command()
+    if runpod_ssh_command is not None:
+        print("RunPod SSH:", runpod_ssh_command)
     print(
         "Plot with:",
         f"poetry run skip_search_spec plot_self_spec_bench {json_path}",
     )
     return json_path
+
+
+def _runpod_ssh_command() -> str | None:
+    public_ip = os.environ.get("RUNPOD_PUBLIC_IP", "").strip()
+    ssh_port = os.environ.get("RUNPOD_TCP_PORT_22", "").strip()
+    if not public_ip or not ssh_port:
+        return None
+
+    key_path = os.environ.get("RUNPOD_SSH_KEY_PATH", "~/.ssh/id_ed25519").strip()
+    return f"ssh root@{public_ip} -p {ssh_port} -i {key_path}"
 
 
 def _resolve_variant_specs(
