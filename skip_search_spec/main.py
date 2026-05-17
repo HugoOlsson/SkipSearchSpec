@@ -14,6 +14,7 @@ from skip_search_spec.experiments.inference_prompts import (
     INFERENCE_TEST_PROMPTS_CONCRETE_SWEDISH,
     INFERENCE_TEST_PROMPTS_EASY,
     INFERENCE_TEST_PROMPTS_HARD,
+    INFERENCE_TEST_PROMPTS_OPEN_ENDED,
     INFERENCE_TEST_PROMPTS_PYTHON_COMPLETION,
     INFERENCE_TEST_PROMPTS_PYTHON_DIVERSE,
 )
@@ -261,6 +262,7 @@ def main() -> None:
                 "completion-style",
                 "chat-style",
                 "concrete-completion-style",
+                "open-ended",
                 "python-completion-style",
                 "python-diverse-completion-style",
                 "swedish-concrete-completion-style",
@@ -282,6 +284,7 @@ def main() -> None:
             "chat-style": (CHAT_TEST_PROMPTS, True),
             "completion-style": (INFERENCE_TEST_PROMPTS_EASY, False),
             "concrete-completion-style": (INFERENCE_TEST_PROMPTS_CONCRETE, False),
+            "open-ended": (INFERENCE_TEST_PROMPTS_OPEN_ENDED, False),
             "python-completion-style": (
                 INFERENCE_TEST_PROMPTS_PYTHON_COMPLETION,
                 False,
@@ -642,6 +645,7 @@ def main() -> None:
                 "chat-style",
                 "hard-completion-style",
                 "concrete-completion-style",
+                "open-ended",
                 "python-completion-style",
                 "python-diverse-completion-style",
                 "swedish-concrete-completion-style",
@@ -693,6 +697,7 @@ def main() -> None:
             "completion-style": (INFERENCE_TEST_PROMPTS_EASY, False),
             "hard-completion-style": (INFERENCE_TEST_PROMPTS_HARD, False),
             "concrete-completion-style": (INFERENCE_TEST_PROMPTS_CONCRETE, False),
+            "open-ended": (INFERENCE_TEST_PROMPTS_OPEN_ENDED, False),
             "python-completion-style": (
                 INFERENCE_TEST_PROMPTS_PYTHON_COMPLETION,
                 False,

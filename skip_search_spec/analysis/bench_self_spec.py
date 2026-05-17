@@ -18,6 +18,7 @@ from skip_search_spec.experiments.inference_prompts import (
     INFERENCE_TEST_PROMPTS_CONCRETE_SWEDISH,
     INFERENCE_TEST_PROMPTS_EASY,
     INFERENCE_TEST_PROMPTS_HARD,
+    INFERENCE_TEST_PROMPTS_OPEN_ENDED,
     INFERENCE_TEST_PROMPTS_PYTHON_COMPLETION,
     INFERENCE_TEST_PROMPTS_PYTHON_DIVERSE,
 )
@@ -32,6 +33,7 @@ PromptSetName = Literal[
     "chat-style",
     "hard-completion-style",
     "concrete-completion-style",
+    "open-ended",
     "python-completion-style",
     "python-diverse-completion-style",
     "swedish-concrete-completion-style",
@@ -46,6 +48,7 @@ PROMPT_SETS: dict[PromptSetName, tuple[list[tuple[str, str]], bool]] = {
     "completion-style": (INFERENCE_TEST_PROMPTS_EASY, False),
     "hard-completion-style": (INFERENCE_TEST_PROMPTS_HARD, False),
     "concrete-completion-style": (INFERENCE_TEST_PROMPTS_CONCRETE, False),
+    "open-ended": (INFERENCE_TEST_PROMPTS_OPEN_ENDED, False),
     "python-completion-style": (INFERENCE_TEST_PROMPTS_PYTHON_COMPLETION, False),
     "python-diverse-completion-style": (
         INFERENCE_TEST_PROMPTS_PYTHON_DIVERSE,
