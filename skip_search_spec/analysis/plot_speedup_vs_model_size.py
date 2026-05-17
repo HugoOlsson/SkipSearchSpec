@@ -11,11 +11,11 @@ from typing import Any
 
 
 DEFAULT_BENCHMARK_JSON_PATHS = [
-    "benchmarks/self_spec/L4/bench_self_spec__llama-3-2-1b-instruct__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260512_164626.json",
-    "benchmarks/self_spec/L4/bench_self_spec__llama-3-2-3b-instruct__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260512_175238.json",
-    "benchmarks/self_spec/L4/bench_self_spec__qwen3-4b-instruct-2507__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260512_210900.json",
-    "benchmarks/self_spec/L4/bench_self_spec__mistral-7b-instruct-v0-3__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260512_202037.json",
-    "benchmarks/self_spec/L4/bench_self_spec__llama-3-1-8b-instruct__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260512_190545.json",
+    "benchmarks/self_spec/L4_V2/bench_self_spec__llama-3-2-1b-instruct__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_120248.json",
+    "benchmarks/self_spec/L4_V2/bench_self_spec__llama-3-2-3b-instruct__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_123233.json",
+    "benchmarks/self_spec/L4_V2/bench_self_spec__qwen3-4b-instruct-2507__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_131002.json",
+    "benchmarks/self_spec/L4_V2/bench_self_spec__mistral-7b-instruct-v0-3__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_131146.json",
+    "benchmarks/self_spec/L4_V2/bench_self_spec__llama-3-1-8b-instruct__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_133323.json",
 ]
 
 DEFAULT_OUTPUT_PATH = (

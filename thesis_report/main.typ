@@ -1001,7 +1001,7 @@ The benchmark plots include both setup information and measured quantities. The 
       Mean CUDA peak allocated memory over normal generation runs.
     ],
     [`Mean speedup`], [`1.23x`], [
-      Aggregate per-token speedup for the variant. It is computed as self-speculative tokens per second divided by normal tokens per second after summing seconds and generated tokens over measured prompts.
+      Overall per-token speedup for the variant. It is computed as self-speculative tokens per second divided by normal tokens per second after summing seconds and generated tokens over measured prompts.
     ],
     [`Acceptance rate`], [percent], [
       Accepted draft tokens divided by drafted tokens.
@@ -1440,20 +1440,91 @@ The implementation runs self-speculation for all the prompts in the prompt set a
 The self-speculation is first run with the drafter skipping layers but using the normal LM-head, this is represented in blue. Then it is run with the drafter skipping layers and using ANNH instead of the full LM-head, this is represented in the color magenta.
 
 
+=== Gap (1,1), block size 2, bfloat16
 
+The main benchmark matrix uses the same five models as the skip-ablation and HVC-training sections.
+Unless stated otherwise, the runs use bfloat16 model execution, bfloat16 HVC bridge execution, ANNH top-k 100, both variants, 5 warmup prompts, 15 profiled prompts, and all available prompts in the prompt set.
+These results are with the gap $(1,1)$, which means that all layers are skipped except the first and the last one.
+No internal timing is used when measuring speedup to avoid synchronization that would affect performance.
 
+==== Python-diverse prompt set
 
+#figure(
+  move(
+    dx: -0.2cm,
+    image(
+      "my-figures/plots/benches/main_matrix/bench_self_spec__llama-3-1-8b-instruct__python-diverse-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_123622.png",
+      width: 115%,
+    ),
+  ),
+  caption: [
+    Per-token self-speculation speedup for Llama 3.1 8B Instruct on the Python-diverse prompt set, with gap $(1,1)$ and draft block size 2.
+  ],
+) <fig:self-spec-llama-31-8b-python-gap11-block2>
 
-=== Gap (1,1), Concrete prompt set, block size 2, bfloat16
+#figure(
+  move(
+    dx: -0.2cm,
+    image(
+      "my-figures/plots/benches/main_matrix/bench_self_spec__llama-3-2-3b-instruct__python-diverse-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_121540.png",
+      width: 115%,
+    ),
+  ),
+  caption: [
+    Per-token self-speculation speedup for Llama 3.2 3B Instruct on the Python-diverse prompt set, with gap $(1,1)$ and draft block size 2.
+  ],
+) <fig:self-spec-llama-32-3b-python-gap11-block2>
 
-The prompt set `concrete-completion-style` is used together with a static block size of 2. The models are run in bfloat16 and the HVC-bridge is run in float32. These results are with the gap (1,1) which means that all layers are skipped except the first and the last one. No internal timing is used when measuring speedup to not have syncs that would affect performance.
+#figure(
+  move(
+    dx: -0.2cm,
+    image(
+      "my-figures/plots/benches/main_matrix/bench_self_spec__llama-3-2-1b-instruct__python-diverse-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_115150.png",
+      width: 115%,
+    ),
+  ),
+  caption: [
+    Per-token self-speculation speedup for Llama 3.2 1B Instruct on the Python-diverse prompt set, with gap $(1,1)$ and draft block size 2.
+  ],
+) <fig:self-spec-llama-32-1b-python-gap11-block2>
+
+#figure(
+  move(
+    dx: -0.2cm,
+    image(
+      "my-figures/plots/benches/main_matrix/bench_self_spec__mistral-7b-instruct-v0-3__python-diverse-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_122903.png",
+      width: 115%,
+    ),
+  ),
+  caption: [
+    Per-token self-speculation speedup for Mistral 7B Instruct v0.3 on the Python-diverse prompt set, with gap $(1,1)$ and draft block size 2.
+  ],
+) <fig:self-spec-mistral-7b-python-gap11-block2>
+
+#figure(
+  move(
+    dx: -0.2cm,
+    image(
+      "my-figures/plots/benches/main_matrix/bench_self_spec__qwen3-4b-instruct-2507__python-diverse-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_122348.png",
+      width: 115%,
+    ),
+  ),
+  caption: [
+    Per-token self-speculation speedup for Qwen3 4B Instruct on the Python-diverse prompt set, with gap $(1,1)$ and draft block size 2.
+  ],
+) <fig:self-spec-qwen3-4b-python-gap11-block2>
+
+Across the Python-diverse prompt set, the skipped-layers + ANNH variant gives speedups from 1.24x for Llama 3.2 1B to 1.55x for Mistral 7B.
+The larger models generally get larger speedups, but Qwen3 4B is lower than Llama 3.2 3B in this setup because its acceptance rate is lower.
+
+==== Concrete prompt set
 
 
 #figure(
   move(
     dx: -0.2cm,
     image(
-      "my-figures/plots/benches/bench_self_spec__llama-3-1-8b-instruct__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260512_190545.png",
+      "my-figures/plots/benches/main_matrix/bench_self_spec__llama-3-1-8b-instruct__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_133323.png",
       width: 115%,
     ),
   ),
@@ -1463,24 +1534,24 @@ The prompt set `concrete-completion-style` is used together with a static block 
   ],
 ) <fig:self-spec-llama-31-8b-concrete>
 
-From figure @fig:self-spec-llama-31-8b-concrete a speedup of 1.45x with skipped layers and a speedup of 1.56x with skipped layers and ANNH can be seen. The peak memory usage is 15.12 GiB for the normal inference, 15.13 GiB for the self-spec with skipped layers and 15.19 GiB when skipping layers and using ANNH.
+From figure @fig:self-spec-llama-31-8b-concrete a speedup of 1.46x with skipped layers and a speedup of 1.58x with skipped layers and ANNH can be seen. The peak memory usage remains approximately the same as normal inference.
 
-The figure shows that the head has a speedup with 7.68x when going from full LM-head to ANNH and an resulting accuracy of 97.6%. This makes the acceptance rate go from 47.6% without ANNH to 46.5% with it. The fraction of when the outputs exactly match normal generation is 43.3% both with and without ANNH. This does not mean that the self-speculation is incorrect or that it is approximate. See the discussion for why this happens even without approximation. 
+The profile measurements show that the drafter head becomes 7.47x faster when replacing the dense LM-head with ANNH. This makes the acceptance rate go from 47.7% without ANNH to 46.9% with it. The fraction of when the outputs exactly match normal generation is 43.3% both with and without ANNH. This does not mean that the self-speculation is incorrect or that it is approximate. See the discussion for why this happens even without approximation. 
 
-Before the measured benchmarks, 5 warmup runs and 15 profile runs were performed. The used GPU was a NVIDIA L4. The result shows that a verifier call costs 1.05x of a normal token generation call. The block size is 2, which means that this follows the expectation that verifying two tokens and generating a bonus token is cheaper is significantly cheaper then generation. The result shows that speeding up both the head and the body does increase total speedup which follows the Amdahl's law reasoning. The figure shows that the drafter is 15.1% of the full model in compute with skipped layers, and 9.1% of the full model with skipped layers and ANNH.
+Before the measured benchmarks, 5 warmup runs and 15 profile runs were performed. The used GPU was a NVIDIA L4. The result shows that a verifier call costs 1.05x of a normal token generation call. The block size is 2, which means that this follows the expectation that verifying two tokens and generating a bonus token is cheaper is significantly cheaper then generation. The result shows that speeding up both the head and the body does increase total speedup which follows the Amdahl's law reasoning. The profile shows that the drafter costs about 14.4% of normal generation with skipped layers, and about 8.5% with skipped layers and ANNH.
 
-Using @selfs-speedup with the observed values $v = 1.05$, $gamma = 2$, $a = 47.6%$, and $d = 15.1%$, the predicted speedup is
+Using @selfs-speedup with the observed values $v = 1.05$, $gamma = 2$, $a = 47.7%$, and $d = 14.4%$, the predicted speedup is
 $
-S = frac(1 + 2 dot 0.476, 1.05 + 2 dot 0.151) = frac(1.952, 1.352) approx 1.444 times,
+S = frac(1 + 2 dot 0.477, 1.05 + 2 dot 0.144) = frac(1.954, 1.338) approx 1.460 times,
 $
-which aligns closely with the measured 1.45x. For the version with ANNH, setting $d = 9.1%$ and $a = 46.5%$ gives $S approx 1.567 times$, again consistent with the measured 1.56x.
+which aligns closely with the measured 1.46x. For the version with ANNH, setting $d = 8.5%$ and $a = 46.9%$ gives $S approx 1.59 times$, again consistent with the measured 1.58x.
 
 
 #figure(
   move(
     dx: -0.2cm,
     image(
-      "my-figures/plots/benches/bench_self_spec__llama-3-2-3b-instruct__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260512_175238.png",
+      "my-figures/plots/benches/main_matrix/bench_self_spec__llama-3-2-3b-instruct__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_123233.png",
       width: 115%,
     ),
   ),
@@ -1490,13 +1561,13 @@ which aligns closely with the measured 1.45x. For the version with ANNH, setting
   ],
 ) <fig:self-spec-llama-32-3b-concrete>
 
-Figure @fig:self-spec-llama-32-3b-concrete shows the same pattern of speedup as figure @fig:self-spec-llama-31-8b-concrete. The speedups are here smaller, 1.3x and 1.44x respectively. This illustrates the hypothesis of overhead for easy tokens. When the model is smaller, there is less overhead for easy tokens resulting in less gain. The figure shows that the ANNH is 7.02x faster than the normal LM-head and that the memory usage is approximately the same for all three versions
+Figure @fig:self-spec-llama-32-3b-concrete shows the same pattern of speedup as figure @fig:self-spec-llama-31-8b-concrete. The speedups are here smaller, 1.30x and 1.46x respectively. This illustrates the hypothesis of overhead for easy tokens. When the model is smaller, there is less overhead for easy tokens resulting in less gain. The figure shows that the memory usage is approximately the same for all three versions.
 
 #figure(
   move(
     dx: -0.2cm,
     image(
-      "my-figures/plots/benches/bench_self_spec__llama-3-2-1b-instruct__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260512_164626.png",
+      "my-figures/plots/benches/main_matrix/bench_self_spec__llama-3-2-1b-instruct__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_120248.png",
       width: 115%,
     ),
   ),
@@ -1507,14 +1578,14 @@ Figure @fig:self-spec-llama-32-3b-concrete shows the same pattern of speedup as 
 ) <fig:self-spec-llama-32-1b-concrete>
 
 
-Figure @fig:self-spec-llama-32-1b-concrete shows that the Llama 3.2 1B Instruct also gets speedups of 1.13x and 1.27x. The speedups are here smaller and again following the idea of overhead. The self-speculation runs use approximately the same amount of memory as normal inference.
+Figure @fig:self-spec-llama-32-1b-concrete shows that the Llama 3.2 1B Instruct also gets speedups of 1.13x and 1.28x. The speedups are here smaller and again following the idea of overhead. The self-speculation runs use approximately the same amount of memory as normal inference.
 
 
 #figure(
   move(
     dx: -0.2cm,
     image(
-      "my-figures/plots/benches/bench_self_spec__mistral-7b-instruct-v0-3__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260512_202037.png",
+      "my-figures/plots/benches/main_matrix/bench_self_spec__mistral-7b-instruct-v0-3__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_131146.png",
       width: 115%,
     ),
   ),
@@ -1525,24 +1596,24 @@ Figure @fig:self-spec-llama-32-1b-concrete shows that the Llama 3.2 1B Instruct 
 ) <fig:self-spec-mistral-7b-concrete>
 
 
-The Mistral 7B Instruct shows a relatively large speedup of 1.61x with skipped layers but a speedup of 1.60x with skipped layers + ANNH, even though it made the head 3.06x faster. Figure @fig:self-spec-mistral-7b-concrete shows that the LM-head portion is 1.85% of the parameters, so the win from speeding up the head is erased from the slight drop in acceptance rate by doing so.
+The Mistral 7B Instruct shows a relatively large speedup of 1.62x with skipped layers and a speedup of 1.63x with skipped layers + ANNH. Figure @fig:self-spec-mistral-7b-concrete shows that the LM-head portion is small compared with the body, so the head approximation contributes less to total speedup than the layer skipping does.
 
-Using @selfs-speedup with $v = 1.05$, $gamma = 2$, $a = 51.3%$, and $d = 10.3%$ (skipped layers only), the predicted speedup is
+Using @selfs-speedup with $v = 1.05$, $gamma = 2$, $a = 51.3%$, and $d = 9.7%$ (skipped layers only), the predicted speedup is
 $
-S = frac(1 + 2 dot 0.513, 1.05 + 2 dot 0.103) = frac(2.026, 1.256) approx 1.613 times,
+S = frac(1 + 2 dot 0.513, 1.05 + 2 dot 0.097) = frac(2.026, 1.244) approx 1.629 times,
 $
-which matches the measured 1.61x closely. With ANNH, substituting $a = 50.0%$ and $d = 9.5%$ gives
+which matches the measured 1.62x closely. With ANNH, substituting $a = 50.7%$ and $d = 8.5%$ gives
 $
-S = frac(1 + 2 dot 0.500, 1.05 + 2 dot 0.095) = frac(2.000, 1.240) approx 1.613 times,
+S = frac(1 + 2 dot 0.507, 1.05 + 2 dot 0.085) = frac(2.014, 1.220) approx 1.65 times,
 $
-which also roughly matches the measured 1.60x. 
+which is slightly above but still close to the measured 1.63x. 
 
 
 #figure(
   move(
     dx: -0.2cm,
     image(
-      "my-figures/plots/benches/bench_self_spec__qwen3-4b-instruct-2507__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260512_210900.png",
+      "my-figures/plots/benches/main_matrix/bench_self_spec__qwen3-4b-instruct-2507__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_131002.png",
       width: 115%,
     ),
   ),
@@ -1553,7 +1624,53 @@ which also roughly matches the measured 1.60x.
 ) <fig:self-spec-qwen3-4b-concrete>
 
 
-Figure @fig:self-spec-qwen3-4b-concrete shows that the implementation also gives speedups for Qwen3. The acceptance rates are relatively low of 36.2% and 35.8%. This manages to result in speedups of 1.25x and 1.34x. A block size of 2 can be to big for this drafter. 
+Figure @fig:self-spec-qwen3-4b-concrete shows that the implementation also gives speedups for Qwen3. The acceptance rates are relatively low at 36.2% without ANNH and 35.9% with ANNH. This manages to result in speedups of 1.26x and 1.37x. A block size of 2 can be too big for this drafter on harder prompt distributions.
+
+=== Benchmark summary
+
+Table @tab-main-benchmark-speedups summarizes the benchmark matrix.
+The table comes after the main Python-diverse and concrete plots because it is meant as an overview rather than a replacement for the full distributions.
+
+#figure(
+  text(size: 7.4pt)[
+    #table(
+      columns: (26%, 14.8%, 14.8%, 14.8%, 14.8%, 14.8%),
+      inset: 3pt,
+      align: (left, center, center, center, center, center, center),
+      fill: (x, y) => if y == 0 { luma(230) },
+      stroke: 0.45pt + luma(200),
+
+      table.header(
+        [*Benchmark combination*],
+        [*Llama* #linebreak() *3.2 1B*],
+        [*Llama* #linebreak() *3.2 3B*],
+        [*Qwen3* #linebreak() *4B*],
+        [*Llama* #linebreak() *3.1 8B*],
+        [*Mistral* #linebreak() *7B*],
+      ),
+
+      [$(1,1)$, Python-diverse, block size 2], [1.24x / 40%], [*1.47x / 45%*], [*1.40x / 38%*], [*1.51x / 44%*], [*1.55x / 47%*],
+      [$(1,1)$, concrete, block size 2], [*1.28x / 43%*], [*1.46x / 44%*], [*1.37x / 36%*], [*1.58x / 47%*], [*1.63x / 51%*],
+      [$(1,1)$, open-ended, block size 2], [*1.22x / 37%*], [*1.40x / 39%*], [1.20x / 25%], [*1.45x / 39%*], [*1.48x / 42%*],
+      [$(2,2)$, Python-diverse, block size 2], [1.20x / 48%], [1.46x / 53%], [1.43x / 47%], [1.50x / 52%], [1.55x / 55%],
+      [$(1,1)$, Python-diverse, block size 1], [*1.25x / 58%*], [1.38x / 64%], [1.36x / 58%], [1.40x / 64%], [1.43x / 68%],
+      [$(1,1)$, open-ended, block size 1], [1.22x / 54%], [1.32x / 56%], [*1.21x / 40%*], [1.35x / 56%], [1.38x / 60%],
+    )
+  ],
+  caption: [
+    Main-matrix self-speculation benchmark results.
+    Each cell reports the total per-generated-token speedup for the skipped-layers + ANNH variant, followed by total draft-token acceptance rate.
+    Bold values mark the better block size for each prompt set and model; when only one block size was tested for that prompt set, that value is bold by default.
+    All combinations in this table are runs from the main benchmark matrix.
+  ],
+  kind: "table",
+  supplement: [T],
+) <tab-main-benchmark-speedups>
+
+The table shows three broad patterns.
+First, all skipped-layers + ANNH combinations are faster than normal generation.
+Second, prompt style matters: the open-ended prompt set usually has lower acceptance rate and lower speedup than concrete or Python-diverse completion.
+Third, the $(2,2)$ gap improves acceptance rate relative to $(1,1)$ on Python-diverse prompts, but the extra kept layers often absorb much of that gain.
 
 === float32 debug test
 
@@ -1714,13 +1831,13 @@ The estimates in @tab-less-skipped-required-top1-block1 show that when keeping m
 // What does the Amdahl framing tell us about the ceiling for each model?
 
 
-All models tested resulted in a speedup with the self-specualtive system. All of them except Mistral 7B Instruct 0.3v has a larger speedup when the drafter used skipping layers and ANNH. The measured average speedups were in the range 1.27x to 1.61x in bfloat16 with block size 2. The lowest measured average speedup were for Llama 3.2 1B and the largest speedup were for Mistral 7B Instruct 0.3v. 
+All combinations in the main benchmark matrix resulted in a speedup with the self-speculative system. At the precision reported in the table, adding ANNH never reduced speedup compared with skipping layers alone. When selecting the best tested setup for each model and prompt set, the skipped-layers + ANNH speedups were in the range 1.21x to 1.63x in bfloat16. The lower end was Qwen3 4B on open-ended prompts with block size 1, and the upper end was Mistral 7B Instruct v0.3 on the concrete prompt set with block size 2.
 
-The measured speedups are prompt dependent and forms an approxiamte normal distribution. Mistral 7B Instruct had a max speedup of around 1.95x and a minimal speedup of around 1.2x for the concrete dataset. With a constant block size 2, Llama 3.2 3B Instruct had the biggest variance in speedup between different prompts on the concrete dataset. With skipped layers + ANNH it had an average speedup of 1.44x but a minimal speedup of 0.85x and a maximial speedup of 2.3x.
+The measured speedups are prompt dependent and form an approximate normal distribution. With skipped layers + ANNH on the concrete prompt set, Mistral 7B Instruct had an overall speedup of 1.63x and per-prompt speedups from 1.21x to 1.90x. With the same prompt set and block size, Llama 3.2 3B Instruct had an overall speedup of 1.46x and per-prompt speedups from 0.86x to 2.27x.
 
-On NVIDIA L4, the ANNH made the head 3.06x to 7.68x faster with used top-k between 50 and 70. The model with largest relative additinoal speedup from using ANNH in the self-speculative setup was Llama 3.2 1B that went from 1.13x to 1.27x in average per token speedup. Large speedups for the LM-head does not directly translate to large speedup in the self-speculative setup, but it seems to help and it seems to confirm the Amdahl's law idea. For Mistral 7B Instruct 0.3v, ANNH made the head 3.06x faster, but the total self-speculative speedup went from 1.61x to 1.60x. The reason for why this can happen is that the head is there proportionally very small, 1.85% of the paramters, and the slight drop in acceptance rate when using ANNH with top-k = 50 removes more speedup than what the speedup head contributes. This follows Amdahl's law reasoning exactly. 
+On NVIDIA L4, replacing the dense LM-head with ANNH made the profiled drafter head 2.80x to 7.53x faster across the main benchmark matrix. The model with largest relative additional speedup from using ANNH in the concrete block-size-2 setup was Llama 3.2 1B, which went from 1.13x to 1.28x in average per-token speedup. Large speedups for the LM-head do not directly translate to large speedup in the self-speculative setup, but the results show that it helps most when the head is a meaningful part of the drafter cost. For Mistral 7B Instruct v0.3 the head is proportionally small, so ANNH gives little extra speedup even when the head itself becomes faster. This follows Amdahl's law reasoning exactly.
 
-All models seem to use approximatly the same amount of VRAM as the normal inference. Loading the ANNH index into memory adds slightly to memory usage but the observed overhead is only around 0.3%. The advantage of using the same model for the verifier and the drafter to do self-speculation and also to share the KV-cache therefore results in a solution that doesn't need more memory than normal inference. 
+All models seem to use approximately the same amount of VRAM as the normal inference. Loading the ANNH index into memory adds slightly to memory usage, but across the main matrix the observed peak-allocation overhead for the skipped-layers + ANNH variant is small: about 0.9% on average, with a maximum of about 2.1%. The advantage of using the same model for the verifier and the drafter to do self-speculation and also to share the KV-cache therefore results in a solution that does not need meaningfully more memory than normal inference. 
 
 
 === How long is the total training time?
@@ -1750,31 +1867,31 @@ ANNH cluster-building times are only included where they are reported above.
       ),
 
       // Sources:
-      // - Benchmark plot JSON: benchmarks/self_spec/L4/bench_self_spec__llama-3-2-1b-instruct__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260512_164626.json
+      // - Benchmark plot JSON: benchmarks/self_spec/L4_V2/bench_self_spec__llama-3-2-1b-instruct__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_120248.json
       // - HVC time: measurements/2026-05-09-96fe48/middle_gap_skip/for_thesis_13582146_MY09__meta-llama_Llama-3_2-1B-Instruct_1_14_1/run.json, final total_duration_seconds = 836.9591489480226
       // - ANNH time: reported above in this file for Llama-3.2-1B-Instruct, 8016 clusters, clustering_time = 153 seconds
       [`Llama-3.2-1B-Instruct`], [13 min 57 s], [2 min 33 s], [16 min 30 s], [8016],
 
       // Sources:
-      // - Benchmark plot JSON: benchmarks/self_spec/L4/bench_self_spec__llama-3-2-3b-instruct__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260512_175238.json
+      // - Benchmark plot JSON: benchmarks/self_spec/L4_V2/bench_self_spec__llama-3-2-3b-instruct__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_123233.json
       // - HVC time: measurements/2026-05-09-f9a0d3/middle_gap_skip/for_thesis_15154000_MY09__meta-llama_Llama-3_2-3B-Instruct_1_26_1/run.json, final total_duration_seconds = 1383.7320335829863
       // - ANNH time: reported above in this file for Llama-3.2-3B-Instruct, 8016 clusters, clustering_time = 230 seconds
       [`Llama-3.2-3B-Instruct`], [23 min 04 s], [3 min 50 s], [26 min 54 s], [8016],
 
       // Sources:
-      // - Benchmark plot JSON: benchmarks/self_spec/L4/bench_self_spec__llama-3-1-8b-instruct__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260512_190545.json
+      // - Benchmark plot JSON: benchmarks/self_spec/L4_V2/bench_self_spec__llama-3-1-8b-instruct__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_133323.json
       // - HVC time: measurements/2026-05-09-50b567/middle_gap_skip/for_thesis_17580058_MY09__meta-llama_Llama-3_1-8B-Instruct_1_30_1/run.json, final total_duration_seconds = 2059.3276825470384
       // - ANNH time: benchmark JSON uses flashhead_llama31_8b_8016c_v2.pt, but no matching clustering_time is reported above yet
       [`Llama-3.1-8B-Instruct`], [34 min 19 s], [?], [?], [8016],
 
       // Sources:
-      // - Benchmark plot JSON: benchmarks/self_spec/L4/bench_self_spec__mistral-7b-instruct-v0-3__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260512_202037.json
+      // - Benchmark plot JSON: benchmarks/self_spec/L4_V2/bench_self_spec__mistral-7b-instruct-v0-3__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_131146.json
       // - HVC time: measurements/2026-05-09-9551a4/middle_gap_skip/for_thesis_18451838_MY09__mistralai_Mistral-7B-Instruct-v0_3_1_30_1/run.json, final total_duration_seconds = 1604.747312018997
       // - ANNH time: benchmark JSON uses flashhead_mistral_7b_4096c_v2.pt, but no matching clustering_time is reported above yet
       [`Mistral-7B-Instruct-v0.3`], [26 min 45 s], [?], [?], [4096],
 
       // Sources:
-      // - Benchmark plot JSON: benchmarks/self_spec/L4/bench_self_spec__qwen3-4b-instruct-2507__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260512_210900.json
+      // - Benchmark plot JSON: benchmarks/self_spec/L4_V2/bench_self_spec__qwen3-4b-instruct-2507__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_131002.json
       // - HVC time: measurements/2026-05-10-605df1/middle_gap_skip/for_thesis_day2_18182995_MY10__Qwen_Qwen3-4B-Instruct-2507_1_34_1/run.json, final total_duration_seconds = 1738.677955474006
       // - ANNH time: benchmark JSON uses flashhead_qwen3_4b_instruct_9496c_v2.pt, but no matching clustering_time is reported above yet
       [`Qwen3-4B-Instruct-2507`], [28 min 59 s], [?], [?], [9496],
@@ -1791,7 +1908,7 @@ This method does seem to produce a useful set of properties:
 
 + No more memory usage than normal inference.
 + Lossless generation quality relative to the stock model, up to numerical tie-breaking effects.
-+ Observed speedups between 1.27x and 1.61x.
++ Observed speedups between 1.21x and 1.63x when selecting the best tested setup for each model and prompt set.
 + Total training time for the HVC bridge and the ANNH index of less than 1 hour.
 + A concrete recipe to turn a model into a drafter for itself.
 
@@ -1815,13 +1932,13 @@ This pattern is also coherent with the role of the layers. The first layers tran
 
 The HVC bridge does recover a large part of the lost quality, but not enough to make the skipped model a high-quality standalone model. This distinction is important. The goal is not to make the drafter independently correct; the goal is to make it cheap and accurate enough that the verifier accepts enough draft tokens for self-speculation to be faster than normal generation.
 
-For the very aggressive $(1, 1)$ gap, the untrained skipped models start with almost no top-1 agreement with the verifier. After HVC training, the top-1 agreement converges to roughly 50--70% depending on model, and the verifier-to-drafter KL drops substantially. In the final self-speculation benchmarks this translated into acceptance rates between 35.8% and 51.3% for the tested models with block size 2. These acceptance rates were enough to produce real speedups because the drafter was much cheaper than the full verifier. The $(2, 2)$ gap improved KL and top-1 metrics somewhat, but not enough to clearly justify the doubled layer cost for the speed-focused setup. The answer to the second research question is therefore yes, within the self-speculative setting: the HVC bridge recovers enough quality to create an effective drafter, even though it does not fully reproduce the verifier distribution.
+For the very aggressive $(1, 1)$ gap, the untrained skipped models start with almost no top-1 agreement with the verifier. After HVC training, the top-1 agreement converges to roughly 60--70% depending on model, and the verifier-to-drafter KL drops substantially. In the final self-speculation benchmarks this translated into acceptance rates between 24.9% and 68% across the prompt, gap, and block-size combinations. These acceptance rates were enough to produce real speedups because the drafter was much cheaper than the full verifier. The $(2, 2)$ gap improved acceptance rate on Python-diverse prompts, but not enough to clearly justify the doubled layer cost for the speed-focused setup. The answer to the second research question is therefore yes, within the self-speculative setting: the HVC bridge recovers enough quality to create an effective drafter, even though it does not fully reproduce the verifier distribution.
 
 === To what extent can inference be sped up by making the draft model cheaper in both body and head?
 
-On the concrete prompt set using NVIDIA L4, bfloat16 model execution, float32 HVC bridges, and block size 2, the full system produced average per-token speedups from 1.27x to 1.60x compared to normal generation. The measured skipped-layers + ANNH speedups were 1.27x for Llama-3.2-1B-Instruct, 1.34x for Qwen3-4B-Instruct-2507, 1.44x for Llama-3.2-3B-Instruct, 1.56x for Llama-3.1-8B-Instruct, and 1.60x for Mistral-7B-Instruct-v0.3. The setup also kept approximately the same memory usage as normal inference because the drafter and verifier are the same model and share the KV-cache.
+On the concrete prompt set using NVIDIA L4, bfloat16 model execution, bfloat16 HVC bridges, and block size 2, the full system produced average per-token speedups from 1.28x to 1.63x compared to normal generation. The measured skipped-layers + ANNH speedups were 1.28x for Llama-3.2-1B-Instruct, 1.37x for Qwen3-4B-Instruct-2507, 1.46x for Llama-3.2-3B-Instruct, 1.58x for Llama-3.1-8B-Instruct, and 1.63x for Mistral-7B-Instruct-v0.3. The setup also kept approximately the same memory usage as normal inference because the drafter and verifier are the same model and share the KV-cache.
 
-The results support the Amdahl's law framing, but they also show that approximating the head is not always beneficial in total runtime. Adding ANNH improved speedup for Llama-3.2-1B-Instruct, Llama-3.2-3B-Instruct, Llama-3.1-8B-Instruct, and Qwen3-4B-Instruct-2507. For Mistral-7B-Instruct-v0.3, however, speedup changed from 1.61x without ANNH to 1.60x with ANNH, because the LM-head is already a small fraction of total compute and the small acceptance-rate drop outweighed the faster head. This means the body approximation is the main contributor to speedup, while ANNH gives additional benefit when the LM-head is a meaningful part of the drafter cost.
+The results support the Amdahl's law framing, but they also show that approximating the head is not always equally important. Adding ANNH improved speedup clearly for Llama-3.2-1B-Instruct, Llama-3.2-3B-Instruct, Llama-3.1-8B-Instruct, and Qwen3-4B-Instruct-2507. For Mistral-7B-Instruct-v0.3, however, speedup changed only from 1.62x without ANNH to 1.63x with ANNH, because the LM-head is already a small fraction of total compute. This means the body approximation is the main contributor to speedup, while ANNH gives additional benefit when the LM-head is a meaningful part of the drafter cost.
 
 The answer to the third research question is therefore that the proposed combination can give meaningful real inference speedups, in this report up to about 1.6x, without increasing memory usage and without changing the verifier-defined output distribution except for numerical tie-breaking effects. The benefit is conditional: it depends on the prompt distribution, the acceptance rate, the model's head-to-body compute ratio, and the implementation efficiency. It is most useful when the task has enough predictability for the drafter to match the verifier often, and when the model has enough head cost for ANNH to reduce the drafter cost without hurting acceptance too much.
 
@@ -1837,18 +1954,18 @@ For small models, one could imagine that the overhead for easy tokens is smaller
 
 // Figure generated by: poetry run python skip_search_spec/analysis/plot_speedup_vs_model_size.py
 // Source data for figure below:
-// - Llama 3.2 1B: benchmarks/self_spec/L4/bench_self_spec__llama-3-2-1b-instruct__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260512_164626.json, lm_total_parameters = 1.236B, ANNH speedup = 1.270853
-// - Llama 3.2 3B: benchmarks/self_spec/L4/bench_self_spec__llama-3-2-3b-instruct__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260512_175238.json, lm_total_parameters = 3.213B, ANNH speedup = 1.443544
-// - Qwen3 4B: benchmarks/self_spec/L4/bench_self_spec__qwen3-4b-instruct-2507__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260512_210900.json, lm_total_parameters = 4.022B, ANNH speedup = 1.342801
-// - Mistral 7B: benchmarks/self_spec/L4/bench_self_spec__mistral-7b-instruct-v0-3__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260512_202037.json, lm_total_parameters = 7.248B, ANNH speedup = 1.595122
-// - Llama 3.1 8B: benchmarks/self_spec/L4/bench_self_spec__llama-3-1-8b-instruct__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260512_190545.json, lm_total_parameters = 8.030B, ANNH speedup = 1.556001
-// - Pearson correlation over these five points: r = 0.9146.
+// - Llama 3.2 1B: benchmarks/self_spec/L4_V2/bench_self_spec__llama-3-2-1b-instruct__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_120248.json, lm_total_parameters = 1.236B, ANNH speedup = 1.276648
+// - Llama 3.2 3B: benchmarks/self_spec/L4_V2/bench_self_spec__llama-3-2-3b-instruct__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_123233.json, lm_total_parameters = 3.213B, ANNH speedup = 1.456465
+// - Qwen3 4B: benchmarks/self_spec/L4_V2/bench_self_spec__qwen3-4b-instruct-2507__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_131002.json, lm_total_parameters = 4.022B, ANNH speedup = 1.368284
+// - Mistral 7B: benchmarks/self_spec/L4_V2/bench_self_spec__mistral-7b-instruct-v0-3__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_131146.json, lm_total_parameters = 7.248B, ANNH speedup = 1.626340
+// - Llama 3.1 8B: benchmarks/self_spec/L4_V2/bench_self_spec__llama-3-1-8b-instruct__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_133323.json, lm_total_parameters = 8.030B, ANNH speedup = 1.575594
+// - Pearson correlation over these five points: r = 0.9234.
 #figure(
   image("my-figures/plots/benches/speedup_vs_model_size_annh.png", width: 95%),
   caption: [Observed self-speculation speedup with ANNH compared to model size on the concrete prompt set. The fitted line suggests a positive correlation between model size and speedup in these measurements, but the sample is small and mixes model families, so it should be interpreted as suggestive rather than conclusive.],
 ) <fig:speedup-vs-model-size>
 
-This comparison supports the easy-token hypothesis, but only weakly. The observed correlation is positive, with $r = 0.91$ over the five benchmarked models, but model family, hidden size, vocabulary size, LM-head fraction, and acceptance rate are all confounded with parameter count. The plot therefore suggests that larger models may have more removable compute for easy tokens, but it does not prove that parameter count alone causes the speedup.
+This comparison supports the easy-token hypothesis, but only weakly. The observed correlation is positive, with $r = 0.92$ over the five benchmarked models, but model family, hidden size, vocabulary size, LM-head fraction, and acceptance rate are all confounded with parameter count. The plot therefore suggests that larger models may have more removable compute for easy tokens, but it does not prove that parameter count alone causes the speedup.
 
 
 == Limitations and sources of error
