@@ -1913,19 +1913,19 @@ ANNH cluster-building times are only included where they are reported above.
       // - Benchmark plot JSON: benchmarks/self_spec/L4_V2/bench_self_spec__llama-3-1-8b-instruct__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_133323.json
       // - HVC time: measurements/2026-05-09-50b567/middle_gap_skip/for_thesis_17580058_MY09__meta-llama_Llama-3_1-8B-Instruct_1_30_1/run.json, final total_duration_seconds = 2059.3276825470384
       // - ANNH time: benchmark JSON uses flashhead_llama31_8b_8016c_v2.pt, but no matching clustering_time is reported above yet
-      [`Llama-3.1-8B-Instruct`], [34 min 19 s], [?], [?], [8016],
+      [`Llama-3.1-8B-Instruct`], [34 min 19 s], [4 min 10 s], [38 min 29 s], [8016],
 
       // Sources:
       // - Benchmark plot JSON: benchmarks/self_spec/L4_V2/bench_self_spec__mistral-7b-instruct-v0-3__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_131146.json
       // - HVC time: measurements/2026-05-09-9551a4/middle_gap_skip/for_thesis_18451838_MY09__mistralai_Mistral-7B-Instruct-v0_3_1_30_1/run.json, final total_duration_seconds = 1604.747312018997
       // - ANNH time: benchmark JSON uses flashhead_mistral_7b_4096c_v2.pt, but no matching clustering_time is reported above yet
-      [`Mistral-7B-Instruct-v0.3`], [26 min 45 s], [?], [?], [4096],
+      [`Mistral-7B-Instruct-v0.3`], [26 min 45 s], [33 s], [27 min 18 s], [4096],
 
       // Sources:
       // - Benchmark plot JSON: benchmarks/self_spec/L4_V2/bench_self_spec__qwen3-4b-instruct-2507__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_131002.json
       // - HVC time: measurements/2026-05-10-605df1/middle_gap_skip/for_thesis_day2_18182995_MY10__Qwen_Qwen3-4B-Instruct-2507_1_34_1/run.json, final total_duration_seconds = 1738.677955474006
       // - ANNH time: benchmark JSON uses flashhead_qwen3_4b_instruct_9496c_v2.pt, but no matching clustering_time is reported above yet
-      [`Qwen3-4B-Instruct-2507`], [28 min 59 s], [?], [?], [9496],
+      [`Qwen3-4B-Instruct-2507`], [28 min 59 s], [4 min 46 s], [33 min 45 s], [9496],
     )
   ],
   caption: [Total setup time for the HVC bridge and ANNH index used in the self-speculation speedup benchmarks.],
@@ -1939,7 +1939,7 @@ This method does seem to produce a useful set of properties:
 
 + No more memory usage than normal inference.
 + Lossless generation quality relative to the stock model, up to numerical tie-breaking effects.
-+ Observed speedups between 1.21x and 1.63x when selecting the best tested setup for each model and prompt set.
++ Observed possible average speedups between 1.21x and 1.63x.
 + Total training time for the HVC bridge and the ANNH index of less than 1 hour.
 + A concrete recipe to turn a model into a drafter for itself.
 

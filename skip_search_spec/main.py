@@ -30,8 +30,8 @@ from skip_search_spec.protocols.windows import DatasetSpec
 
 
 
-STORE_PATH_FLASH_HEAD = "checkpoints/flashhead_qwen25_7b_instruct_9504c_v2.pt"
-MODEL_NAME_FLASH_HEAD = "Qwen/Qwen2.5-7B-Instruct"
+STORE_PATH_FLASH_HEAD = "checkpoints/flashhead_qwen3_4b_instruct_9496c_test_v2.pt"
+MODEL_NAME_FLASH_HEAD = "Qwen/Qwen3-4B-Instruct-2507"
 
 INFERENCE_TEST_MAX_NEW_TOKENS = 200
 
