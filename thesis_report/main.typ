@@ -1447,76 +1447,6 @@ Unless stated otherwise, the runs use bfloat16 model execution, bfloat16 HVC bri
 These results are with the gap $(1,1)$, which means that all layers are skipped except the first and the last one.
 No internal timing is used when measuring speedup to avoid synchronization that would affect performance.
 
-==== Python-diverse prompt set
-
-#figure(
-  move(
-    dx: -0.2cm,
-    image(
-      "my-figures/plots/benches/main_matrix/bench_self_spec__llama-3-1-8b-instruct__python-diverse-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_123622.png",
-      width: 115%,
-    ),
-  ),
-  caption: [
-    Per-token self-speculation speedup for Llama 3.1 8B Instruct on the Python-diverse prompt set, with gap $(1,1)$ and draft block size 2.
-  ],
-) <fig:self-spec-llama-31-8b-python-gap11-block2>
-
-#figure(
-  move(
-    dx: -0.2cm,
-    image(
-      "my-figures/plots/benches/main_matrix/bench_self_spec__llama-3-2-3b-instruct__python-diverse-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_121540.png",
-      width: 115%,
-    ),
-  ),
-  caption: [
-    Per-token self-speculation speedup for Llama 3.2 3B Instruct on the Python-diverse prompt set, with gap $(1,1)$ and draft block size 2.
-  ],
-) <fig:self-spec-llama-32-3b-python-gap11-block2>
-
-#figure(
-  move(
-    dx: -0.2cm,
-    image(
-      "my-figures/plots/benches/main_matrix/bench_self_spec__llama-3-2-1b-instruct__python-diverse-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_115150.png",
-      width: 115%,
-    ),
-  ),
-  caption: [
-    Per-token self-speculation speedup for Llama 3.2 1B Instruct on the Python-diverse prompt set, with gap $(1,1)$ and draft block size 2.
-  ],
-) <fig:self-spec-llama-32-1b-python-gap11-block2>
-
-#figure(
-  move(
-    dx: -0.2cm,
-    image(
-      "my-figures/plots/benches/main_matrix/bench_self_spec__mistral-7b-instruct-v0-3__python-diverse-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_122903.png",
-      width: 115%,
-    ),
-  ),
-  caption: [
-    Per-token self-speculation speedup for Mistral 7B Instruct v0.3 on the Python-diverse prompt set, with gap $(1,1)$ and draft block size 2.
-  ],
-) <fig:self-spec-mistral-7b-python-gap11-block2>
-
-#figure(
-  move(
-    dx: -0.2cm,
-    image(
-      "my-figures/plots/benches/main_matrix/bench_self_spec__qwen3-4b-instruct-2507__python-diverse-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_122348.png",
-      width: 115%,
-    ),
-  ),
-  caption: [
-    Per-token self-speculation speedup for Qwen3 4B Instruct on the Python-diverse prompt set, with gap $(1,1)$ and draft block size 2.
-  ],
-) <fig:self-spec-qwen3-4b-python-gap11-block2>
-
-Across the Python-diverse prompt set, the skipped-layers + ANNH variant gives speedups from 1.24x for Llama 3.2 1B to 1.55x for Mistral 7B.
-The larger models generally get larger speedups, but Qwen3 4B is lower than Llama 3.2 3B in this setup because its acceptance rate is lower.
-
 ==== Concrete prompt set
 
 
@@ -1626,10 +1556,80 @@ which is slightly above but still close to the measured 1.63x.
 
 Figure @fig:self-spec-qwen3-4b-concrete shows that the implementation also gives speedups for Qwen3. The acceptance rates are relatively low at 36.2% without ANNH and 35.9% with ANNH. This manages to result in speedups of 1.26x and 1.37x. A block size of 2 can be too big for this drafter on harder prompt distributions.
 
+==== Python-diverse prompt set
+
+#figure(
+  move(
+    dx: -0.2cm,
+    image(
+      "my-figures/plots/benches/main_matrix/bench_self_spec__llama-3-1-8b-instruct__python-diverse-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_123622.png",
+      width: 115%,
+    ),
+  ),
+  caption: [
+    Per-token self-speculation speedup for Llama 3.1 8B Instruct on the Python-diverse prompt set, with gap $(1,1)$ and draft block size 2.
+  ],
+) <fig:self-spec-llama-31-8b-python-gap11-block2>
+
+#figure(
+  move(
+    dx: -0.2cm,
+    image(
+      "my-figures/plots/benches/main_matrix/bench_self_spec__llama-3-2-3b-instruct__python-diverse-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_121540.png",
+      width: 115%,
+    ),
+  ),
+  caption: [
+    Per-token self-speculation speedup for Llama 3.2 3B Instruct on the Python-diverse prompt set, with gap $(1,1)$ and draft block size 2.
+  ],
+) <fig:self-spec-llama-32-3b-python-gap11-block2>
+
+#figure(
+  move(
+    dx: -0.2cm,
+    image(
+      "my-figures/plots/benches/main_matrix/bench_self_spec__llama-3-2-1b-instruct__python-diverse-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_115150.png",
+      width: 115%,
+    ),
+  ),
+  caption: [
+    Per-token self-speculation speedup for Llama 3.2 1B Instruct on the Python-diverse prompt set, with gap $(1,1)$ and draft block size 2.
+  ],
+) <fig:self-spec-llama-32-1b-python-gap11-block2>
+
+#figure(
+  move(
+    dx: -0.2cm,
+    image(
+      "my-figures/plots/benches/main_matrix/bench_self_spec__mistral-7b-instruct-v0-3__python-diverse-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_122903.png",
+      width: 115%,
+    ),
+  ),
+  caption: [
+    Per-token self-speculation speedup for Mistral 7B Instruct v0.3 on the Python-diverse prompt set, with gap $(1,1)$ and draft block size 2.
+  ],
+) <fig:self-spec-mistral-7b-python-gap11-block2>
+
+#figure(
+  move(
+    dx: -0.2cm,
+    image(
+      "my-figures/plots/benches/main_matrix/bench_self_spec__qwen3-4b-instruct-2507__python-diverse-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_122348.png",
+      width: 115%,
+    ),
+  ),
+  caption: [
+    Per-token self-speculation speedup for Qwen3 4B Instruct on the Python-diverse prompt set, with gap $(1,1)$ and draft block size 2.
+  ],
+) <fig:self-spec-qwen3-4b-python-gap11-block2>
+
+Across the Python-diverse prompt set, the skipped-layers + ANNH variant gives speedups from 1.24x for Llama 3.2 1B to 1.55x for Mistral 7B.
+The larger models generally get larger speedups, but Qwen3 4B is lower than Llama 3.2 3B in this setup because its acceptance rate is lower.
+
 === Benchmark summary
 
 Table @tab-main-benchmark-speedups summarizes the benchmark matrix.
-The table comes after the main Python-diverse and concrete plots because it is meant as an overview rather than a replacement for the full distributions.
+The table comes after the main concrete and Python-diverse plots because it is meant as an overview rather than a replacement for the full distributions.
 
 #figure(
   text(size: 8.5pt)[
