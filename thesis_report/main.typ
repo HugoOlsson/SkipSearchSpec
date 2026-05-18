@@ -165,6 +165,10 @@ When skipping layers, there are primarily three different cases: *early-exit*, *
 
 When skipping layers, it's not obvious that the hidden vector can be efficiently interpreted where it lands. For the easy tokens, even if the hidden vector has semantically converged early, it's not necessarily the case that the same semantics is represented geometrically equal in later layers. This means that the hidden vector could semantically converge quickly for easy tokens, aligning with the hypothesis, while at the same time not producing correct tokens when moved directly to the head or later layers. Essentially that semantic convergence does not mean geometric convergence for the hidden vector. This will likely break the ability to skip layers by just picking the hidden vector and putting it back in a more downstream layer. To address this challenge, this thesis uses a technique it calls hidden vector casting (HVC). The idea is that a small learned transformation can translate geometry from where it is taken to where it is placed, essentially casting it to the correct geometric representation corresponding to its semantic meaning. In practice, this HVC can be implemented in multiple ways but a first good method to evaluate is a linear transformation.
 
+*ANN LM-Head*
+
+
+
 *Speculative decoding*
 
 The proposed methods to speedup the head and body use approximations of the full calculations. This can save compute but will also make generation quality worse, it's just a question about how much worse. When selecting an inference setup, it is usually not satisfying to apply inference speedups without clear information how the generation quality is affected. If the speedup is 30% but the generation quality has dropped with 30% then it's not necessarily a good deal. To ensure that the generation quality is the same as the original model, this project uses speculative decoding. The idea behind speculative decoding is that it's much faster to verify tokens than it is to produce them. The setup is that you have a _drafter_ and a _verifier_ model. The drafter generates a block of tokens and the verifier verifies if the tokens are the same as the verifier would have generated. If yes, then the tokens are accepted, and if not, then they are rejected from the point where the the verifier disagrees. If the drafter is fast and fairly accurate, this setup can be more performant than running the model normally while also not compromising the quality of generation. For this thesis, since the model parameters are unchanged, the verifier and drafter can be the same model, just running with different inference logic during drafting and verification. This is called _self-speculation_. The advantage with this is that only one model needs to be loaded into GPU memory.
@@ -269,6 +273,11 @@ For speculative decoding, if the drafter and verifier are two different models, 
 
 // Following the Amdahl's law reasoning presented in the background, these enhancements could significantly improve the speed of the draft model. They will make its produced quality strictly worse, but since this setup uses a verifier, the output will still have a lower bound for the quality. It is not obvious that this will produce a solution that is better than simply running the model normally, or just with an ANN head. The quality of the drafter could become so weak that there is more harm than good to use this inference setup. In that case, the setup would add complexity without any performance gain. This provides natural baselines for evaluation: standard decoding and ANN-head-only decoding. 
 
+
+*Teacher-student training*
+
+*Cross entropy and KL divergence*
+
 == Research Questions
 
 // The aim of this thesis is to investigate whether combining layer skipping, HVC, and ANNH in a self-speculative decoding setup can produce meaningful inference speedups for small-scale LLMs while keeping original generation quality or not increasing memory usage.
@@ -306,9 +315,9 @@ This project has several limitations to keep the workload feasible:
 
 = Methodology
 
-The overall methodology for the project is to implement the inference setups in PyTorch. Different configurations with different hyper parameters are measured how well they perform for their targeted task. Metrics like cross-entropy, KL divergence, Top1 match and acceptance rate is used to measure performance. The project is availible as an open source repository at #link("https://github.com/HugoOlsson/SkipSearchSpec")[SkipSearchSpec]. All measurements presented in this thesis uses the same measurement-pipeline so that they always follow a shared structure, includes their git commit/tag and stores the raw data in the repository. By including the exact commit for each result, the reader can always visit the exact state of the project for when a measurement was performed.
+The overall methodology for the project is to implement the inference setups in PyTorch. Different configurations with different hyper-parameters are measured how well they perform for their targeted task. Metrics like cross-entropy, KL divergence, Top1 match and acceptance rate is used to measure performance. The project is availible as an open source repository at #link("https://github.com/HugoOlsson/SkipSearchSpec")[SkipSearchSpec]. All measurements presented in this thesis uses the same measurement-pipeline so that they always follow a shared structure, includes their git commit/tag and stores the raw data in the repository. By including the exact commit for each result, the reader can always visit the exact state of the project for when a measurement was performed.
 
-The methods to increase the speed of the body and head are largely separable. The job of the body is to deliver well converged hidden vectors and the job of the head is to find matching tokens given a hidden vector. The project therefore has several experiments that isolates the task of skipping layers in the body, and then other experiments that isolates the task of speeding up the head with ANNH. The best found solutions for each part are then used to produce a drafter in a self-speculative setup where the acceptance rate, correctness and speedup is measured.
+The methods to increase the speed of the body and head are largely separable. The job of the body is to deliver well converged hidden vectors and the job of the head is to find matching tokens given a hidden vector. The project therefore has several functions that isolates the task of skipping layers in the body, and then other functions that isolates the task of speeding up the head with ANNH. The best found solutions for each part are used to produce a drafter in a self-speculative setup where the acceptance rate, correctness and speedup is measured.
 
 == Metrics
 
