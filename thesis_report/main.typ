@@ -1165,15 +1165,15 @@ The first metric plotted for each model is KL divergence from the full model dis
 
 The results show a clear pattern that skipping a contiguous gap in the middle tends to do less damage to generation quality than early-exit or late-start ablations. The best-ranked ablations for all five models are internal gaps, while periodic patterns with multiple holes do not show an obvious advantage. This makes the gap-jump setup the most promising starting point for adding an HVC bridge.
 
-== FlashHead cluster building and evaluation
+== ANNH cluster building and evaluation
 
-Here are results regarding building a cluster presented. The most relevant examples are for models that have a large head-to-body ratio, because those are where using FlashHead instead of the full dense LM-head can produce the biggest speedup.
+Here are results regarding building a cluster presented. The most relevant examples are for models that have a large head-to-body ratio, because those are where using ANNH instead of the full dense LM-head can produce the biggest speedup.
 
 *Results for Llama-3.2-1B-Instruct:*
 
 #figure(
   image("my-figures/plots/clustering/flashhead_llama32_1b_5344c_mean_similarity.png", width: 100%),
-  caption: [Mean assigned cosine similarity during FlashHead clustering of `meta-llama/Llama-3.2-1B-Instruct` LM-head vectors over clustering iterations.],
+  caption: [Mean assigned cosine similarity during ANNH clustering of `meta-llama/Llama-3.2-1B-Instruct` LM-head vectors over clustering iterations.],
 ) <clustering-llama3.2-1B-instruct-img>
 
 Figure @clustering-llama3.2-1B-instruct-img shows the process of clustering 5344 clusters for the 128,256 token vectors of Llama-3.2-1B-Instruct. It reaches a plateau after around 15 iterations. The total 40 iterations took around 102 seconds on an Apple M5 chip. The clustering produces these quality metrics:
