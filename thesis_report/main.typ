@@ -167,7 +167,16 @@ When skipping layers, it's not obvious that the hidden vector can be efficiently
 
 *ANN LM-Head*
 
+#figure(
+  image("my-figures/annh3.jpeg", width: 80%),
+  caption: [Illustration of the idea to score clusters, then only check for token unembedding vectors inside the top-k clusters. In the illustration top-k = 3. The green vector is the query hidden vector produced by the body. In this case, the query vector is in the intersection of all returned clusters, so the top matching vector can be in any of them.],
+) <annh-image>
 
+The LM-head takes the hidden vector produced by the body and projects this to the unembedding vectors for all tokens in the vocabulary. This produces a dot product score with all tokens, essentially matching scores. These scores are called logits and can be positive or negative. To then get probabilities for each token, a softmax is performed over the vocabulary which normalizes the logits into a probability distribution that sums to 1. This is expensive, the hidden vector often has many thousand dimensions and the vocabulary is often bigger than 100 000, so the matrix to multiply is big. FlashHead proposed an idea to avoid performing the full LM-head unembedding matrix multiplication. The core concept is organize similar unembedding vectors into clusters where each clusters has a centroid vector that is the average of the included vectors. During infernece, the query hidden vector will then calculate the dot product only with the cluster centroids, then select the top-k best matched clusters and calculate score only with the unembedding vectors from those. If the vocabulary is 150 000, the number of clusters is 10 000 and top-k of 100 is used, then the initial matrix muliplication is with 10 000 vectors instead of 150 000 vectors, and then $100 times frac(150 000, 10 000) = 1500$ unembedding vectors are gathered and scored. So the process of finding the best matching tokens is divided into the two-step process of scoring a small routing-matrix and then scoring only the unembedding vectors that are close to the query hidden vector.
+
+Figure @annh-image illustrates this concept. The green query hidden vector is scored with the centroids and the top 3 clusters are selected, illustrated with clusters rings of more contrast. That illustration is only a 2D image of clusters in 3D, so for a real vocabulary there will be many more dimensions and thus more space for the unembedding vectors to exist in.
+
+This project calls this ANNH for Approximate Nearest Neighbors Head.
 
 *Speculative decoding*
 
@@ -1434,13 +1443,14 @@ max_cluster_size                 = 8
 
 == Training HVC-bridge
 
+Here are the results for the HVC-bridge training. It shows training for the gaps (1,1) and (2,2) since those are the gaps that have the best possibility for speedup. See the discussion for why smaller gaps where choosen to not be included.
 
 === Training (1,1) gap
 
 #figure(
   image(
     "my-figures/plots/(1,1) gap training/thesis_gap11__top1_drafter_matches_verifier__train.png",
-    width: 90%,
+    width: 85%,
   ),
   caption: [
     Top-1 agreement between drafter and verifier during training for the $(1, 1)$ gap setting.
@@ -1452,7 +1462,7 @@ max_cluster_size                 = 8
 #figure(
   image(
     "my-figures/plots/(1,1) gap training/thesis_gap11__kl_verifier_to_drafter__train.png",
-    width: 90%,
+    width: 85%,
   ),
   caption: [
     KL divergence from verifier to drafter during training for the $(1, 1)$ gap setting.
@@ -1467,7 +1477,7 @@ max_cluster_size                 = 8
 #figure(
   image(
     "my-figures/plots/(2,2) gap training/thesis_gap22__top1_drafter_matches_verifier__train.png",
-    width: 90%,
+    width: 85%,
   ),
   caption: [
     Top-1 agreement between drafter and verifier during training for the $(2, 2)$ gap setting.
@@ -1479,7 +1489,7 @@ max_cluster_size                 = 8
 #figure(
   image(
     "my-figures/plots/(2,2) gap training/thesis_gap22__kl_verifier_to_drafter__train.png",
-    width: 90%,
+    width: 85%,
   ),
   caption: [
     KL divergence from verifier to drafter during training for the $(2, 2)$ gap setting.
@@ -1536,7 +1546,7 @@ Using @selfs-speedup with the observed values $v = 1.05$, $gamma = 2$, $a = 47.7
 $
 S = frac(1 + 2 dot 0.477, 1.05 + 2 dot 0.144) = frac(1.954, 1.338) approx 1.460 times,
 $
-which aligns closely with the measured 1.46x. For the version with ANNH, setting $d = 8.5%$ and $a = 46.9%$ gives $S approx 1.59 times$, again consistent with the measured 1.58x.
+which aligns exactly with the measured 1.46x. For the version with ANNH, setting $d = 8.5%$ and $a = 46.9%$ gives $S approx 1.59 times$, again consistent with the measured 1.58x.
 
 
 #figure(
@@ -1690,8 +1700,7 @@ The larger models generally get larger speedups, but Qwen3 4B is lower than Llam
 
 === Benchmark summary
 
-Table @tab-main-benchmark-speedups summarizes the benchmark matrix.
-The table comes after the main concrete and Python-diverse plots because it is meant as an overview rather than a replacement for the full distributions.
+Table @tab-main-benchmark-speedups shows the benchmarks for all prompt sets, all models and all block sizes.
 
 #figure(
   text(size: 8.5pt)[
@@ -1720,7 +1729,7 @@ The table comes after the main concrete and Python-diverse plots because it is m
     )
   ],
   caption: [
-    Main-matrix self-speculation benchmark results.
+    Self-speculation benchmark results.
     Each cell reports the total per-generated-token speedup for the skipped-layers + ANNH variant, followed by total draft-token acceptance rate.
     Bold values mark the better block size for each prompt set and model; when only one block size was tested for that prompt set, that value is bold by default.
     All combinations in this table are runs from the main benchmark matrix.
@@ -1732,7 +1741,7 @@ The table comes after the main concrete and Python-diverse plots because it is m
 The table shows three broad patterns.
 First, all skipped-layers + ANNH combinations are faster than normal generation.
 Second, prompt style matters: the open-ended prompt set usually has lower acceptance rate and lower speedup than concrete or Python-diverse completion.
-Third, the $(2,2)$ gap improves acceptance rate relative to $(1,1)$ on Python-diverse prompts, but the extra kept layers often absorb much of that gain.
+Third, the $(2,2)$ gap improves acceptance rate relative to $(1,1)$ on Python-diverse prompts, but the extra kept layers adds more compute which makes the speedup smaller compared to (1,1) in most cases.
 
 === float32 debug test
 
@@ -1762,11 +1771,11 @@ The results have given insight to what skipping ablations that seem to be the mo
 // Why is the pattern consistent across model families?
 // What does this tell us about the role of early vs late layers?
 
-The skip ablation results consistantly showed that skipping an internal gap is better in terms of skipping many layers while still keeping generation quality. The results show that without HVC, the generation quality degrades very quickly. Doing an (N-1, 0) early exit where N is the number of model layers, gave a top1 agreement to the full model of 0.554 for Llama 3.2 1B and 0.784 on Mistral 7B Instruct 0.3v, both of these are quite far from 1.0 while only skipping a single layer. Mistral 7B Instruct 0.3v show a better ability to skip layers. This might partly be because it has more layers so skipping one of them is a smaller change relatively to its size.
+The skip ablation results showed that skipping an internal gap is usually better in terms of skipping many layers while still keeping generation quality. The results show that without HVC, the generation quality degrades very quickly. Doing an (N-1, 0) early exit where N is the number of model layers, gave a top1 agreement to the full model of 0.554 for Llama 3.2 1B and 0.784 on Mistral 7B Instruct 0.3v, both of these are quite far from 1.0 while only skipping a single layer. Mistral 7B Instruct 0.3v show a better ability to skip layers. This might partly be because it has more layers so skipping one of them is a smaller change relatively to its size.
 
-The layer skipping ablations also showed that it does not seem benificial to do non contiguous skips, such as skipping every other layer or every third. So since those would require more than one HVC bridge and they didn't show an obvious advantage, they are likely not a good direction.
+The layer skipping ablations also showed that it does not seem benificial to do non-contiguous skips, such as skipping every other layer or every third. So since those would require more than one HVC bridge and they didn't show an obvious advantage, they are likely not a good direction.
 
-The results show that skipping the first and last layer seem to hurt performance the most [I NEED TO ADD KL PER SKIPPED LAYER PLOT]. This is reasonable since the first layer is the one trained to route the embedding vector and the last layer is trained to be the final routing to the unembedding. 
+The KL per layer results show that skipping the first and last layer seem to hurt performance the most. This is reasonable since the first layer is the one trained to route the embedding vector and the last layer is trained to be the final routing to the unembedding. 
 
 The patterns seem to be stable across different model families. There are some variation in how well early-exit is handled compared to an internal gap but they all seem to favour the internal gap over late-start, early-exit and non-contiguous variations.
 
