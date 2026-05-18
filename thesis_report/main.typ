@@ -906,27 +906,52 @@ Here are examples from each prompt set:
   supplement: [T],
 ) <tab-main-prompt-sets>
 
-Short examples from the three prompt sets are:
+Literal examples from the three prompt sets are shown below. The concrete set covers bounded tasks with short, checkable outputs, while the open-ended and Python-diverse sets include prompts where the continuation is naturally longer.
 
 #```text
-# concrete-completion-style:
+concrete-completion-style
+-------------------------
 
-Task: Compute the total cost.
-A notebook costs 4 dollars. A pen costs 2 dollars. Buy 3 notebooks and 5 pens.
-Return only the total number of dollars.
+Example 1:
+Task: Compute the arrival time.
+A train leaves at 14:35. The trip takes 2 hours and 48 minutes.
+Return only the arrival time in 24-hour HH:MM format.
 
 Answer:
 
-# open-ended:
+Example 2:
+Task: Convert the title to a URL slug.
+Title: Winter Market Schedule Update
+Use lowercase words separated by hyphens. Return only the slug.
 
-What are some benefits and drawbacks of remote work for a small software team?
+Output:
 
-# python-diverse-completion-style:
+open-ended
+----------
 
-# Validate mixed bracket pairs
-# Support (), [], and {}.
-# Ignore all other characters.
-def validate_brackets(text: str) -> bool:
+Example 1:
+What should a new manager do during the first month with a team they just inherited?
+
+Example 2:
+Discuss some tradeoffs of using AI tools for writing, studying, and workplace communication.
+
+python-diverse-completion-style
+-------------------------------
+
+Example 1:
+# Group a dependency graph into topological layers
+# deps maps each task to the set of tasks it depends on.
+# Each returned layer contains tasks whose dependencies are already done.
+# Sort task names inside each layer.
+# Raise ValueError if the graph contains a cycle.
+def topological_layers(deps: dict[str, set[str]]) -> list[list[str]]:
+
+Example 2:
+# Summarize invoice rows with discounts and tax
+# Each row has quantity, unit_price, and discount_percent.
+# Apply discount per row before tax.
+# Return the final total rounded to 2 decimals.
+def invoice_total(rows: list[dict[str, float]], tax_rate: float) -> float:
 ```
 
 === Benchmark phases
