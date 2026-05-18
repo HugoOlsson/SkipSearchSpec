@@ -420,10 +420,10 @@ A delimitation for this project is that only a single HVC will be used. This the
 Internally in the code, the HVC is often called _bridge_ due to the inherent mechanism of connecting two distant points. The text might refer to it as HVC or bridge.
 #figure(
   image("my-figures/finalvsreentry.jpg", width: 100%),
-  caption: [The input to the HVC bridge. It gets a stacked vector of the final hidden vector from token position t-1 and the hidden vector from the last layer before the gap at position t.],
+  caption: [The input to the HVC bridge. It gets a stacked vector of the final hidden vector from token position $t - 1$ and the hidden vector from the last layer before the gap at position $t$.],
 ) <finalvsreentry-img>
 
-The bridge is implemented as a linear transformation in PyTorch with residual update and layer normalizations for the two input vectors. As figure @finalvsreentry-img shows, the HVC bridge at position t gets the hidden vector from the last layer before the gap and the final hidden vector from token position t-1. In the code `prev_reference_hidden` is a tensor with previous position hidden vectors. The code to forward the bridge is this:
+The bridge is implemented as a linear transformation in PyTorch with residual update and layer normalizations for the two input vectors. As figure @finalvsreentry-img shows, the HVC bridge at position $t$ gets the hidden vector from the last layer before the gap and the final hidden vector from token position $t - 1$. In the code `prev_reference_hidden` is a tensor with previous position hidden vectors. The code to forward the bridge is this:
 
 
 #```python
@@ -478,7 +478,7 @@ def train_skipping_layers(
 
 #figure(
   image("my-figures/training_window.jpg", width: 105%),
-  caption: [How a training window is structured. It is a window of `context_len` tokens divided into `num_draft_sections` sections. The vertical splitting lines indicate starting points where the student continues from how the teacher's KV-cache was at that position. At each position it is getting the teachers t-1 final hidden token, this is the shifted pink array, and the t position last layer hidden vector before the gap.],
+  caption: [How a training window is structured. It is a window of `context_len` tokens divided into `num_draft_sections` sections. The vertical splitting lines indicate starting points where the student continues from how the teacher's KV-cache was at that position. At each position it is getting the teachers $t - 1$ final hidden token, this is the shifted pink array, and the $t$ position last layer hidden vector before the gap.],
 ) <training_window-img>
 
 
@@ -835,7 +835,7 @@ Here is a pseudocode of how the self-speculative decoding works:
   supplement: [Algorithm],
 ) <alg:self-spec>
 
-As shown in figure @finalvsreentry-img, the HVC bridge takes the hidden vector from the previous layer but also a hidden vector from the previous position t-1. During speculation when the draft block has a size of more than 1, the hidden vector at draft step 1 is from the verifier, but from step 2 and forward, it is from the drafter itself.
+As shown in figure @finalvsreentry-img, the HVC bridge takes the hidden vector from the previous layer but also a hidden vector from the previous position $t - 1$. During speculation when the draft block has a size of more than 1, the hidden vector at draft step 1 is from the verifier, but from step 2 and forward, it is from the drafter itself.
 
 The real implementation records the generated text, the output token ids, the number of verifier calls, the number of drafted tokens and the number of accepted draft tokens. 
 
