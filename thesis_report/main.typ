@@ -355,22 +355,22 @@ The datasets used to train the HVC-bridge are 18% "HuggingFaceTB/cosmopedia-100k
 
 #figure(
   image("my-figures/gap-skip-setup.jpg", width: 100%),
-  caption: [Structure of skipping layers.],
+  caption: [Structure of skipping layers. The low opacity layers in the middle are skipped. ],
 ) <skipping-layers-structure-img>
 
-Figure @skipping-layers-structure-img illustrates the architecture when skipping layers. The figure illustrates the case of a gap-jump. If the variant is early-exit then the hidden vector goes directly into the final norm. If the case is late-start, then the hidden vector goes from the embedding to the first layer and then progresses from there. Naive early exit is achieved by turning off the HVC. 
+Figure @skipping-layers-structure-img illustrates the architecture when skipping layers. The figure illustrates the case of a gap-jump. If the variant is early-exit then the hidden vector goes directly into the final norm. If the case is late-start, then the hidden vector goes from the embedding to the first layer and then progresses from there. Naive layer skipping is achieved by turning off the HVC. 
 
 
 
 === Finding best layer-skipping ablations
 
-To get best possible drafting performance per layer skipped, it is likely important to skip the right layers for the model. This can be late-start, gap-jump or early-exit and different placements of those. To test what ablations of skipped layers that do the least amount of damage to the generation quality, a setup is used to test the KL and Top1 deviation from the full model for different skip-ablations. 
+To get best possible drafting performance per layer skipped, it is likely important to skip the right layers for the model. This can be late-start, gap-jump or early-exit and different placements of those. To test what ablations of skipped layers that do the least amount of damage to the generation quality, a setup is used to test the KL, Top1 deviation and CE to the full model for different skip-ablations. 
 
 The setup exists in `evaluate_layer_skip_ablations.py`. It begins with running next-token prediction with the full model over a set of windows from the dataset, it records the logits produced at every position. Different layer-skip-ablations of the model are then run over the same windows and the next-token predictions are compared to the full model. This produces an average KL divergence compared to the full model and an average top1 score for each ablation. This is then presented in a plot that can show the results of KL, KL per removed layer, or top1 for all ablations. 
 
 This setup does not use the HVC when skipping layers. Even though the HVC should be relatively lightweight to train, training one for all possible ablations would require a lot of compute. The skip-ablations are therefore measured with the hidden vector going directly from the last layer before the gap to entry layer. The idea is that this will still show what skip-ablations that are promising starting points to then improve further with the HVC.
 
-A delimitation for this project is that only a single HVC will be used. This then requires there to be a single contiguous gap, not multiple holes of skipped layers. The ablations tested are mostly such with a contiguous gap, but some non-contiguous ablations are also included to see how they perform in this test where the HVC doesn't need to be added. Here is a specification of the ablations that are used:
+A delimitation for this project is that only a single HVC will be used. This then requires there to be a single contiguous gap, not multiple holes of skipped layers. The ablations tested are mostly such with a contiguous gap, but some non-contiguous periodic ablations are also included to see how they perform in this test where the HVC doesn't need to be added. Here is a specification of the ablations that are used:
 
 #block(
   fill: luma(250),
@@ -620,7 +620,7 @@ The algorithm that is used to produce the clustering is the following:
     [#alg-num():], [#kw[return] token map $a$, cluster table $G$, centroids $mu$, and cluster sizes],
   )
 ]   ],
-  caption: "Algorithm to build FlashHead-like cluster of token vectors.",
+  caption: "Algorithm to build FlashHead-like ANNH cluster of token vectors.",
   kind: "algorithm",
   supplement: [Algorithm],
 ) <alg:strict-equal-lm-head-clustering>
@@ -703,7 +703,7 @@ class BuiltANNHClusters:
 
 
 To use the built ANNH clusters during inference, a `ANNHModule` is constructed from the stored
-`BuiltANNHClusters` and the model's existing LM-head tensors. The module stores the transposed centroids
+`BuiltANNHClusters` and the model's existing LM-head unembedding tensors. The module stores the transposed centroids
 and the cluster-to-token table, but it does not copy or pre-cluster the full LM-head weight table. Instead, the
 original LM-head weight table is borrowed from the model and candidate token rows are gathered from it during
 lookup.
@@ -753,7 +753,7 @@ clusters. Its algorithm is:
     [#alg-num():], [#kw[return] the smallest token id $T_i$ such that $ell_i = m$],
   )
 ]   ],
-  caption: "Algorithm for approximate greedy best matching token lookup using built FlashHead clusters.",
+  caption: "Algorithm for approximate greedy best matching token lookup using built ANNH cluster.",
   kind: "algorithm",
   supplement: [Algorithm],
 ) <alg:flashhead-find-token>
@@ -836,14 +836,14 @@ Here is a pseudocode of how the self-speculative decoding works:
     [#alg-num():], [#kw[return] $y$],
   )
 ]   ],
-  caption: "",
+  caption: "The procedure for self-specualtive decoding and KV-cache management.",
   kind: "algorithm",
   supplement: [Algorithm],
 ) <alg:self-spec>
 
 As shown in figure @finalvsreentry-img, the HVC bridge takes the hidden vector from the previous layer but also a hidden vector from the previous position $t - 1$. During speculation when the draft block has a size of more than 1, the hidden vector at draft step 1 is from the verifier, but from step 2 and forward, it is from the drafter itself.
 
-The real implementation records the generated text, the output token ids, the number of verifier calls, the number of drafted tokens and the number of accepted draft tokens. 
+The real implementation records the generated text, the output token ids, the number of verifier calls, the number of drafted tokens, and the number of accepted draft tokens. 
 
 It can optionally also store a token-level trace JSON file for visualization. Each token is marked as either a prompt token, a drafted token or a verifier-produced bonus/correction token. Drafted tokens are additionally marked as accepted or rejected. This makes it possible to inspect where the drafter follows the verifier and where the verifier has to correct the generation.
 
@@ -870,7 +870,7 @@ The general set is intended to complement this with prompts that are more open e
 Here are examples from each prompt set:
 
 #figure(
-  text(size: 8pt)[
+  text(size: 9pt)[
     #table(
       columns: (32%, 10%, 29%, 29%),
       inset: 4pt,
@@ -887,8 +887,8 @@ Here are examples from each prompt set:
 
       [`concrete-completion-style`],
       [120],
-      [Narrow tasks with concrete answers.],
-      [Compute a price, extract an email address, sort values, produce a JSON row.],
+      [Concrete tasks with answers that should be clear to produce.],
+      [Compute a price, extract an email address, sort values, produce a JSON row etc.],
 
       [`open-ended`],
       [100],
@@ -898,7 +898,7 @@ Here are examples from each prompt set:
       [`python-diverse-completion-style`],
       [100],
       [Python code-completion prompts with varied programming tasks.],
-      [Validate brackets, parse semantic versions, fix a bug, write tests.],
+      [Validate brackets, parse semantic versions, fix a bug, write tests etc.],
     )
   ],
   caption: [Prompt sets used in the main self-speculation benchmark.],
