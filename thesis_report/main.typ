@@ -176,7 +176,9 @@ The LM-head takes the hidden vector produced by the body and projects this to th
 
 Figure @annh-image illustrates this concept. The green query hidden vector is scored with the centroids and the top 3 clusters are selected, illustrated with clusters rings of more contrast. That illustration is only a 2D image of clusters in 3D, so for a real vocabulary there will be many more dimensions and thus more space for the unembedding vectors to exist in.
 
-This project calls this ANNH for Approximate Nearest Neighbors Head.
+This method is not guaranteed to return the best matching token. Since the clusters are represented by a centroid that is the average of their included unembedding vectors, the routing can score clusters with a well matching centroid higher than the cluster that actually has the true top token.
+
+This project produces an implementation of this idea and refers to it as ANNH which stands for Approximate Nearest Neighbors Head.
 
 *Speculative decoding*
 
