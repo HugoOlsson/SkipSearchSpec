@@ -290,7 +290,33 @@ For speculative decoding, if the drafter and verifier are two different models, 
 To train for specualtive decoding, the goal is for the drafter to produce the same token the full model would generate. So the task is not to produce the next token that is the best or makes the most sense, because the full model, which will act as verifier, will reject any token that isn't the same as what it would generate #footnote[The verifier will reject any token itself wouldn't generate if greedy decoding is used. For this report, greedy decoding is always used.]. To train for this, a setup called teacher-student training is used. This means that the training signals will be from the deviation in behaviour from the full model. In this report, since it is for the application of training for self-speculative decoding, the terms teacher/student and verifier/drafter might be used interchangeably depending what is most natural to the context. 
 
 
-*Cross entropy and KL divergence*
+*Cross entropy, KL divergence and Top-1*
+
+The output of the LM-head is a vector of logits, one value for each token in the vocabulary. After applying softmax, these logits become a probability distribution over the next token. This means that two inference setups can be compared not only by checking whether they choose the same top token, but also by comparing the full probability distributions they assign over the vocabulary.
+
+Cross entropy is used when there is a target token. If the target token is $y$ and the model assigns probability $q(y)$ to it, the cross entropy loss is
+
+$
+L_"CE" = - log q(y).
+$
+
+This loss becomes small when the model gives high probability to the target token. In this thesis, cross entropy is mainly used to train the drafter to put high probability on the token selected by the verifier. This is especially relevant for greedy speculative decoding, where a drafted token is accepted when it matches the verifier's selected token.
+
+KL divergence is used to compare two full probability distributions. Let $p$ be the verifier's next-token distribution and $q$ be the drafter's next-token distribution. The KL divergence from verifier to drafter is
+
+$
+D_"KL"(p || q) = sum_i p_i log frac(p_i, q_i).
+$
+
+A low KL divergence means that the drafter assigns probability mass similarly to the verifier, not only to the top token but across the vocabulary. This is useful because two models can have the same top1 token while still having different uncertainty over alternative tokens. In this thesis, KL divergence is therefore used as a measure of how closely the drafter imitates the verifier's full next-token behavior.
+
+Top-1 agreement is used to measure whether two distributions make the same greedy choice. For each token position, the top-1 token is the token with the highest probability. The top-1 agreement between drafter and verifier is then the fraction of positions where they select the same highest-probability token:
+
+$
+"Top-1 agreement" = frac("matching top-1 tokens", "evaluated token positions").
+$
+
+Top-1 is not used directly as a training objective in this thesis. It is a discrete measurement and does not show how close the rest of the distribution is. For example, a drafter can have the same top-1 token as the verifier while assigning very different probabilities to the other tokens. Still, top-1 is a useful and intuitive metric because it measures exactly whether the drafter and verifier would make the same greedy next-token choice. This makes it especially relevant for the greedy self-speculative decoding used in this thesis.
 
 == Research Questions
 
