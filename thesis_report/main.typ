@@ -143,7 +143,7 @@
 
 
 = Introduction
-Large language models (LLMs) have become popular since the release of ChatGPT @openai2022chatgpt and are used daily by hundreds of millions of people for personal and professional tasks [SOURCE]. LLMs are expensive to run. They require a lot of memory and compute @kwon2023pagedattention @dettmers2023qlora. It is of interest to make them efficient so that the best possible model can run on available hardware and energy resources. LLMs use an architecture called the _transformer_ which can be understood as having a body and a head. A recent paper called FlashHead @flashhead2026 proposed a solution to speed up the head using approximate nearest neighbors (ANN). FlashHeads seems promising but a key insight is that the head is usually 1-20% of the total compute to produce the next token. This means that even if the head becomes _zero_ in computational cost, the total speedup cannot exceed 1.01x-1.25x since the compute of the body is still there and becomes the bottleneck. This thesis uses this Amdahl's law framing to investigate how _both_ the head and the body can be approximated to increase the ceiling of possible speedup. The investigated techniques are FlashHead to speedup the head, and _skipping layers_ to speedup the body. This is done with the intention of a drop-in solution, meaning that the LLM itself shouldn't need retraining to apply the upgrades. While this idea could be used for any LLM, this thesis focuses on smaller LLMs with 0.5B-10B parameters due to computational constraints.
+Large language models (LLMs) have become popular since the release of ChatGPT @openai2022chatgpt and are used daily by hundreds of millions of people for personal and professional tasks [SOURCE]. LLMs are expensive to run. They require a lot of memory and compute @kwon2023pagedattention @dettmers2023qlora. It is of interest to make them efficient so that the best possible model can run on available hardware and energy resources. LLMs use an architecture called the _transformer_ which can be understood as having a body and a head. A recent paper called FlashHead @flashhead2026 proposed a solution to speed up the head using approximate nearest neighbors (ANN). This ANN head solution seems promising but a key insight is that the head is usually 1-20% of the total compute to produce the next token. This means that even if the head becomes _zero_ in computational cost, the total speedup cannot exceed 1.01x-1.25x since the compute of the body is still there and becomes the bottleneck. This thesis uses this Amdahl's law framing to investigate how _both_ the head and the body can be approximated to increase the ceiling of possible speedup. The investigated techniques are ANN to speedup the head, and _skipping layers_ to speedup the body. This is done with the intention of a drop-in solution, meaning that the LLM itself shouldn't need retraining to apply the upgrades. While this idea could be used for any LLM, this thesis focuses on smaller LLMs with 0.5B-10B parameters due to computational constraints.
 
 == Background and theory
 
@@ -163,7 +163,7 @@ When skipping layers, there are primarily three different cases: *early-exit*, *
 
 *Hidden vector casting*
 
-When skipping layers, it's not obvious that the hidden vector can be efficiently interpreted where it lands. For the easy tokens, even if the hidden vector has semantically converged early, it's not necessarily the case that the same semantics is represented geometrically equal in later layers. This means that the hidden vector could semantically converge quickly for easy tokens, aligning with the hypothesis, while at the same time not producing correct tokens when moved directly to the head or later layers. Essentially that semantic convergence does not mean geometric convergence for the hidden vector. This will likely break the ability to skip layers by just picking the hidden vector and putting it back in a more downstream position. To address this challenge, this thesis uses a technique it calls hidden vector casting (HVC). The idea is that a small learned transformation can translate geometry from where it is taken to where it is placed, essentially casting it to the correct geometric representation corresponding to its semantic meaning. In practice, this HVC can be implemented in multiple ways but a first good method to evaluate is a linear transformation.
+When skipping layers, it's not obvious that the hidden vector can be efficiently interpreted where it lands. For the easy tokens, even if the hidden vector has semantically converged early, it's not necessarily the case that the same semantics is represented geometrically equal in later layers. This means that the hidden vector could semantically converge quickly for easy tokens, aligning with the hypothesis, while at the same time not producing correct tokens when moved directly to the head or later layers. Essentially that semantic convergence does not mean geometric convergence for the hidden vector. This will likely break the ability to skip layers by just picking the hidden vector and putting it back in a more downstream layer. To address this challenge, this thesis uses a technique it calls hidden vector casting (HVC). The idea is that a small learned transformation can translate geometry from where it is taken to where it is placed, essentially casting it to the correct geometric representation corresponding to its semantic meaning. In practice, this HVC can be implemented in multiple ways but a first good method to evaluate is a linear transformation.
 
 *Speculative decoding*
 
@@ -281,7 +281,7 @@ The following research questions are addressed:
 
 + To what extent can inference for LLMs be sped up by using a setup where the draft model is made computationally cheaper in both body and head by using the techniques: skipping layers + HVC + ANNH + self-speculative decoding?
 
-Following the Amdahl's law reasoning presented in the background, these enhancements could significantly improve the speed of the draft model. They will make its produced quality strictly worse, but since this setup uses a verifier, the output will be lossless compared to the original model. It is not obvious that this will produce a solution that is better than simply running the model normally, or just with an ANN head. The quality of the drafter could become so weak that there is more harm than good to use this inference setup. In that case, the setup would add complexity without any performance gain. This provides natural baselines for evaluation: standard decoding and ANN-head-only decoding. 
+Following the Amdahl's law reasoning presented in the background, these enhancements could significantly improve the speed of the draft model. They will make its produced quality strictly worse, but since this setup uses a verifier, the output will be lossless compared to the original model. It is not obvious that this will produce a solution that is better than simply running the model normally. The quality of the drafter could become so weak that there is more harm than good to use this inference setup. In that case, the setup would add complexity without any performance gain. This provides a natural baseline for evaluation. 
 
 == Scope and Limitations
 
@@ -298,7 +298,7 @@ Following the Amdahl's law reasoning presented in the background, these enhancem
 === Limitations
 This project has several limitations to keep the workload feasible:
 
-+ Model scale: Only small-scale models are used (about 0.5B–10B parameters). This limitation makes building and testing quicker since the models need less resources and time to run. It also make sense because it is where FlashHead gives the biggest speedup and thus differentiation for this research.
++ Model scale: Only small-scale models are used (about 0.5B–10B parameters). This limitation makes building and testing quicker since the models need less resources and time to run. It also make sense because it is where ANNH gives the biggest speedup and thus differentiation for this research.
 
 + Hardware testing: The project doesn't do comprehensive testing of performance on different chips and possible hardware. The benchmark GPUs are NVIDIA L4 and L40s. 
 + Model selection: This project limits itself to a small number of open models from Llama 3.1, Llama 3.2, Qwen 2.5, Qwen 3 and Mistral.
@@ -417,13 +417,13 @@ A delimitation for this project is that only a single HVC will be used. This the
 
 
 === HVC setup
-Internally in the code, the HVC is sometimes called _bridge_ due to the inherent mechanism of connecting two distant points. The text might refer to it as HVC or bridge.
+Internally in the code, the HVC is often called _bridge_ due to the inherent mechanism of connecting two distant points. The text might refer to it as HVC or bridge.
 #figure(
   image("my-figures/finalvsreentry.jpg", width: 100%),
   caption: [The input to the HVC bridge. It gets a stacked vector of the final hidden vector from token position t-1 and the hidden vector from the last layer before the gap at position t.],
 ) <finalvsreentry-img>
 
-The bridge is implemented as a linear transformation in PyTorch with residual update and layer normalizations for the two input vectors. It takes a the hidden vector from the last layer before the gap and a hidden vector from the previous position t-1. As figure @finalvsreentry-img shows, the HVC bridge gets the hidden vector from the last layer before the gap and the final hidden vector from position t-1. In the code `prev_reference_hidden` is a tensor with previous position hidden vectors. The code to forward the bridge is this:
+The bridge is implemented as a linear transformation in PyTorch with residual update and layer normalizations for the two input vectors. As figure @finalvsreentry-img shows, the HVC bridge at position t gets the hidden vector from the last layer before the gap and the final hidden vector from token position t-1. In the code `prev_reference_hidden` is a tensor with previous position hidden vectors. The code to forward the bridge is this:
 
 
 #```python
