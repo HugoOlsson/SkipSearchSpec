@@ -330,9 +330,6 @@ The project is written with Python, PyTorch and Hugging Face. It uses open instr
 class NoOpDecoderLayer(nn.Module):
     """
     Cheap replacement for a HF decoder layer.
-
-    Returns a tuple, not a Tensor, because Qwen/LLaMA-style
-    decoder loops expect layer_outputs[0].
     """
 
     def forward(
@@ -345,7 +342,7 @@ class NoOpDecoderLayer(nn.Module):
         return (hidden_states,)```
 
 == Datasets
-The dataset used to train on is 18% "HuggingFaceTB/cosmopedia-100k", 18% "codelion/fineweb-edu-1B", 41%  "MBZUAI/LaMini-instruction", 18% "flytech/python-codes-25k", and 5% "roneneldan/TinyStories".  All training are made with a single epoch. This is to maximize the amount of examples seen given allocated compute, but also to get KL/CE/top1 training graphs that don't include progress where the module has seen the data before. 
+The datasets used to train the HVC-bridge are 18% "HuggingFaceTB/cosmopedia-100k", 18% "codelion/fineweb-edu-1B", 41%  "MBZUAI/LaMini-instruction", 18% "flytech/python-codes-25k", and 5% "roneneldan/TinyStories".  All training are made with a single epoch. This is to maximize the amount of examples seen given allocated compute, but also to get KL/CE/top1 training graphs that don't include progress where the module has seen the data before. 
 
 == Body Approximation
 
