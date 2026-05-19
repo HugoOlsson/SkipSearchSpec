@@ -1226,23 +1226,23 @@ Here are results regarding building a cluster presented. The most relevant examp
   caption: [Mean assigned cosine similarity during ANNH clustering of `meta-llama/Llama-3.2-1B-Instruct` LM-head vectors over clustering iterations.],
 ) <clustering-llama3.2-1B-instruct-img>
 
-Figure @clustering-llama3.2-1B-instruct-img shows the process of clustering 5344 clusters for the 128,256 token vectors of Llama-3.2-1B-Instruct. It reaches a plateau after around 15 iterations. The total 40 iterations took around 102 seconds on an Apple M5 chip. The clustering produces these quality metrics:
+Figure @clustering-llama3.2-1B-instruct-img shows the process of clustering 5344 clusters for the 128,256 token vectors of Llama-3.2-1B-Instruct. It reaches a plateau after around 15 iterations. The total 40 iterations took around 102 seconds on an Apple M5 chip. The same type of cluster building curve was observed for all models. The clustering produces these quality metrics:
 
 
-#```python
-cluster quality metrics:
-num_clusters                     = 5344
-mean_assigned_similarity         = 0.596406
-p05_assigned_similarity          = 0.413671
-mean_margin_to_best_other        = 0.133069
-p05_margin_to_best_other         = -0.002699
-fraction_assigned_to_nearest     = 0.947184
-min_cluster_size                 = 24
-max_cluster_size                 = 24
-clustering_time                  = 102 seconds
-```
+#cluster-quality-table(
+  model-name: [Llama 3.2 1B Instruct, 5344 clusters],
+  rows: (
+    ([Number of clusters], [5344]),
+    ([Mean assigned similarity], [0.596406]),
+    ([Fraction assigned to nearest centroid], [0.947184]),
+    ([Clustering time], [102 seconds]),
+    ([Minimum cluster size], [24]),
+    ([Maximum cluster size], [24]),
+  ),
+  caption: [Cluster quality metrics for the 5344-cluster ANNH index built from Llama 3.2 1B Instruct LM-head vectors.],
+) <tab-cluster-quality-llama32-1b-5344>
 
-The value `fraction_assigned_to_nearest` of 0.947 signals that most of the vectors belong to a cluster that has a centroid that is the nearest. The `min_cluster_size` and `max_cluster_size` also show that all clusters have the same size and the correct size for 5344 clusters with 128,256 unembedding token vectors.
+The fraction assigned to nearest centroid of 0.947 signals that most of the vectors belong to a cluster whose centroid is the nearest centroid. The minimum and maximum cluster size also show that all clusters have the same size and the correct size for 5344 clusters with 128,256 unembedding token vectors.
 
 
 By running evaluation on the cluster with different number of top-k probings these are the results: 
@@ -1279,18 +1279,18 @@ Here is the data for 2.6k, 8k, and 16k clusters:
 
 *2672 clusters:*
 
-#```python
-cluster quality metrics:
-num_clusters                     = 2672
-mean_assigned_similarity         = 0.553953
-p05_assigned_similarity          = 0.385145
-mean_margin_to_best_other        = 0.119876
-p05_margin_to_best_other         = -0.020749
-fraction_assigned_to_nearest     = 0.936674
-min_cluster_size                 = 48
-max_cluster_size                 = 48
-clustering_time                  = 57 seconds
-```
+#cluster-quality-table(
+  model-name: [Llama 3.2 1B Instruct, 2672 clusters],
+  rows: (
+    ([Number of clusters], [2672]),
+    ([Mean assigned similarity], [0.553953]),
+    ([Fraction assigned to nearest centroid], [0.936674]),
+    ([Clustering time], [57 seconds]),
+    ([Minimum cluster size], [48]),
+    ([Maximum cluster size], [48]),
+  ),
+  caption: [Cluster quality metrics for the 2672-cluster ANNH index built from Llama 3.2 1B Instruct LM-head vectors.],
+) <tab-cluster-quality-llama32-1b-2672>
 
 // #figure(
 //   image("my-figures/plots/clustering/flashhead_llama32_1b_2672c_topk_sweep_top1_match_rate.png", width: 105%),
@@ -1320,18 +1320,18 @@ clustering_time                  = 57 seconds
 *8016 clusters:*
 
 
-#```python
-cluster quality metrics:
-num_clusters                     = 8016
-mean_assigned_similarity         = 0.621290
-p05_assigned_similarity          = 0.430173
-mean_margin_to_best_other        = 0.139982
-p05_margin_to_best_other         = -0.005357
-fraction_assigned_to_nearest     = 0.944938
-min_cluster_size                 = 16
-max_cluster_size                 = 16
-clustering_time                  = 153 seconds
-```
+#cluster-quality-table(
+  model-name: [Llama 3.2 1B Instruct, 8016 clusters],
+  rows: (
+    ([Number of clusters], [8016]),
+    ([Mean assigned similarity], [0.621290]),
+    ([Fraction assigned to nearest centroid], [0.944938]),
+    ([Clustering time], [153 seconds]),
+    ([Minimum cluster size], [16]),
+    ([Maximum cluster size], [16]),
+  ),
+  caption: [Cluster quality metrics for the 8016-cluster ANNH index built from Llama 3.2 1B Instruct LM-head vectors.],
+) <tab-cluster-quality-llama32-1b-8016>
 
 // #figure(
 //   image("my-figures/plots/clustering/flashhead_llama32_1b_8016c_topk_sweep_top1_match_rate.png", width: 105%),
@@ -1361,18 +1361,18 @@ clustering_time                  = 153 seconds
 
 *16032 clusters:*
 
-#```python
-cluster quality metrics:
-num_clusters                     = 16032
-mean_assigned_similarity         = 0.668838
-p05_assigned_similarity          = 0.484650
-mean_margin_to_best_other        = 0.155324
-p05_margin_to_best_other         = -0.019119
-fraction_assigned_to_nearest     = 0.936627
-min_cluster_size                 = 8
-max_cluster_size                 = 8
-clustering_time                  = 309 seconds
-```
+#cluster-quality-table(
+  model-name: [Llama 3.2 1B Instruct, 16032 clusters],
+  rows: (
+    ([Number of clusters], [16032]),
+    ([Mean assigned similarity], [0.668838]),
+    ([Fraction assigned to nearest centroid], [0.936627]),
+    ([Clustering time], [309 seconds]),
+    ([Minimum cluster size], [8]),
+    ([Maximum cluster size], [8]),
+  ),
+  caption: [Cluster quality metrics for the 16032-cluster ANNH index built from Llama 3.2 1B Instruct LM-head vectors.],
+) <tab-cluster-quality-llama32-1b-16032>
 
 // #figure(
 //   image("my-figures/plots/clustering/flashhead_llama32_1b_16032c_topk_sweep_top1_match_rate.png", width: 105%),
@@ -1405,18 +1405,18 @@ clustering_time                  = 309 seconds
 
 *For 8016 clusters:*
 
-#```python
-cluster quality metrics:
-num_clusters                     = 8016
-mean_assigned_similarity         = 0.621848
-p05_assigned_similarity          = 0.430856
-mean_margin_to_best_other        = 0.143018
-p05_margin_to_best_other         = -0.008053
-fraction_assigned_to_nearest     = 0.943270
-min_cluster_size                 = 16
-max_cluster_size                 = 16
-clustering_time                  = 230 seconds
-```
+#cluster-quality-table(
+  model-name: [Llama 3.2 3B Instruct, 8016 clusters],
+  rows: (
+    ([Number of clusters], [8016]),
+    ([Mean assigned similarity], [0.621848]),
+    ([Fraction assigned to nearest centroid], [0.943270]),
+    ([Clustering time], [230 seconds]),
+    ([Minimum cluster size], [16]),
+    ([Maximum cluster size], [16]),
+  ),
+  caption: [Cluster quality metrics for the 8016-cluster ANNH index built from Llama 3.2 3B Instruct LM-head vectors.],
+) <tab-cluster-quality-llama32-3b-8016>
 
 // #figure(
 //   image("my-figures/plots/clustering/flashhead_llama32_3b_8016c_topk_sweep_top1_match_rate.png", width: 105%),
@@ -1445,17 +1445,18 @@ clustering_time                  = 230 seconds
 
 *For 16032 clusters:*
 
-#```python
-cluster quality metrics:
-num_clusters                     = 16032
-mean_assigned_similarity         = 0.669897
-p05_assigned_similarity          = 0.486596
-mean_margin_to_best_other        = 0.155846
-p05_margin_to_best_other         = -0.020911
-fraction_assigned_to_nearest     = 0.935980
-min_cluster_size                 = 8
-max_cluster_size                 = 8
-```
+#cluster-quality-table(
+  model-name: [Llama 3.2 3B Instruct, 16032 clusters],
+  rows: (
+    ([Number of clusters], [16032]),
+    ([Mean assigned similarity], [0.669897]),
+    ([Fraction assigned to nearest centroid], [0.935980]),
+    ([Clustering time], [Not reported]),
+    ([Minimum cluster size], [8]),
+    ([Maximum cluster size], [8]),
+  ),
+  caption: [Cluster quality metrics for the 16032-cluster ANNH index built from Llama 3.2 3B Instruct LM-head vectors.],
+) <tab-cluster-quality-llama32-3b-16032>
 
 // #figure(
 //   image("my-figures/plots/clustering/flashhead_llama32_3b_16032c_topk_sweep_top1_match_rate.png", width: 105%),
