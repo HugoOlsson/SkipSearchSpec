@@ -1551,9 +1551,9 @@ For the $(2, 2)$ gap, final top-1 agreement is between 61.9% and 71.7%, and fina
 
 == Measuring speedups and memory usage
 
-The real world speedup is benchmarked with the produced implementation. Speedup per generated token is as the main measurement but detailed numbers of measured memory usage, acceptance rate, verifier cost, LM-head compute split, ANNH accuracy and ANNH vs full LM-head speedup is also included.
+The real world speedup is benchmarked with the produced implementation. Speedup per generated token is as the main measurement but detailed numbers of measured memory usage, acceptance rate, verifier cost, LM-head compute split, ANNH accuracy, and ANNH vs full LM-head speedup is also included.
 
-The implementation runs self-speculation for all the prompts in the prompt set and the inference speedup for each prompt is stored. The data is presented as a histogram with a fitted normal curve. The magnitude of each bin in the histogram represents how many prompts that produced a speedup in that range.
+The implementation runs self-speculation for all the prompts in the prompt sets and the inference speedup for each prompt is stored. The data is presented as a histogram with a fitted normal curve. The magnitude of each bin in the histogram represents how many prompts that produced a speedup in that range.
 
 The self-speculation is first run with the drafter skipping layers but using the normal LM-head, this is represented in blue. Then it is run with the drafter skipping layers and using ANNH instead of the full LM-head, this is represented in the color magenta.
 
@@ -1561,7 +1561,7 @@ The self-speculation is first run with the drafter skipping layers but using the
 === Gap (1,1), block size 2, bfloat16
 
 The benchmark uses the same five models as the skip-ablation and HVC-training sections and the prompt sets described in @tab-main-prompt-sets.
-Unless stated otherwise, the runs use bfloat16 model execution, bfloat16 HVC bridge execution, ANNH top-k 100, both variants, 5 warmup prompts, 15 profiled prompts, and all available prompts in the prompt set.
+Unless stated otherwise, the runs use bfloat16 model execution, bfloat16 HVC bridge execution, ANNH top-k 100, both variants, 5 warmup prompts, 15 profiled prompts, and all available prompts in each prompt set.
 These results are with the gap $(1,1)$, which means that all layers are skipped except the first and the last one.
 No internal timing is used when measuring speedup to avoid synchronization that would affect performance.
 
@@ -1648,13 +1648,13 @@ Figure @fig:self-spec-llama-32-1b-concrete shows that the Llama 3.2 1B Instruct 
 
 The Mistral 7B Instruct shows a relatively large speedup of 1.62x with skipped layers and a speedup of 1.63x with skipped layers + ANNH. Figure @fig:self-spec-mistral-7b-concrete shows that the LM-head portion is small compared with the body, so the head approximation contributes less to total speedup than the layer skipping does.
 
-Using @selfs-speedup with $v = 1.05$, $gamma = 2$, $a = 51.3%$, and $d = 9.7%$ (skipped layers only), the predicted speedup is
+Using @selfs-speedup with $v = 1.06$, $gamma = 2$, $a = 51.3%$, and $d = 9.7%$ (skipped layers only), the predicted speedup is
 $
-S = frac(1 + 2 dot 0.513, 1.05 + 2 dot 0.097) = frac(2.026, 1.244) approx 1.629 times,
+S = frac(1 + 2 dot 0.513, 1.06 + 2 dot 0.097) = frac(2.026, 1.254) approx 1.62 times,
 $
-which matches the measured 1.62x closely. With ANNH, substituting $a = 50.7%$ and $d = 8.5%$ gives
+which matches the measured 1.62x exactly. With ANNH, substituting $a = 50.7%$ and $d = 8.5%$ gives
 $
-S = frac(1 + 2 dot 0.507, 1.05 + 2 dot 0.085) = frac(2.014, 1.220) approx 1.65 times,
+S = frac(1 + 2 dot 0.507, 1.06 + 2 dot 0.085) = frac(2.014, 1.230) approx 1.64 times,
 $
 which is slightly above but still close to the measured 1.63x. 
 
@@ -1674,7 +1674,7 @@ which is slightly above but still close to the measured 1.63x.
 ) <fig:self-spec-qwen3-4b-concrete>
 
 
-Figure @fig:self-spec-qwen3-4b-concrete shows that the implementation also gives speedups for Qwen3. The acceptance rates are relatively low at 36.2% without ANNH and 35.9% with ANNH. This manages to result in speedups of 1.26x and 1.37x. A block size of 2 can be too big for this drafter on harder prompt distributions.
+Figure @fig:self-spec-qwen3-4b-concrete shows that the implementation also gives speedups for Qwen3. The acceptance rates are relatively low at 36.2% without ANNH and 35.9% with ANNH. This manages to result in speedups of 1.26x and 1.37x. A block size of 2 can be too big for this drafter for this prompt set.
 
 ==== Python-diverse prompt set
 
@@ -1683,7 +1683,7 @@ Figure @fig:self-spec-qwen3-4b-concrete shows that the implementation also gives
     dx: -0.2cm,
     image(
       "my-figures/plots/benches/main_matrix/bench_self_spec__llama-3-1-8b-instruct__python-diverse-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_123622.png",
-      width: 115%,
+      width: 109%,
     ),
   ),
   caption: [
@@ -1696,7 +1696,7 @@ Figure @fig:self-spec-qwen3-4b-concrete shows that the implementation also gives
     dx: -0.2cm,
     image(
       "my-figures/plots/benches/main_matrix/bench_self_spec__llama-3-2-3b-instruct__python-diverse-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_121540.png",
-      width: 115%,
+      width: 109%,
     ),
   ),
   caption: [
@@ -1709,7 +1709,7 @@ Figure @fig:self-spec-qwen3-4b-concrete shows that the implementation also gives
     dx: -0.2cm,
     image(
       "my-figures/plots/benches/main_matrix/bench_self_spec__llama-3-2-1b-instruct__python-diverse-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_115150.png",
-      width: 115%,
+      width: 109%,
     ),
   ),
   caption: [
@@ -1722,7 +1722,7 @@ Figure @fig:self-spec-qwen3-4b-concrete shows that the implementation also gives
     dx: -0.2cm,
     image(
       "my-figures/plots/benches/main_matrix/bench_self_spec__mistral-7b-instruct-v0-3__python-diverse-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_122903.png",
-      width: 115%,
+      width: 109%,
     ),
   ),
   caption: [
@@ -1779,7 +1779,7 @@ Table @tab-main-benchmark-speedups shows the benchmarks for all prompt sets, all
   caption: [
     Self-speculation benchmark results.
     Each cell reports the total per-generated-token speedup for the skipped-layers + ANNH variant, followed by total draft-token acceptance rate.
-    Bold values mark the better block size for each prompt set and model; when only one block size was tested for that prompt set, that value is bold by default.
+    Bold values mark the better block size for each prompt set and model, when only one block size was tested for that prompt set, that value is bold by default.
     All combinations in this table are runs from the main benchmark matrix.
   ],
   kind: "table",
@@ -1788,7 +1788,7 @@ Table @tab-main-benchmark-speedups shows the benchmarks for all prompt sets, all
 
 The table shows three broad patterns.
 First, all skipped-layers + ANNH combinations are faster than normal generation.
-Second, prompt style matters: the open-ended prompt set usually has lower acceptance rate and lower speedup than concrete or Python-diverse completion.
+Second, prompt style matters: the open-ended prompt set usually has lower acceptance rate and thus lower speedup than concrete or Python-diverse completion.
 Third, the $(2,2)$ gap improves acceptance rate relative to $(1,1)$ on Python-diverse prompts, but the extra kept layers adds more compute which makes the speedup smaller compared to (1,1) in most cases.
 
 === float32 debug test
