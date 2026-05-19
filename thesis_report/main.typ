@@ -1483,6 +1483,9 @@ Here is the data for 2.6k, 8k, and 16k clusters:
 ) <evaluation-sweep-cluster-llama32-3b-instruct-16032-table>
 
 
+The results show that using more clusters produces a higher top-1 accuracy for a given top-k. This also means that more clusters mean a smaller fraction of the total vocabulary unembedding vectors to gather to reach a threashold accuracy. To balance still having a routing matrix that is significantly cheaper than the full LM-head, the cluster size of around 8k will be used for all models (exact number depending on divisibility) for the self-speculation benchmarks. The exception will be for Mistral 7B since that has a vocabulary of 32 768 tokens. A cluster target of 8k will be too big to make sense, so a 4096 will be used for that one. 
+
+
 == Training HVC-bridge
 
 Here are the results for the HVC-bridge training. It shows training for the gaps (1,1) and (2,2) since those are the gaps that have the best possibility for speedup. See the discussion for why smaller gaps where choosen to not be included.
@@ -1501,6 +1504,8 @@ Here are the results for the HVC-bridge training. It shows training for the gaps
   ],
 ) <fig-gap11-training-top1-agreement>
 
+Top-1 starts at around 0% and reaches between 60-70% with the training. For a large gap like this, the HVC-bridge seems able to a significant extent compensate for the skipped layers. The Mistral 7B Instruct gets the highest top-1 result of 69.5% and the Qwen 3 4B Instruct gets the lowest top-1 result of 60.1%. The training seems to plateau after around 4000 of 10 000 iterations. 
+
 #figure(
   image(
     "my-figures/plots/(1,1) gap training/thesis_gap11__kl_verifier_to_drafter__train.png",
@@ -1513,6 +1518,7 @@ Here are the results for the HVC-bridge training. It shows training for the gaps
   ],
 ) <fig-gap11-training-kl-verifier-to-drafter>
 
+From the same training as figure @fig-gap11-training-top1-agreement, the verifier-to-drafter KL also shows a quick convergence in the first iteration and then incremental improvement over the later iterations. The training results have the same order here as from the top-1 metric perspective. Mistral 7B Instruct has the best KL at 0.89 and Qwen 3 4B Instruct has the highest at 1.32. The KL also seems to plateau around iteration 4000 to 6000.
 
 === Training (2,2) gap
 
@@ -1540,9 +1546,7 @@ Here are the results for the HVC-bridge training. It shows training for the gaps
   ],
 ) <fig-gap22-training-kl-verifier-to-drafter>
 
-The HVC bridge training plots use the same five-model set as the layer-skipping ablation evaluation:
-Llama 3.2 1B Instruct, Llama 3.2 3B Instruct, Qwen3 4B Instruct, Llama 3.1 8B Instruct, and Mistral 7B Instruct v0.3.
-For the $(1, 1)$ gap, the final top-1 agreement is between 60.1% and 69.5%, and the final verifier-to-drafter KL is between 0.89 and 1.32.
+A gap of (2,2) produces better training metrics for both KL and top-1 for all models than (1,1). The results are however not significantly better. For the $(1, 1)$ gap, the final top-1 agreement is between 60.1% and 69.5%, and the final verifier-to-drafter KL is between 0.89 and 1.32.
 For the $(2, 2)$ gap, final top-1 agreement is between 61.9% and 71.7%, and final KL is between 0.77 and 1.21.
 
 == Measuring speedups and memory usage
