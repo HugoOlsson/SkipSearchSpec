@@ -169,7 +169,7 @@ When skipping layers, it's not obvious that the hidden vector can be efficiently
 
 #figure(
   image("my-figures/annh3.jpeg", width: 80%),
-  caption: [Illustration of the idea to score clusters, then only check for token unembedding vectors inside the top-k clusters. In the illustration top-k = 3. The green vector is the query hidden vector produced by the body. In this case, the query vector is in the intersection of all returned clusters, so the top matching vector can be in any of them.],
+  caption: [Illustration of the idea to score clusters, then only check for token unembedding vectors inside the top-k clusters. In the illustration top-k = 3. The green vector is the query hidden vector produced by the body. In this case, the query vector is in the intersection of all returned clusters, so the top matching vector can be in any of them. The figure uses clusering in 3D presented as a 2D profile image.],
 ) <annh-image>
 
 The LM-head takes the hidden vector produced by the body and projects this to the unembedding vectors for all tokens in the vocabulary. This produces a dot product score with all tokens, essentially matching scores. These scores are called logits and can be positive or negative. To then get probabilities for each token, a softmax is performed over the vocabulary which normalizes the logits into a probability distribution that sums to 1. This is expensive, the hidden vector often has many thousand dimensions and the vocabulary is often bigger than 100 000, so the matrix to multiply is big. FlashHead proposed an idea to avoid performing the full LM-head unembedding matrix multiplication. The core concept is organize similar unembedding vectors into clusters where each clusters has a centroid vector that is the average of the included vectors. During infernece, the query hidden vector will then calculate the dot product only with the cluster centroids, then select the top-k best matched clusters and calculate score only with the unembedding vectors from those. If the vocabulary is 150 000, the number of clusters is 10 000 and top-k of 100 is used, then the initial matrix muliplication is with 10 000 vectors instead of 150 000 vectors, and then $100 times frac(150 000, 10 000) = 1500$ unembedding vectors are gathered and scored. So the process of finding the best matching tokens is divided into the two-step process of scoring a small routing-matrix and then scoring only the unembedding vectors that are close to the query hidden vector.
@@ -291,7 +291,7 @@ To train for specualtive decoding, the goal is for the drafter to produce the sa
 
 
 *Cross entropy, KL divergence and Top-1*
-
+ 
 The output of the LM-head is a vector of logits, one value for each token in the vocabulary. After applying softmax, these logits become a probability distribution over the next token. This means that two inference setups can be compared not only by checking whether they choose the same top token, but also by comparing the full probability distributions they assign over the vocabulary.
 
 Cross entropy is used when there is a target token. If the target token is $y$ and the model assigns probability $q(y)$ to it, the cross entropy loss is
@@ -1567,7 +1567,7 @@ No internal timing is used when measuring speedup to avoid synchronization that 
   ],
 ) <fig:self-spec-llama-31-8b-concrete>
 
-From figure @fig:self-spec-llama-31-8b-concrete a speedup of 1.46x with skipped layers and a speedup of 1.58x with skipped layers and ANNH can be seen. The peak memory usage remains approximately the same as normal inference.
+From figure @fig:self-spec-llama-31-8b-concrete a speedup of 1.46x with skipped layers and a speedup of 1.58x with skipped layers and ANNH can be seen. The peak memory usage remains approximately the same as normal inference for skipped layers and for skipped layers + ANNH.
 
 The profile measurements show that the drafter head becomes 7.47x faster when replacing the dense LM-head with ANNH. This makes the acceptance rate go from 47.7% without ANNH to 46.9% with it. The fraction of when the outputs exactly match normal generation is 43.3% both with and without ANNH. This does not mean that the self-speculation is incorrect or that it is approximate. See the discussion for why this happens even without approximation. 
 
@@ -1577,8 +1577,10 @@ Using @selfs-speedup with the observed values $v = 1.05$, $gamma = 2$, $a = 47.7
 $
 S = frac(1 + 2 dot 0.477, 1.05 + 2 dot 0.144) = frac(1.954, 1.338) approx 1.460 times,
 $
-which aligns exactly with the measured 1.46x. For the version with ANNH, setting $d = 8.5%$ and $a = 46.9%$ gives $S approx 1.59 times$, again consistent with the measured 1.58x.
+which aligns exactly with the measured 1.46x. For the version with ANNH, setting $d = 8.5%$ and $a = 46.9%$ gives $S approx 1.59$x, again consistent with the measured 1.58x.
 
+
+The drafter split shows that without ANNH, the share is 49.1% body, 46.0% head and 4.8% body. With ANNH this changes to 82.0% body, 10.2% head and 7.7% overhead. This shows that there is some overhead in the system, such as reconfiguration for the model between acting as a verifier and a drafter, and other costs that come with the built self-specualtive system. However, if the overhead is 7.7% of the drafter and the drafter is 8.5% of the normal model, then the total overhead is quite small in absolute time. 
 
 #figure(
   move(
