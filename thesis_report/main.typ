@@ -77,8 +77,8 @@
 #show heading.where(level: 3): set text(size: 14.4pt,  weight: "bold")
 
 #cover-pages(
-  title: "Skip, Search, Speculate",
-  subtitle: "Approximating the Head and Body to Raise Amdahl's Ceiling for LLM Inference",
+  title: "DraftMode: Skip, Search, Speculate",
+  subtitle: "Turning an LLM into Its Own Lightweight Drafter for Lossless Inference Speedup",
   author: "Hugo Olsson",
   supervisor: "Matti Karpa, Data Science och AI",
   examiner: "Devdatt Dubhashi, Data Science och AI",
@@ -2088,7 +2088,6 @@ For small models, one could imagine that the overhead for easy tokens is smaller
 This comparison supports the easy-token hypothesis, but only weakly. The observed correlation is positive, with $r = 0.92$ over the five benchmarked models, but model family, hidden size, vocabulary size, LM-head fraction, and acceptance rate are all confounded with parameter count. The plot therefore suggests that larger models may have more removable compute for easy tokens, but it does not prove that parameter count alone causes the speedup.
 
 
-
 == Future work
 // Larger block sizes
 // Larger gaps with stronger HVC
@@ -2096,6 +2095,28 @@ This comparison supports the easy-token hypothesis, but only weakly. The observe
 // Optimized CUDA kernels
 // Extending to larger models
 // Exploring whether HVC generalizes across tasks beyond the training distribution
+
+=== Adaptive block sizes
+
+For the best possible performance on general prompts, using an adaptive block size is likely preferable. This would mean that the inference system chooses the optimal block size during generation depending on what the average acceptance rate has been for the last drafted blocks. Using the @selfs-speedup, the system could cheaply calculate what blocksize that would produce the biggest speedup and dynamically select that. This would allow for very large speedups when the prompt is very easy, but also to prevent a slowdown when the prompt is difficult. Implementing this should be straightforward but this project decided to stay with the primitive constant block size for less complexity and easier debugging.  
+
+
+=== Testing on larger models
+
+A natural next step would be to investigate how it works on larger models 30B+ parameters. They could possibly see a larger speedup or they can behave similarly to the smaller models. Larger models require large amounts of VRAM to run, so to function with the availible hardware, this project decided to only test for smaller models.
+
+Larger models can be faster because of the overhead-reasoning presented in the section _Hypothesis about easy and hard tokens_, but they can also have a larger potential for speedup becuase the job of the linear HVC could possibly be easier with higher dimensions but approximatly the same number of tokens in the vocabulary. As a thought expriment, if the number of dimensions were just 2, then the space for the hidden vectors to live in would be very small. This would mean that the hidden vectors often would overlap and use weird patterns to convey enough information to produce a suitable next token. But if the number of dimensions is very high, like 20 000, then there are much more space to cleanly separate hidden vectors that convey certain information. So the job of mapping hidden vectors before the gap to after the gap might be easier if the model is larger with more hidden space. However, it can also be the case that there are more fine grained information to map in larger models, since they are more capable. This would make the mapping more complex and the total quality of the HVC-bridge is unchanged from the smaller models.
+
+=== Training stratergy
+
+This project began with poor results for skipping layers. With continuous refinements to the method, the HVC-bridge started to work pretty well and it converged to producing a real speedup. The key aspects to get good results have been to use the right training loss metrics (KL and CE) compared to the teacher, to use the previous position $t-1$ hidden vector as a reference, to skip an internal gap instead of early-exit, to make the training objective as close as possible to the targeted task, and to have clean training data. Many of these are somewhat obvious that they will help, but it's not obvious how they should be implemented to help maximally. The author belives that there are still unrealized potential to make the draft system work better. The current bottleneck is likely the training setup, it has a two properties that are awkward for the targeted task:  
+
++ When training the HVC-bridge, it gets the previous referene hidden vector from the teacher at position $t-1$, not itself. This is a bit unrealistic because during inferece, it will get the previous hidden vector from the verifier at the first draft step, but not for the draft steps after that. The reason for doing this is that the training can be one prefill call instead of individual calls per token position to gather the hidden vector to feed the next call. When attempting to give the previous drafter hidden vector to itself during training, it also appeard difficult to learn because the training starts in a state where the drafter at most positions will be given completely unusable previous hidden vectors. So the drafter will give to itself, but before training it is not really capable of giving an hidden vector of any quality, so it is also not capable to learn any patterns. This seemed to create something close to a soft deadlock with a bad learning curve. 
+
++ The training window is divided into sections where the student starts from where the teacher left off. But these sections are currently much larger than the block sizes that will be used. So it is a compromise to get efficient training, but also simulate the task of starting from the verifiers KV-cache and last final hidden vector.
+
+For future work, if a training method can be found that solves these issues but also keeps the advantages of the current solution, then it should be possible to see better training that is more aligned with the targeted objective.
+
 
 == Related work
 
