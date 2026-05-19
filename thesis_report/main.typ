@@ -1812,7 +1812,7 @@ Figure @fig:self-spec-llama32-1b-float32-concrete shows a debug run with float32
 = Discussion
 
 == Interpreting the results
-The results have given insight to what skipping ablations that seem to be the most useful interms of skipped compute to maintrained generation quality. It also showed that it seems possible to
+Here are thoughts and discussion about the results and approach for this project.
 
 === Layer-skipping ablations
 // Why does gap-jump consistently outperform early-exit and late-start?
@@ -1821,9 +1821,9 @@ The results have given insight to what skipping ablations that seem to be the mo
 
 The skip ablation results showed that skipping an internal gap is usually better in terms of skipping many layers while still keeping generation quality. The results show that without HVC, the generation quality degrades very quickly. Doing an (N-1, 0) early exit where N is the number of model layers, gave a top1 agreement to the full model of 0.554 for Llama 3.2 1B and 0.784 on Mistral 7B Instruct 0.3v, both of these are quite far from 1.0 while only skipping a single layer. Mistral 7B Instruct 0.3v show a better ability to skip layers. This might partly be because it has more layers so skipping one of them is a smaller change relatively to its size.
 
-The layer skipping ablations also showed that it does not seem benificial to do non-contiguous skips, such as skipping every other layer or every third. So since those would require more than one HVC bridge and they didn't show an obvious advantage, they are likely not a good direction.
+The layer skipping ablations also showed that it does not seem benificial to do non-contiguous skips, such as periodically skipping every other layer or every third. So since those would require more than one HVC bridge and they didn't show an obvious advantage, they were not choosen as a direction for the benchmark setups.
 
-The KL per layer results show that skipping the first and last layer seem to hurt performance the most. This is reasonable since the first layer is the one trained to route the embedding vector and the last layer is trained to be the final routing to the unembedding. 
+The KL per layer results show that skipping the first layer seems to hurt performance the most. This is reasonable since the first layer is the one trained to route the embedding vector. 
 
 The patterns seem to be stable across different model families. There are some variation in how well early-exit is handled compared to an internal gap but they all seem to favour the internal gap over late-start, early-exit and non-contiguous variations.
 
@@ -1832,7 +1832,7 @@ The patterns seem to be stable across different model families. There are some v
 // What explains the differences in top-1 agreement across model families?
 // Why does (2,2) reach higher top-1 than (1,1) as expected from the notation?
 
-In figure @fig-gap11-training-top1-agreement and @fig-gap22-training-top1-agreement a very aggressive gap of (1,1) and (2,2) respectively is trained. The figures show that the top-1 agreement starts at approximately 0 which is coherent with what the skip-ablations showed, but that the top-1 agreement converges to around 60-72% depending on the model. This is a result that strongly shows that the HVC-bridge can partially compensate for a large gap. The same pattern shows for the verifier to drafter KL metrics in figure @fig-gap11-training-kl-verifier-to-drafter and @fig-gap22-training-kl-verifier-to-drafter. For gap (1,1) the KL starts very high, but converges to between 0.89 to 1.32 depending on the model.
+In figure @fig-gap11-training-top1-agreement and @fig-gap22-training-top1-agreement a very aggressive gap of (1,1) and (2,2) respectively is trained. The figures show that the top-1 agreement starts at approximately 0% which is coherent with what the skip-ablations showed for so many skipped layers, but that the top-1 agreement converges to around 60-72% depending on the model. This is a result that strongly shows that the HVC-bridge can partially compensate for a large gap. The same pattern shows for the verifier to drafter KL metrics in figure @fig-gap11-training-kl-verifier-to-drafter and @fig-gap22-training-kl-verifier-to-drafter. For gap (1,1) the KL starts very high, but converges to between 0.89 to 1.32 depending on the model.
 
 Using a gap (2,2) results in a better KL and top-1 for all five plotted models, but not much better. Top-1 for Mistral 7B Instruct went from 69.5% to 71.7%, for Llama 3.1 8B from 63.9% to 67.8%, and for Qwen3 4B from 60.1% to 61.9%. These are improvements but the number of layers used doubled. To produce a drafter that can give speedups in self-speculation, it is highly advantageous if it is cheap.
 
@@ -1884,27 +1884,27 @@ The FlashHead-alike ANNH cluster took between 57 and 309 seconds to build on an 
 // Why does more clusters strictly improve accuracy per percentage probed?
 // When is ANNH worth using and when is it not (e.g. Mistral head fraction too small)?
 
-The result shows that the most important parameter to the ANNH inference accuracy is the topk parameter. Tables @evaluation-sweep-cluster-llama32-1B-instruct-table, @evaluation-sweep-cluster-llama32-1b-instruct-2672-table, @evaluation-sweep-cluster-llama32-1b-instruct-8016-table, @evaluation-sweep-cluster-llama32-1b-instruct-16032-table, @evaluation-sweep-cluster-llama32-3b-instruct-8016-table, and @evaluation-sweep-cluster-llama32-3b-instruct-16032-table all show that to get a 99% accuracy, a topk of 200-300 is needed. An interesting observation is that this means that ANNH's with more clusters need a smaller portion of the total number of clusters probed to reach a certain threashold in accuracy. Probing 300 of 16032 is a significantly smaller portion probed than 300 of 2672. One possible reason for this is that using more clusters mean fewer vectors per cluster, the centroids which are the average of the cluster-vectors thus become a less approximated representation of the content. So with more clusters, given a query hidden vector, the probability that the scoring with a centroid gives good routing increases. This means that topk = constant returns fewer candidate vectors when using more clusters, but those candidates were routed with less approximation. This pattern should continue with increasing cluster size, the extreme is that the number of clusters is the same as the vocabulary size, at that point the accuracy will be 1.0 with topk = 1. The problem then is of course that the cluster scorring matrix multiplication is as big as the one we tried to avoid in the original LM-head. So There needs to be a balance between centroid representation for its cluster vectors and having a cluster matrix that is significantly cheaper than the original LM-head.
+The result shows that the most important parameter to the ANNH inference accuracy is the top-k parameter. Tables @evaluation-sweep-cluster-llama32-1B-instruct-table, @evaluation-sweep-cluster-llama32-1b-instruct-2672-table, @evaluation-sweep-cluster-llama32-1b-instruct-8016-table, @evaluation-sweep-cluster-llama32-1b-instruct-16032-table, @evaluation-sweep-cluster-llama32-3b-instruct-8016-table, and @evaluation-sweep-cluster-llama32-3b-instruct-16032-table all show that to get a 99% accuracy, a topk of 200-300 is needed. An interesting observation is that this means that ANNH's with more clusters need a smaller portion of the total number of clusters probed to reach a certain threashold in accuracy. Probing 300 of 16032 is a significantly smaller portion probed than 300 of 2672. One possible reason for this is that using more clusters mean fewer vectors per cluster, the centroids which are the average of the cluster-vectors thus become a less approximated representation of the content. So with more clusters, given a query hidden vector, the probability that the scoring with a centroid gives good routing increases. This means that top-k = constant returns fewer candidate vectors when using more clusters, but those candidates were routed with less approximation. This pattern should continue with increasing cluster size, the extreme is that the number of clusters is the same as the vocabulary size, at that point the accuracy will be 1.0 with topk = 1. The problem then is of course that the cluster scorring matrix multiplication is as big as the one we tried to avoid in the original LM-head. So there needs to be a balance between centroid representation for its cluster vectors and having a cluster matrix that is significantly cheaper than the original LM-head.
 
-The tables also show that Llama 3.2 3B Instruct seem to get higher accuracy than Llama 3.2 1B Instruct for the same topk, same number of clusters and having the same vocabulary. For topk = 100 with 8016 clusters the accuracy for 1B was 97.19% and for 3B 98.39%. One possible explanation for this is that the 3B version has larger hidden dimensions. This means that there is more space to distribute the vocabulary and therefore possibly more separatation between clusters. [DO CLUSTERING FOR LLAMA 3.1 8B INSTRUCT TO SEE IF IT FOLLOWS THE PATTERN]
+The tables also show that Llama 3.2 3B Instruct seem to get higher accuracy than Llama 3.2 1B Instruct for the same top-k, same number of clusters and having the same vocabulary. For top-k = 100 with 8016 clusters the accuracy for 1B was 97.19% and for 3B 98.39%. One possible explanation for this is that the 3B version has more hidden dimensions. This means that there is more space to distribute the vocabulary and therefore possibly more separatation between clusters which can make routing easier. 
 
 
 === ANNH with self-speculation
 
-Running ANNH with speculative decoding is distinctively different than running the model normally with ANNH. With specualtive decoding any mistake from the ANNH (and the drafter in general) will be caught by the verifier. So mistakes from the ANNH will instead only reduce the acceptance rate, not produce any different output. For normal genration with ANNH to have high probability that the output won't diverge or degenerate, the accuracy would likely need to be around > 99.5%, but in specualtive decoding, it is okay if it lower becuase it will just be a factor that reduces the acceptance rate. If the acceprance rate is 50% without ANNH, and the ANNH with a choosen top-k has an accuracy of 95% the acceptance rate will be $0.95 times 0.5 = 47.5%$, but the output still guaranteed to be correct. Since the results show that its significantly easier to go from 0% to 95% than 95% to 99.5%, the ANNH head can be very performant during self-specualtion and it is enough to use a top-k of between 50 to 100.
+Running ANNH with speculative decoding is distinctively different than running the model normally with ANNH. With specualtive decoding any mistake from the ANNH (and the drafter in general) will be caught by the verifier. So mistakes from the ANNH will instead only reduce the acceptance rate, not produce any different output. For normal genration with ANNH to have high probability that the output won't diverge or degenerate, the accuracy would likely need to be around > 99.5%, but in specualtive decoding, it is okay if it lower becuase it will just be a factor that reduces the acceptance rate. If the acceprance rate is 50% without ANNH, and the ANNH with a choosen top-k has an accuracy of 95% the acceptance rate will be $0.95 times 0.5 = 47.5%$, but the output still guaranteed to be correct. Since the results show that its significantly easier to go from 0% to 95% than 95% to 99.5%, the ANNH head can be very performant during self-specualtion and it is enough to use a top-k in the range of 50 to 150.
 
 
 
 === Exact match and numerical precision
 // bfloat16 vs float32 exact match discrepancy — not a correctness bug, explain why
-As shown in the figures @fig:self-spec-llama-31-8b-concrete, @fig:self-spec-llama-32-3b-concrete, @fig:self-spec-llama-32-1b-concrete, @fig:self-spec-mistral-7b-concrete, and @fig:self-spec-qwen3-4b-concrete the exact match to the normal generation is not 100%, even though it is greedy argmax generation. This was a strange result and the project investigated why it is the case because the generation should not be approximate or lossy compared to the normal model. The reason is that when selecting next token, there are a lot of ties when using bfloat16, tokens that get the exact same score. These ties happen in both normal generation and in self-speculation. So in bfloat16 there is not enough information to select an unambiguous winner. To debug if this was really the case the project added a flag `--debug-argmax-ties` in `bench_self_spec.py` that makes the normal generation and self-speculation implementation print if there is ever a logit tie when doing argmax, see the function `argmax_debug_first_tie(..)` in the open source repository. When using this, there were usually 1-5 ties detected for each generation of at max 200 tokens. If this is the case, then there should be a 100% match rate when using float32 because then the limitation of precision is mostly removed. As figure @fig:self-spec-llama32-1b-float32-concrete shows but also all internal runs, float32 generations did always get a 100% match rate which heavily suggests that the self-speculation setup and logic is not faulty but that there needs to be high enough precision to make unambiguous choices, both for the normal and self-speculative generation.
+As shown in the figures @fig:self-spec-llama-31-8b-concrete, @fig:self-spec-llama-32-3b-concrete, @fig:self-spec-llama-32-1b-concrete, @fig:self-spec-mistral-7b-concrete, and @fig:self-spec-qwen3-4b-concrete the exact match to the normal generation is not 100%, even though it is greedy argmax generation. This was a strange result and the project investigated why it is the case because the generation should not be approximate or lossy compared to the normal model. The reason is that when selecting next token, there are a lot of logit-ties when using bfloat16, tokens that get the exact same score. These ties happen in both normal generation and in self-speculation. So in bfloat16 there is not enough information to select an unambiguous winner. To debug if this was really the case the project added a flag `--debug-argmax-ties` in `bench_self_spec.py` that makes the normal generation and self-speculation implementation print if there is ever a logit tie when doing argmax, see the function `argmax_debug_first_tie(..)` in the open source repository. When using this, there were usually 1-5 ties detected for each generation of at max 200 tokens. If this is the case, then there should be a 100% match rate when using float32 because then the limitation of precision is mostly removed. As figure @fig:self-spec-llama32-1b-float32-concrete shows but also all internal runs, float32 generations did always get a 100% match rate which heavily suggests that the self-speculation setup and logic is not faulty but that there needs to be high enough precision to make unambiguous choices, both for the normal and self-speculative generation.
 
 A simple sanity check supports that this is plausible. Consider logits around 12 as an example. The value 12 is not special, but just an example of a value logits might be. It will illustrate what happens when several token logits are close to each other around the same magnitude. In bfloat16, numbers around 12 are in the exponent range $[8, 16)$ and have 7 explicit mantissa bits. The spacing between representable values is therefore $2^(3 - 7) = 2^(-4) = 0.0625$. Between 12.0 and 12.1 there are only two bfloat16 values: 12.0 and 12.0625. The next representable value is 12.125, which is already outside the interval. Float32 has 23 mantissa bits, so the spacing in the same range is $2^(3 - 23) = 2^(-20) approx 9.54 dot 10^(-7)$. This means that the interval from 12.0 to 12.1 contains about $floor(0.1 dot 2^20) + 1 = 104858$ representable float32 values. Since the vocabulary contains many tokens and the top logits can be close to each other, it is therefore not surprising that bfloat16 can collapse distinct logits into exact ties while float32 usually separates them.
 
 
 === Why not test with less skipped layers
 
-The project decided to mostly focus on very large gaps of skipped layers. The primary benchmarks are for (1,1), (2,2) and (1,2) gaps. The question is then whether bigger speedups could have been achieved with smaller gaps so the drafter accuracy gets higher. From extensive internal experiments and optimization to reach as large speedups as possible, it is considered to be quite hard to compensate for a more expensive drafter from the accuracy increase of keeping more layers. Even with many layers kept, it is difficult to reach a top1 of > 80%. The fundamental reason for this is probably because the choices of the verifier are not gold tokens; they are just the subjective calculation the full model happens to produce. The drafter is therefore not learning a fundamental truth but is instead guessing what the verifier would do. So it is not easy to reach \~100% because there is no stable foundation to converge to. The project thus found that only a few layers gave the large jump in top-1 but that then adding more layers made the result incrementally better, while making the drafter linearly more expensive.
+The project decided to mostly focus on very large gaps of skipped layers. The primary benchmarks are for (1,1) and (2,2) gaps. The question is then whether bigger speedups could have been achieved with smaller gaps so the drafter accuracy gets higher. From extensive internal experiments and optimization to reach as large speedups as possible, it is considered to be quite hard to compensate for a more expensive drafter from the accuracy increase of keeping more layers. Even with many layers kept, it is difficult to reach a top1 of > 80%. The fundamental reason for this is probably because the choices of the verifier are not gold tokens, they are just the subjective calculation the full model happens to produce. The drafter is therefore not learning a fundamental truth but is instead guessing what the verifier would do. So it is not easy to reach \~100% because there is no stable foundation to converge to. The project thus found that only a few layers gave the large jump in top-1 but that then adding more layers made the result incrementally better, while making the drafter linearly more expensive.
 
 The theoretical estimation from @selfs-speedup can be used to check if a smaller gap will have a chance of producing a better drafter than (1,1) or (2,2). Assume the head is 5% of the compute, that ANNH makes the head 5x faster and that (1,1) with HVC gives a top1 accuracy of 65%. For a 32-layer model, assuming that body compute is linear in the number of kept layers, the drafter cost for a gap $(N, N)$ is
 $
@@ -1941,7 +1941,7 @@ This gives $d_1 = 6.94%$ for the (1,1) + ANNH drafter. With 65% top-1 accuracy, 
   supplement: [T],
 ) <tab-less-skipped-required-top1-block1>
 
-The estimates in @tab-less-skipped-required-top1-block1 show that when keeping more layers, the acceptance threashold to achive the same speedup increases rapidly. If the top1 is 65% with (1,1) then it needs to be 73.8% for (2,2) and 82.5% for (3,3). This is not the increase we see when using smaller gaps which suggests that it will not be a viable alternative to test for smaller gaps. The table also shows that its impossible to reach the same speedup as the (1,1) with (5,5) or smaller gaps, which for this model is to keep 30.7% or more of the layers. So it doesn't matter how good the a skipping ablation is that keeps more than 30.7% of the layers, it won't produce a self-specualtive system faster than the (1,1) baseline.
+The estimates in @tab-less-skipped-required-top1-block1 show that when keeping more layers, the acceptance threashold to achive the same speedup increases rapidly. If the top1 is 65% with (1,1) then it needs to be 73.8% for (2,2) and 82.5% for (3,3). This is not the increase we see when using smaller gaps which suggests that it will not be a viable alternative to test for gaps smaller than (2,2). The table also shows that its impossible to reach the same speedup as the (1,1) with (5,5) or smaller gaps, which for this model is to keep 30.7% or more of the layers. So it doesn't matter how good the a skipping ablation is that keeps more than 30.7% of the layers, it won't produce a self-specualtive system faster than the (1,1) baseline.
 
 
 === Self-speculation speedups and memory usage
@@ -1950,13 +1950,13 @@ The estimates in @tab-less-skipped-required-top1-block1 show that when keeping m
 // What does the Amdahl framing tell us about the ceiling for each model?
 
 
-All combinations in the benchmark resulted in a speedup with the self-speculative system. At the precision reported in the table, adding ANNH never reduced speedup compared with skipping layers alone. When selecting the best tested setup for each model and prompt set, the skipped-layers + ANNH speedups were in the range 1.21x to 1.63x in bfloat16. The lower end was Qwen3 4B on open-ended prompts with block size 1, and the upper end was Mistral 7B Instruct v0.3 on the concrete prompt set with block size 2.
+All combinations in the benchmark resulted in a speedup with the self-speculative system. At the precision reported in the table, adding ANNH never reduced and usually increased speedup compared with skipping layers alone. When using the best block size for each model and prompt set, the skipped-layers + ANNH speedups were in the range 1.21x to 1.63x in bfloat16. The lower end was Qwen3 4B on open-ended prompts with block size 1, and the upper end was Mistral 7B Instruct v0.3 on the concrete prompt set with block size 2.
 
 The measured speedups are prompt dependent and form an approximate normal distribution. With skipped layers + ANNH on the concrete prompt set, Mistral 7B Instruct had an overall speedup of 1.63x and per-prompt speedups from 1.21x to 1.90x. With the same prompt set and block size, Llama 3.2 3B Instruct had an overall speedup of 1.46x and per-prompt speedups from 0.86x to 2.27x.
 
-On NVIDIA L4, replacing the dense LM-head with ANNH made the profiled drafter head 2.80x to 7.53x faster across the benchmark. The model with largest relative additional speedup from using ANNH in the concrete block-size-2 setup was Llama 3.2 1B, which went from 1.13x to 1.28x in average per-token speedup. Large speedups for the LM-head do not directly translate to large speedup in the self-speculative setup, but the results show that it helps most when the head is a meaningful part of the drafter cost. For Mistral 7B Instruct v0.3 the head is proportionally small, so ANNH gives little extra speedup even when the head itself becomes faster. This follows Amdahl's law reasoning exactly.
+On NVIDIA L4, replacing the dense LM-head with ANNH made the profiled drafter head 2.80x to 7.53x faster across the benchmark. The model with largest relative additional speedup from using ANNH in the concrete block-size-2 setup was Llama 3.2 1B, which went from 1.13x to 1.28x in average per-token speedup. Large speedups for the LM-head do not directly translate to large speedup in the self-speculative setup, but the results show that it helps most when the head is a meaningful part of the drafter cost. For Mistral 7B Instruct v0.3 the head is proportionally small, so ANNH gives little extra speedup even when the head itself becomes faster. This follows the Amdahl's law reasoning exactly.
 
-All models seem to use approximately the same amount of VRAM as the normal inference. Loading the ANNH index into memory adds slightly to memory usage, but across the benchmarks the observed peak-allocation overhead for the skipped-layers + ANNH variant is small: about 0.9% on average, with a maximum of about 2.1%. The advantage of using the same model for the verifier and the drafter to do self-speculation and also to share the KV-cache therefore results in a solution that does not need meaningfully more memory than normal inference. 
+All models seem to use approximately the same amount of VRAM as the normal inference. Loading the ANNH index into memory adds slightly to memory usage, but across the benchmarks the observed peak-allocation overhead for the skipped-layers + ANNH variant is small: about 0.9% on average, with a maximum of about 2.1%. To use the same model for the verifier and the drafter to do self-speculation and also to share the KV-cache therefore results in a solution that does not need meaningfully more memory than normal inference. 
 
 
 === How long is the total training time?
@@ -1964,9 +1964,7 @@ All models seem to use approximately the same amount of VRAM as the normal infer
 The speedup benchmarks in @fig:self-spec-llama-31-8b-concrete,
 @fig:self-spec-llama-32-3b-concrete, @fig:self-spec-llama-32-1b-concrete,
 @fig:self-spec-mistral-7b-concrete, and @fig:self-spec-qwen3-4b-concrete
-use the following setup times. The HVC-bridge times are taken from the final
-`total_duration_seconds` entry in the corresponding training `run.json` files.
-ANNH cluster-building times are only included where they are reported above.
+use the following training times to produce the HVC-bridge and the ANNH. 
 
 #figure(
   text(size: 8pt)[
@@ -2021,6 +2019,8 @@ ANNH cluster-building times are only included where they are reported above.
   supplement: [T],
 ) <tab-total-training-time>
 
+For these times, the HVC-brige is trained on a NVIDIA RTX PRO 6000 and the ANNH is built on an Apple Macbook Pro M5 24GB.
+
 === Does this approach make sense?
 
 This method does seem to produce a useful set of properties:
@@ -2040,6 +2040,7 @@ The main drawback is that the potential speedup is dependent on the nature of th
 
 
 == Answering the research questions
+Here are the answers to the research questions that were stated in the Introduction chapter.
 
 === Which layer-skipping strategy minimizes damage to generation quality per layer skipped, and does this pattern hold across model families?
 
@@ -2066,7 +2067,7 @@ The answer to the third research question is therefore that the proposed combina
 
 The fundamental idea behind this project that there are easier and more diffcult tokens to predict given a context. In the generation "Usain Bolt runs very fast and has the reco.." then it is likely to be statistically obvious that the next token should be "rd" to complete the word "record". But in the same genration but for another token "Usain Bolt runs very fast and has the record in 100m. ?" Then it is not necessarily obvious what the next token should be becuase it is the start of a new sentence and that might require more strategic and complex selection. So the idea is that there are obivous tokens and non-obvious tokens and a spectrum between these.
 
-To then use all layers for all tokens is somewhat wasteful with this perspective. The capacity of all layers is mostly useful for key positions that decides the quality of the generation. With this perspective, self-specualtive decoding is rather a practical approach to engineer the inference to not use the full capacity for all tokens. The alternative could be that you have a model that can skip layers but does so dynamically based on the percived difficulty of the current token to generate. The problem with that solution is to design the mechanism that decides how many layers will be needed to compute the next token. If that mechanism is to conservative, then it leaves efficiency on the table, but if it is too aggressive then it is likely to underestimate the number of layers needed to produce the same token the full model would. In that setup there would be no verifier to catch the mistakes, so they would leak into the generation. 
+To then use all layers for all tokens is somewhat wasteful with this perspective. The capacity of all layers is mostly useful for key positions that decides the quality of the generation. With this, self-specualtive decoding can be reframed as a practical approach to engineer the inference to not use the full capacity for all tokens. The alternative could be that you have a model that can skip layers but does so dynamically based on the percived difficulty of the current token to generate. The problem with that solution is to design the mechanism that decides how many layers will be needed to compute the next token. If that mechanism is to conservative, then it leaves efficiency on the table, but if it is too aggressive then it is likely to underestimate the number of layers needed to produce the same token the full model would. In that setup there would be no verifier to catch the mistakes, so they would leak into the generation. 
 
 
 For small models, one could imagine that the overhead for easy tokens is smaller than on larger models. That if you decrease the processing with $X$ percent, then the share of tokens still possible to predict is smaller on smaller models than larger ones, because they did not have the same headroom to begin with. With that, the capacity for speedup should be larger for bigger models and that is what has been observed in this project.
@@ -2087,18 +2088,6 @@ For small models, one could imagine that the overhead for easy tokens is smaller
 This comparison supports the easy-token hypothesis, but only weakly. The observed correlation is positive, with $r = 0.92$ over the five benchmarked models, but model family, hidden size, vocabulary size, LM-head fraction, and acceptance rate are all confounded with parameter count. The plot therefore suggests that larger models may have more removable compute for easy tokens, but it does not prove that parameter count alone causes the speedup.
 
 
-== Limitations and sources of error
-
-
-
-=== PyTorch implementation
-// No custom kernels, speedups are a lower bound on what an optimized stack could achieve
-
-=== Acceptance rate definition
-// i.i.d. assumption, distribution drift between draft positions, block size 1 vs 2 comparison
-
-=== Dataset and prompt coverage
-// How representative are the prompt sets? English only, completion style only
 
 == Future work
 // Larger block sizes
@@ -2107,6 +2096,8 @@ This comparison supports the easy-token hypothesis, but only weakly. The observe
 // Optimized CUDA kernels
 // Extending to larger models
 // Exploring whether HVC generalizes across tasks beyond the training distribution
+
+== Related work
 
 = Conclusion
 
