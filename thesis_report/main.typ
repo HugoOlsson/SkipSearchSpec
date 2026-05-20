@@ -128,6 +128,40 @@
 #page(header: none, footer: none, numbering: none)[]  // blank verso
 
 
+// ---------- ABBREVIATIONS ----------
+#page(header: none)[
+  #heading(level: 2, numbering: none, outlined: false)[Abbreviations]
+
+  #v(0.5cm)
+
+  #table(
+    columns: (24%, 76%),
+    inset: 5pt,
+    align: (left, left),
+    fill: (x, y) => if y == 0 { luma(230) },
+    stroke: 0.5pt + luma(200),
+
+    table.header(
+      [*Abbreviation*], [*Meaning*],
+    ),
+
+    [`ANN`], [Approximate nearest neighbors],
+    [`ANNH`], [Approximate Nearest Neighbors Head],
+    [`CE`], [Cross entropy],
+    [`CUDA`], [Compute Unified Device Architecture],
+    [`GPU`], [Graphics processing unit],
+    [`HVC`], [Hidden vector casting],
+    [`KL`], [Kullback-Leibler divergence],
+    [`KV-cache`], [Key-value cache],
+    [`LLM`], [Large language model],
+    [`LM-head`], [Language model head],
+    [`VRAM`], [Video random-access memory],
+  )
+]
+
+
+
+
 #page(header: none)[
   #v(1cm)
   #align(center)[
