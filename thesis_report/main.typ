@@ -2175,10 +2175,24 @@ The resulting system is a self-speculative inference method where the drafter is
 = Conclusion
 
 == Summary
-// 1-2 paragraphs restating the problem, the approach, and the overall finding.
+
+This thesis investigated whether an existing LLM can be turned into its own lightweight drafter for lossless inference speedup. The starting point was the Amdahl's law limitation of only accelerating the LM-head: if most computation is in the transformer body, then even a very fast head can only give limited end-to-end speedup. The thesis therefore combined two approximations in the draft path: layer skipping to reduce body cost, and ANNH to reduce LM-head cost. To make aggressive layer skipping usable, a lightweight hidden vector casting (HVC) bridge was trained to map hidden states across a skipped internal gap. The approximated model was then used only as a drafter in self-speculative decoding, while the original full model remained the verifier.
+
+The results show that this approach can produce meaningful real inference speedups while keeping memory usage close to normal inference. Across the tested models and prompt sets, the skipped-layers + ANNH setup produced average per-token speedups from about 1.21x to 1.63x. The strongest results were observed on more concrete prompt sets and larger models around 7B paramters, while open-ended prompts and using smaller models around 1B paramters generally had lower acceptance rates and smaller speedups. Overall, the thesis shows that a frozen LLM can be adapted into a useful self-drafter by training a small bridge and building an approximate head index, without retraining the full model.
 
 == Contributions
-// A concise list of what this thesis produced that didn't exist before.
+
+This thesis makes the following contributions:
+
++ It implements and evaluates a self-speculative decoding setup where the verifier and drafter are the same base model, but the drafter uses skipped transformer layers and an optional ANN LM-head.
+
++ It introduces and evaluates hidden vector casting (HVC), a lightweight bridge trained to map hidden states across a large skipped internal layer gap in a frozen transformer.
+
++ It implements a FlashHead-like approximate nearest-neighbor LM-head (ANNH) with equal-size spherical clusters and evaluates its accuracy, clustering cost, and effect on self-speculative decoding.
+
++ It compares layer-skipping patterns across multiple model families and finds that skipping one contiguous internal gap is generally less damaging per skipped layer than early-exit, late-start, or periodic skip patterns.
+
++ It provides end-to-end benchmarks across several open instruction-tuned models and prompt sets, measuring speedup, acceptance rate, exact-match behavior, memory usage, drafter cost, verifier cost, and ANNH head speedup.
 
 
 
