@@ -77,7 +77,7 @@
 #show heading.where(level: 3): set text(size: 14.4pt,  weight: "bold")
 
 #cover-pages(
-  title: "DraftMode: Skip, Search, Speculate",
+  title: "Skip, Search, Speculate",
   subtitle: "Turning an LLM into Its Own Lightweight Drafter for Lossless Inference Speedup",
   author: "Hugo Olsson",
   supervisor: "Matti Karpa, Data Science och AI",
@@ -2119,6 +2119,58 @@ For future work, if a training method can be found that solves these issues but 
 
 
 == Related work
+
+This thesis builds on three main lines of related work: efficient LM-head inference, layer-skipping and self-speculative decoding, and methods that study or translate intermediate transformer representations.
+
+=== Efficient LM heads
+
+FlashHead @flashhead2026 is the paper that proposed the idea to use ANN for the LM-head to reduce the computational work. This project has used that idea as one component to produce a cheap drafter from an LLM. This project produced an implementation from the paper's general description. The results such as speedup, accuracy and dynamics have been similar to the official paper. The exact clustring implementation is not revealed in the paper, so this project did come up with an algorithm that likely uses the same general approach. The clustering time seems to be significantly shorter with this project's implementation, 2 minutes and 30 seconds on CPU compared to the reported 4 hours on GPU in the FlashHead paper. This might indicate that their implementation uses a more fine grained greedy algorithm or some other details that increases the needed compute.
+
+FlashHead used their ANN LM-head without speculative decoding. They reported a total speedup of 1.08x for Llama 3.2 3B in bfloat16 with 8016 clusters and top-k = 512, with the LM-head getting 3.13x faster. This shows that their LM-head did get much faster, but due to the head only being around 12% of the total model, the total speedup is still not huge. Performing the Amdahl's Law math, the theoretical speedup of only speeding up the head is for that model thus: $frac(1,(0.88+0.12/3.13)) = 1.088$x which is close to their reported speedup. 
+
+
+This report has shown an average speedup of 1.3x with skipping layers, and 1.46x with skipping layers + ANNH for the Llama 3.2 3B. This shows that FlashHead can give a significant speedup when used in self-specualtive decoding together with an approximated body. 
+
+An important observation is that 1.46/1.3 = 1.123 is larger than the speedup from 1x to 1.08x, even though the specualtive decoding has a verifier that uses the full LM-head. Intuitively, the potential for speedup would be smaller when the drafter is equipped with ANNH but not the verifier. However, ANNH/FlashHead is more important for the drafter because its body is approximated, so the head becomes a significantly larger portion to speedup. In Llama 3.2 3B, if the head is normally 12% of the compute and the body has 28 layers, if all layers except 2 are skipped with gap (1,1), then only around 2/28 of the body-compute is left. This means that the head becomes 
+$
+frac(0.12, 0.12 + 0.88 dot frac(2, 28)) = 0.656 approx 65.6%
+$
+
+of the approximated drafter compute. Therefore, using ANNH/FlashHead becomes even more useful than in normal infernece. This shows that FlashHead works well with the aimed Amdahl's law perspective and is an essential component to produce a cheap drafter.
+
+=== Speculative decoding
+
+Speculative decoding was introduced as a way to reduce the sequential bottleneck of autoregressive generation by separating token proposal from token verification. _Fast Inference from Transformers via Speculative Decoding_ @leviathan2023fast formulates the method using a smaller approximation model that drafts multiple tokens and a larger target model that verifies them in a single parallel forward pass. The paper shows how several proposed tokens can be accepted in one target-model call while preserving the target model distribution, and gives the main performance condition: speedup depends on the draft model being cheap enough and accurate enough that accepted tokens amortize the verification cost.
+
+_Accelerating Large Language Model Decoding with Speculative Sampling_ @chen2023accelerating presents a closely related speculative sampling algorithm. It also uses a draft model and a target model, and provides an acceptance/rejection procedure that preserves the target distribution under sampling. Together, these works established the common drafter-verifier structure used in later speculative decoding systems: the draft model proposes a short continuation, the target model evaluates that continuation, and the algorithm commits an accepted prefix before continuing generation.
+
+=== Layer skipping and self-speculative decoding
+
+LayerSkip @elhoushi2024layerskip by Meta is the closest related work to the layer-skipping + self-speculation part of this thesis. LayerSkip trains language models so that intermediate layers can be used for early-exit, and then uses that to create a drafter for self-speculative decoding. In that setting, the same model can act as both drafter and verifier: the drafter exits early, while the verifier runs the full model. This avoids loading a separate draft model and makes speculative decoding more memory efficient.
+
+This thesis shares the goal of using one model as both drafter and verifier, but differs in how the drafter is obtained. LayerSkip relies on retraining the base model so it can early-exit with high quality. This thesis keeps the LLM frozen and instead produces a drafter by training a HVC-bridge and skipping an internal gap.
+
+The LayerSkip paper reports a speedup for Llama 2 7B of 1.54x to 1.86x for continual pretraining versions @elhoushi2024layerskip, while a later Hugging Face implementation benchmark reported 1.297x for `facebook/layerskip-llama2-7B` on summarization @gosthipaty2024layerskipblog. Assuming the dynamics is similar to what this project found, the exact speedup likely depends on hyper-paramters and the prompt. This project measured speedups between 1.45x to 1.58x for Llama 3.1 8B which is the closest model for comparison to Llama 2 7B.
+
+This thesis and LayerSkip comes with different sets of advantages and drawbacks. The strong feature with this project is that the model is frozen. This means that the upgrade is close to drop-in without any LLM retraining, but it also means that the output is the same as the stock model. When touching the paramters of the model, the LLM is changed and there is no guarantee that the output will be of the same quality as the original. This makes this a quick and no risk infernece speedup. The advantage of the LayerSkip approach is that by allowing the LM model to change its paramters, there is likely more potential for speedup. The model can converge into a state where early-exits can be handled with less impact.
+
+The LayerSkip paper reports that to train the Llama 2 7B for layer skipping via continual pretraining, 64 A100 80GB GPUs were used. The paper doesn't state the time needed for training. This is significantly more compute needed than the single RTX PRO 6000 that trained the HVC-bridge for Llama 3.1 8B in 34 minutes.  
+
+What is more useful therefore depends on the inference situation. However, unless large amounts of compute is availible, using LayerSkip approach is likely unaccessable. The amount of compute to turn a large model into a LayerSkip version could also be significantly higher than for the Llama 2 7B model.  
+
+
+=== Intermediate representations and Tuned Lens
+
+The HVC bridge is also related to work that studies how transformer hidden states evolve across layers. Tuned Lens @belrose2023tuned trains learned transformations from intermediate hidden states to the output prediction space. It shows that intermediate states can contain information about future predictions, but that they are not necessarily represented in the same geometry as the final layer. A learned translator can make these intermediate predictions more interpretable and more comparable across layers.
+
+This thesis uses a similar intuition, but for an inference objective rather than an interpretability objective. When a hidden vector is moved across a skipped layer gap, the problem is not only whether it contains useful semantic information. It must also be in a representation that the later layers can process. The HVC bridge is therefore trained to cast a hidden vector from before the gap into a form that is useful after the gap. In this sense, Tuned Lens motivates the idea that hidden states at different depths may require learned translation, while this thesis applies that idea to make aggressive layer skipping usable for self-speculative decoding.
+
+=== Position of this thesis
+
+The closest conceptual combination is therefore FlashHead plus LayerSkip, with Tuned Lens providing motivation for the learned hidden vector bridge. Compared with FlashHead, this thesis does not only approximate the head; it also reduces body cost. Compared with LayerSkip, this thesis does not retrain/fine-tune the model for layer skipping, it trains a lightweight HVC bridge for frozen models and uses internal gap skipping rather than direct early exit. Compared with Tuned Lens, the learned transformation is not used to analyze model internals, but to make an approximated drafter operational during inference.
+
+The resulting system is a self-speculative inference method where the drafter is made cheaper in both body and head, while the verifier remains the original model. This positions the work as a practical investigation of how far an existing LLM can be turned into its own lightweight drafter without meaningfully increasing memory usage or changing generation.
+
 
 = Conclusion
 
