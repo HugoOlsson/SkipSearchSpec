@@ -128,32 +128,36 @@
 
 // ---------- ABBREVIATIONS ----------
 #page(header: none)[
-  #heading(level: 2, numbering: none, outlined: false)[Abbreviations]
+  #v(2.75cm)
+  #align(center)[
+    #text(size: 30pt, weight: "bold")[List of Acronyms]
+  ]
 
-  #v(0.5cm)
+  #v(2.1cm)
 
-  #table(
-    columns: (24%, 76%),
-    inset: 5pt,
-    align: (left, left),
-    fill: (x, y) => if y == 0 { luma(230) },
-    stroke: 0.5pt + luma(200),
+  #block(width: 100%)[
+    Below is the list of acronyms and abbreviations that have been used
+    throughout this thesis, listed in alphabetical order:
+  ]
 
-    table.header(
-      [*Abbreviation*], [*Meaning*],
-    ),
+  #v(1.25cm)
 
-    [`ANN`], [Approximate nearest neighbors],
-    [`ANNH`], [Approximate Nearest Neighbors Head],
-    [`CE`], [Cross entropy],
-    [`CUDA`], [Compute Unified Device Architecture],
-    [`GPU`], [Graphics processing unit],
-    [`HVC`], [Hidden vector casting],
-    [`KL`], [Kullback-Leibler divergence],
-    [`KV-cache`], [Key-value cache],
-    [`LLM`], [Large language model],
-    [`LM-head`], [Language model head],
-    [`VRAM`], [Video random-access memory],
+  #grid(
+    columns: (23%, 77%),
+    column-gutter: 1.3cm,
+    row-gutter: 0.8em,
+
+    [ANN], [Approximate nearest neighbors],
+    [ANNH], [Approximate Nearest Neighbors Head],
+    [CE], [Cross entropy],
+    [CUDA], [Compute Unified Device Architecture],
+    [GPU], [Graphics processing unit],
+    [HVC], [Hidden vector casting],
+    [KL], [Kullback-Leibler divergence],
+    [KV-cache], [Key-value cache],
+    [LLM], [Large language model],
+    [LM-head], [Language model head],
+    [VRAM], [Video random-access memory],
   )
 ]
 
