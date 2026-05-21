@@ -116,13 +116,11 @@
 #page(header: none)[
   #heading(level: 2, numbering: none, outlined: false)[Acknowledgements]
 
-  Placeholder: I would like to thank my supervisors for their patient guidance through
-  this project, my advisor at the industry partner for access to real
-  capture devices, and my examiner for sharp feedback on the threat model.
+  I would like to thank my supervisor Matti Karppa and examiner Devdatt Dubhashi for guidance in producing this masters thesis. I would also like to thank the department of physics and department of computer science for 5 great years that have allowed me to learn engineering from core math and first principles to concrete implementation.
 
   #v(1.5cm)
 
-  #align(right)[Hugo Example, Gothenburg, April 2026]
+  #align(right)[Hugo Olsson, Gothenburg, June 2026]
 ]
 
 #page(header: none, footer: none, numbering: none)[]  // blank verso
