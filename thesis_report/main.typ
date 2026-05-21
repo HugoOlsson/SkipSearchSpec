@@ -1854,13 +1854,14 @@ Here are thoughts and discussion about the results and approach for this project
 // Why is the pattern consistent across model families?
 // What does this tell us about the role of early vs late layers?
 
-The skip ablation results showed that skipping an internal gap is usually better in terms of skipping many layers while still keeping generation quality. The results show that without HVC, the generation quality degrades very quickly. Doing an (N-1, 0) early exit where N is the number of model layers, gave a top1 agreement to the full model of 0.554 for Llama 3.2 1B and 0.784 on Mistral 7B Instruct 0.3v, both of these are quite far from 1.0 while only skipping a single layer. Mistral 7B Instruct 0.3v show a better ability to skip layers. This might partly be because it has more layers so skipping one of them is a smaller change relatively to its size.
+The skipping ablatinos results showed that in general, it seems better to skip an internl gap than to do early-exit or late-start. The results also show that without HVC, the performance degrades very quickly. Doing an (N-1, 0) early exit where N is the number of model layers, meaning that only the final layer is skipped, gave top-1 agreement scores of 0.600 for Llama 3.2 1B Instruct, 0.718 for Llama 3.2 3B Instruct, 0.613 for Llama 3.1 8B Instruct, 0.765 for Qwen3 4B Instruct, and 0.787 for Mistral 7B Instruct v0.3. All these results are significantly below 1.0 and indicate that it does not seem reasonable to build a drafter without using a HVC, which aligns with the expectation from the theory about the project. 
 
-The layer skipping ablations also showed that it does not seem benificial to do non-contiguous skips, such as periodically skipping every other layer or every third. So since those would require more than one HVC bridge and they didn't show an obvious advantage, they were not choosen as a direction for the benchmark setups.
 
-The KL per layer results show that skipping the first layer seems to hurt performance the most. This is reasonable since the first layer is the one trained to route the embedding vector. 
+The layer skipping ablations also showed that it does not seem beneficial to do non-contiguous skips, such as periodically skipping every other layer or every third. Periodic masks sometimes appear competitive in the normalized KL ranking, but they do not lead the results and they often have very low top-1 agreement. Since those masks would require more than one HVC bridge and did not show an obvious advantage, they were not chosen as a direction for the benchmark setups.
 
-The patterns seem to be stable across different model families. There are some variation in how well early-exit is handled compared to an internal gap but they all seem to favour the internal gap over late-start, early-exit and non-contiguous variations.
+The KL per layer results show that skipping the first layer hurts performance the most. In the current runs, keeping every layer except the first gives top-1 agreement between 0.021 and 0.093 across the five tested models, and it is the worst single-layer skip for all of them in terms of KL. This is reasonable since the first layer is the one trained to route the embedding vector.
+
+The patterns seems somewhat stable between different model families. Some models such as Llama 3.2 1B Instruct seems to handle early-exit relatively well compared to its result for other ablations. However, per skipped layer, the internal gaps still have the better results.
 
 === HVC bridge training
 // How well did the bridge recover generation quality?
