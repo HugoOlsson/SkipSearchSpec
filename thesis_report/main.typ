@@ -2178,10 +2178,11 @@ For small models, one could imagine that the overhead for easy tokens is smaller
 // - Pearson correlation over these five points: r = 0.9234.
 #figure(
   image("my-figures/plots/benches/speedup_vs_model_size_annh.png", width: 95%),
-  caption: [Observed self-speculation speedup with ANNH compared to model size on the concrete prompt set. The fitted line suggests a positive correlation between model size and speedup in these measurements, but the sample is small and mixes model families, so it should be interpreted as suggestive rather than conclusive.],
+  caption: [Observed self-speculation speedup with ANNH compared to model size on the concrete prompt set. The fitted line suggests a positive correlation between model size and speedup in these measurements, but the sample is small and mixes model families, so it should be interpreted an illustraion of what this project has seen rather than any conclusive result.],
 ) <fig:speedup-vs-model-size>
 
-This comparison supports the easy-token hypothesis, but only weakly. The observed correlation is positive, with $r = 0.92$ over the five benchmarked models, but model family, hidden size, vocabulary size, LM-head fraction, and acceptance rate are all confounded with parameter count. The plot therefore suggests that larger models may have more removable compute for easy tokens, but it does not prove that parameter count alone causes the speedup.
+
+The figure @fig:speedup-vs-model-size shows the relation between parameter count on the x-axis and the measured speedup on the y-axis. From the few tested models in this project, a correlation of r = 0.92 is calculated. This is however not a conclusive or confident result because of the low number of datapoints and mix of model families. But it indicates that there can be a relation and that larger models can see even larger speedups than those tested in this project.
 
 
 == Future work

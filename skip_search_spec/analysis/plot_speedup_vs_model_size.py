@@ -38,9 +38,9 @@ LABEL_OFFSETS = {
     "Llama 3.1 8B": (8, -14),
 }
 
-# Matches the self-spec benchmark result plot theme in bench_self_spec.py.
-ANNH_EDGE = "#9B007F"
-ANNH_FILL = "#DCA6D2"
+# Matches the blue self-spec benchmark result plot theme in bench_self_spec.py.
+ANNH_EDGE = "#006E90"
+ANNH_FILL = "#86BDCB"
 TEXT_DARK = "#243E45"
 TEXT_MUTED = "#526D73"
 AXIS_DARK = "#050505"
