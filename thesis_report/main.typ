@@ -60,17 +60,23 @@
 #show raw.where(block: true, lang: "python"): set text(size: 9pt)
 
 #show heading.where(level: 1): it => {
-  pagebreak(weak: true, to: "odd")           // openright: chapters on right pages
-  v(2cm)
-  align(center)[
-    #if it.numbering != none {
-      let n = counter(heading).at(it.location()).first()
-      text(size: 50pt, weight: "regular")[#n]
-      v(-0.4em)                              // matches \vspace{-4.2ex}
-    }
-    #text(size: 24.88pt, weight: "bold")[#it.body]
-  ]
-  v(1.5cm)
+  if it.numbering == none {
+    v(2.75cm)
+    align(center)[
+      #text(size: 30pt, weight: "bold")[#it.body]
+    ]
+    v(2.1cm)
+  } else {
+    pagebreak(weak: true, to: "odd")           // openright: chapters on right pages
+    v(2cm)
+    let n = counter(heading).at(it.location()).first()
+    align(center)[
+      #text(size: 50pt, weight: "regular")[#n]
+      #v(-0.4em)                              // matches \vspace{-4.2ex}
+      #text(size: 24.88pt, weight: "bold")[#it.body]
+    ]
+    v(1.5cm)
+  }
 }
 
 #show heading.where(level: 2): set text(size: 17.28pt, weight: "bold")
@@ -85,6 +91,8 @@
   cover-figure: image("my-figures/cover-image.jpg", width: 90%),
   // year defaults to datetime.today().year()
 )
+
+#set page(numbering: "i")
 
 // ---------- ABSTRACT ----------
 #page(header: none)[
@@ -128,12 +136,7 @@
 
 // ---------- ABBREVIATIONS ----------
 #page(header: none)[
-  #v(2.75cm)
-  #align(center)[
-    #text(size: 30pt, weight: "bold")[List of Acronyms]
-  ]
-
-  #v(2.1cm)
+  #heading(level: 1, numbering: none, outlined: true)[List of Acronyms]
 
   #block(width: 100%)[
     Below is the list of acronyms and abbreviations that have been used
@@ -167,12 +170,23 @@
 #page(header: none)[
   #v(1cm)
   #align(center)[
-    #text(size: 24.88pt, weight: "bold")[Contents]
+    #text(size: 28.88pt, weight: "bold")[Table of Contents]
   ]
   #v(1.5cm)
   #outline(title: none, depth: 5, indent: 1.5em)
 ]
 
+#let frontmatter-outline(title, target) = page(header: none)[
+  #heading(level: 1, numbering: none, outlined: true)[#title]
+  #outline(title: none, target: target, indent: 1.5em)
+]
+
+// ---------- LISTS OF FIGURES, TABLES, AND ALGORITHMS ----------
+#frontmatter-outline([List of Figures], figure.where(kind: image))
+#frontmatter-outline([List of Tables], figure.where(kind: "table"))
+#frontmatter-outline([List of Algorithms], figure.where(kind: "algorithm"))
+
+#pagebreak(weak: true, to: "odd")
 
 #set page(numbering: "1")
 #counter(page).update(1)
