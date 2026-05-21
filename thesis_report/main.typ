@@ -357,10 +357,11 @@ Top-1 is not used directly as a training objective in this thesis. It is a measu
 // The aim of this thesis is to investigate whether combining layer skipping, HVC, and ANNH in a self-speculative decoding setup can produce meaningful inference speedups for small-scale LLMs while keeping original generation quality or not increasing memory usage.
 
 The following research questions are addressed:
-
 + Which layer-skipping strategy minimizes damage to generation quality per layer skipped, and does this pattern hold across model families?
 
 + Can a lightweight HVC bridge recover the generation quality lost from skipping layers well enough to produce an effective drafter?
+
++ What is the minimum acceptance rate required for the proposed self-speculative setup to outperform normal inference, given empirically observed verifier and drafter costs?
 
 + To what extent can inference for LLMs be sped up by using a setup where the draft model is made computationally cheaper in both body and head by using the techniques: skipping layers + HVC + ANNH + self-speculative decoding?
 
@@ -2080,24 +2081,85 @@ Here are the answers to the research questions that were stated in the Introduct
 
 The experiments indicate that skipping one contiguous internal gap is the best tested strategy. The skip-ablation results show that early-exit and late-start strategies damage the output distribution more for the same number of skipped layers, while non-contiguous skip patterns such as skipping every other layer do not give a clear advantage. The useful pattern is therefore to keep the first layers, keep the last layers, and skip a block in the middle.
 
-This pattern is also coherent with the role of the layers. The first layers transform the token embeddings into the model's internal representation, and the last layers prepare the hidden vector for the final unembedding. Skipping either end therefore changes the representation at a sensitive point. A middle gap is less destructive because it leaves both the input-side and output-side parts of the model intact. The strongest evidence in the report is shown for Llama-3.2-1B-Instruct and Mistral-7B-Instruct-v0.3, and internal experiments showed the same qualitative pattern for Llama-3.2-3B-Instruct, Qwen models, and Llama-3.1-8B-Instruct. The answer to the first research question is therefore yes: a contiguous middle gap is the best found layer-skipping strategy, and the pattern appears stable across the tested model families.
+This pattern is also makes sense regarding the role of the layers. The first layers transform the token embeddings into the model's internal representation, and the last layers prepare the hidden vector for the final unembedding. An internal gap is then likely less destructive because it leaves both the first and last layers of the model intact. 
 
 === Can a lightweight HVC bridge recover the generation quality lost from skipping layers well enough to produce an effective drafter?
 
-The HVC bridge does recover a large part of the lost quality, but not enough to make the skipped model a high-quality standalone model. This distinction is important. The goal is not to make the drafter independently correct; the goal is to make it cheap and accurate enough that the verifier accepts enough draft tokens for self-speculation to be faster than normal generation.
+The HVC bridge can recover a large portion of the lost generation quality when skipping layers. The training figures @fig-gap11-training-top1-agreement and @fig-gap22-training-top1-agreement show that for a large gap, (1,1) or (2,2) respecitvely, the HVC can increase the accuracy from around 0% top-1 to a top-1 in the range of 60 to 73%. The HVC is not powerful enough to produce a standalone model, but strong enough to often predict the same next token as the full model. The training results show that it's easier to cast a hidden vector through a smaller gap, (2,2) instead of (1,1), with KL and top-1 being better for every model tested. However, the result does not indicate a dramatic improvement from (1,1) to (2,2), so given the added compute with more layers, for self-speculation (1,1) seems to be the more attractive configuration. The answer to this research question is then that a linear HVC seems to be very effective to recover much of the degradation from skipped layers, especially for the small amount of compute the HVC needs, and it does work well enough to produce a drafter that gives a speedup in specualtive decoding.
+ 
+=== What is the minimum acceptance rate required for the proposed self-speculative setup to outperform normal inference, given empirically observed verifier and drafter costs?
 
-For the very aggressive $(1, 1)$ gap, the untrained skipped models start with almost no top-1 agreement with the verifier. After HVC training, the top-1 agreement converges to roughly 60--70% depending on model, and the verifier-to-drafter KL drops substantially. In the final self-speculation benchmarks this translated into acceptance rates between 24.9% and 68% across the prompt, gap, and block-size combinations. These acceptance rates were enough to produce real speedups because the drafter was much cheaper than the full verifier. The $(2, 2)$ gap improved acceptance rate on Python-diverse prompts, but not enough to clearly justify the doubled layer cost for the speed-focused setup. The answer to the second research question is therefore yes, within the self-speculative setting: the HVC bridge recovers enough quality to create an effective drafter, even though it does not fully reproduce the verifier distribution.
+The minimum required acceptance rate can be derived from the speedup equation @selfs-speedup. The estimated self-speculative speedup is
 
-=== To what extent can inference be sped up by making the draft model cheaper in both body and head?
+$
+S = frac(1 + gamma a, v + gamma d),
+$
 
-On the concrete prompt set using NVIDIA L4, bfloat16 model execution, bfloat16 HVC bridges, and block size 2, the full system produced average per-token speedups from 1.28x to 1.63x compared to normal generation. The measured skipped-layers + ANNH speedups were 1.28x for Llama-3.2-1B-Instruct, 1.37x for Qwen3-4B-Instruct-2507, 1.46x for Llama-3.2-3B-Instruct, 1.58x for Llama-3.1-8B-Instruct, and 1.63x for Mistral-7B-Instruct-v0.3. The setup also kept approximately the same memory usage as normal inference because the drafter and verifier are the same model and share the KV-cache.
+where $gamma$ is the draft block size, $a$ is the draft-token acceptance rate, $v$ is the verifier cost relative to one normal generation step, and $d$ is the drafter cost relative to one normal generation step. To outperform normal inference, the speedup must be greater than 1:
 
-The results support the Amdahl's law framing, but they also show that approximating the head is not always equally important. Adding ANNH improved speedup clearly for Llama-3.2-1B-Instruct, Llama-3.2-3B-Instruct, Llama-3.1-8B-Instruct, and Qwen3-4B-Instruct-2507. For Mistral-7B-Instruct-v0.3, however, speedup changed only from 1.62x without ANNH to 1.63x with ANNH, because the LM-head is already a small fraction of total compute. This means the body approximation is the main contributor to speedup, while ANNH gives additional benefit when the LM-head is a meaningful part of the drafter cost.
+$
+frac(1 + gamma a, v + gamma d) > 1.
+$
 
-The answer to the third research question is therefore that the proposed combination can give meaningful real inference speedups, in this report up to about 1.6x, without increasing memory usage and without changing the verifier-defined output distribution except for numerical tie-breaking effects. The benefit is conditional: it depends on the prompt distribution, the acceptance rate, the model's head-to-body compute ratio, and the implementation efficiency. It is most useful when the task has enough predictability for the drafter to match the verifier often, and when the model has enough head cost for ANNH to reduce the drafter cost without hurting acceptance too much.
+Since the denominator is positive, this is equivalent to
+
+$
+1 + gamma a > v + gamma d.
+$
+
+Solving for $a$ gives the minimum required acceptance rate:
+
+$
+a > frac(v + gamma d - 1, gamma).
+$
+
+If the right-hand side is greater than 1, then the setup cannot outperform normal inference even if every drafted token is accepted.
+
+Using the measured verifier and drafter costs from the concrete prompt set with gap $(1,1)$, block size $gamma = 2$, and ANNH enabled, the required acceptance rates are relatively low:
+
+#figure(
+  text(size: 8pt)[
+    #table(
+      columns: (28%, 14%, 14%, 16%, 16%, 12%),
+      inset: 4pt,
+      align: (left, center, center, center, center, center),
+      fill: (x, y) => if y == 0 { luma(230) },
+      stroke: 0.5pt + luma(200),
+
+      table.header(
+        [*Model*],
+        [*$v$*],
+        [*$d$*],
+        [*Required $a$*],
+        [*Measured $a$*],
+        [*Speedup*],
+      ),
+
+      [`Llama-3.2-1B-Instruct`], [1.05], [19.6%], [22.0%], [43.0%], [1.28x],
+      [`Llama-3.2-3B-Instruct`], [1.05], [11.5%], [13.8%], [43.9%], [1.46x],
+      [`Qwen3-4B-Instruct`], [1.05], [9.7%], [12.2%], [35.9%], [1.37x],
+      [`Llama-3.1-8B-Instruct`], [1.04], [8.5%], [10.6%], [46.9%], [1.58x],
+      [`Mistral-7B-Instruct-v0.3`], [1.05], [8.5%], [10.8%], [50.7%], [1.63x],
+    )
+  ],
+  caption: [
+    Minimum draft-token acceptance rate needed to outperform normal inference, using measured verifier and drafter costs from the concrete prompt set with gap $(1,1)$, block size 2, and ANNH enabled. The measured acceptance rates and speedups are from the same benchmark runs.
+  ],
+  kind: "table",
+  supplement: [T],
+) <tab-required-acceptance-measured-costs>
+
+The answer to the research question is therefore that, for the main block-size-2 ANNH setup, the drafter only needed acceptance rates of about 10.6%--22.0% to break even. Equivalently, the system could reject about 78%--89% of drafted tokens and still be faster than normal inference, depending on the model. The measured average acceptance rates were significantly higher than these break-even points, ranging from 35.9% to 50.7% in the table. This explains why the setup can produce speedups even though the drafter is not a highly accurate standalone approximation of the full model. 
+
+=== To what extent can inference for LLMs be sped up by using a setup where the draft model is made computationally cheaper in both body and head by using the techniques: skipping layers + HVC + ANNH + self-speculative decoding?
+
+Across the main benchmark matrix, the proposed setup produced speedups for all tested combinations of model, prompt set, gap, and block size. With skipped layers, HVC, ANNH, and self-speculative decoding, the measured per-generated-token speedups ranged from 1.20x to 1.63x compared to normal generation. When choosing the better tested block size for each model and prompt set, the range was 1.21x to 1.63x. The setup also kept approximately the same memory usage as normal inference because the drafter and verifier are the same model and share the KV-cache.
 
 
-=== Hypothesis about easy and hard tokens
+The answer to the third research question is therefore that the proposed combination can give meaningful real inference speedups, in this report up to about 1.6x, without increasing memory usage and keeping the output lossless compared to normal inference. 
+
+
+== Hypothesis about easy and hard tokens
 
 The fundamental idea behind this project that there are easier and more diffcult tokens to predict given a context. In the generation "Usain Bolt runs very fast and has the reco.." then it is likely to be statistically obvious that the next token should be "rd" to complete the word "record". But in the same genration but for another token "Usain Bolt runs very fast and has the record in 100m. ?" Then it is not necessarily obvious what the next token should be becuase it is the start of a new sentence and that might require more strategic and complex selection. So the idea is that there are obivous tokens and non-obvious tokens and a spectrum between these.
 
