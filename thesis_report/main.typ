@@ -106,11 +106,18 @@
 
   #heading(level: 2, numbering: none, outlined: false)[Abstract]
 
-  Placeholder:
-  This thesis develops a system for verifying the authenticity of digital
-  media at the point of capture. We present a hash-chained append-only
-  log architecture with daily SQLite snapshots and external anchoring,
-  and argue that it addresses several attacks that C2PA cannot.
+  This thesis has investigated the possibility to speedup inference by producing a self-speculative setup where the original model is verifier and drafter. The model is frozen so the original quality is preserved and no retraining required. The frozen model switches between being verifier and drafter. In the drafter mode, a gap of almost all layers are skipped and an approximated nearest neighbors (ANN) LM-head is used. To prevent completely degraded performance from skipping many layers, this thesis proposes Hidden Vector Casting (HVC) which casts the hidden vector from the representation of the exit-layer to the representation of the entrance-layer.
+
+  The thesis has produced an open source implementation to train the HVC, build the ANN head and run inference with KV-cache handling. It also includes experiments to evaluate what layer-skipping ablations that are the best to skip as many layers as possible while degrading the generation performance as little as possible. 
+
+  The thesis found that skipping an contiguous internal gap of layers is in general advantageous to early-exit, late-start of an periodic variant of skipped layers. The selected layer-skipping ablations to produce inference systems were (1,1) and (2,2) which means that all layers except the first and the last are skipped or all layers skipped except the two first and two last respectively.
+
+  The found results are average speedups of 1.21x to 1.63x while having on average of 0.9% higher peak memory usage compared to normal inference and producing identical generation to normal inference up to what the selected floating point precision allows for. The speedup depends on the model and the type of prompt used. Larger models seem to have higher potential for speedup while smaller models seem to have less overhead to save computation and thus smaller potential for speedup. Since the mechanism fundamentally is to cheaply speculate ahead of the full model, the results indicate that more concrete prompts get larger speedups while more open-ended prompts produces lower speedups in general. 
+
+  The measured total times to train the HVC and to build the ANN LM-head are 16 to 38 minutes depending on the model. The HVC was trained on a NVIDIA RTX PRO 6000 and the ANN LM-head was built on an Apple MacBook Pro M5 24GB.
+
+  The thesis uses the models Llama 3.2 1B Instruct, Llama 3.2 3B Instruct, Llama 3.1 8B Instruct, Mistral 7B Instruct 0.3v, and Qwen3 4B. The thesis only investigated smaller models in the range 1-10B parameters due to limitation in computational access. The concept should however work for larger models as well.
+
 
   #v(1fr)
 
@@ -186,9 +193,51 @@
 #frontmatter-outline([List of Tables], figure.where(kind: "table"))
 #frontmatter-outline([List of Algorithms], figure.where(kind: "algorithm"))
 
+#let running-chapter-header = context {
+  let empty-header = block(width: 100%, height: 16pt)[]
+  let page-number = counter(page).get().first()
+  let current-page = here().page()
+  let upcoming-chapters = query(selector(heading.where(level: 1)).after(here()))
+  let chapter-opens-page = (
+    upcoming-chapters.len() > 0
+      and upcoming-chapters.first().numbering != none
+      and upcoming-chapters.first().location().page() == current-page
+  )
+  let page-is-blank = (
+    query(selector(par)).filter(it => it.location().page() == current-page).len() == 0
+      and query(selector(figure)).filter(it => it.location().page() == current-page).len() == 0
+      and query(selector(heading)).filter(it => it.location().page() == current-page).len() == 0
+  )
+
+  if chapter-opens-page or page-is-blank {
+    empty-header
+  } else {
+    let chapters = query(selector(heading.where(level: 1)).before(here()))
+    if chapters.len() > 0 {
+      let chapter = chapters.last()
+      if chapter.numbering != none {
+        let chapter-number = counter(heading).at(chapter.location()).first()
+        let side = if calc.rem(page-number, 2) == 0 { left } else { right }
+
+        block(width: 100%, height: 16pt)[
+          #align(side)[
+            #text(size: 10pt, weight: "bold")[#chapter-number. #chapter.body]
+          ]
+          #v(-6pt)
+          #line(length: 100%, stroke: 0.5pt + luma(50))
+        ]
+      } else {
+        empty-header
+      }
+    } else {
+      empty-header
+    }
+  }
+}
+
 #pagebreak(weak: true, to: "odd")
 
-#set page(numbering: "1")
+#set page(numbering: "1", header: running-chapter-header)
 #counter(page).update(1)
 
 
@@ -428,9 +477,9 @@ class NoOpDecoderLayer(nn.Module):
         hidden_states: torch.Tensor,
         *args: Any,
         **kwargs: Any,
-    ) -> tuple[torch.Tensor, ...]:
+    )  -> torch.Tensor:
 
-        return (hidden_states,)```
+        return hidden_states```
 
 == Datasets
 The datasets used to train the HVC-bridge are 18% "HuggingFaceTB/cosmopedia-100k", 18% "codelion/fineweb-edu-1B", 41%  "MBZUAI/LaMini-instruction", 18% "flytech/python-codes-25k", and 5% "roneneldan/TinyStories".  All training are made with a single epoch. This is to maximize the amount of examples seen given allocated compute, but also to get KL/CE/top1 training graphs that don't include progress where the module has seen the data before. 
@@ -445,7 +494,7 @@ The datasets used to train the HVC-bridge are 18% "HuggingFaceTB/cosmopedia-100k
 // - How the best skipping-ablations perform with HVC
 
 #figure(
-  image("my-figures/gap-skip-setup.jpg", width: 100%),
+  image("my-figures/gap-skip-setup.jpg", width: 80%),
   caption: [Structure of skipping layers. The low opacity layers in the middle are skipped. ],
 ) <skipping-layers-structure-img>
 
@@ -2312,4 +2361,5 @@ This thesis makes the following contributions:
 
 
 #pagebreak()
+#set page(header: none)
 #bibliography("refs.bib")
