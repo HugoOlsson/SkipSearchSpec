@@ -96,9 +96,9 @@
 
 // ---------- ABSTRACT ----------
 #page(header: none)[
-  A Cryptographic Approach to Media Provenance \
-  Transparent Append-Only Logs for Authentic Capture Verification \
-  Hugo Example \
+  Skip, Search, Speculate \
+  Turning an LLM into Its Own Lightweight Drafter for Lossless Inference Speedup \
+  Hugo Olsson \
   Department of Computer Science and Engineering \
   Chalmers University of Technology 
 
@@ -121,7 +121,7 @@
 
   #v(1fr)
 
-  Keywords: media authenticity, provenance, C2PA, transparency logs.
+  Keywords: large language models, self-speculative decoding, inference acceleration, layer skipping, hidden vector casting, approximate nearest-neighbor LM-heads, lossless generation.
 ]
 
 #page(header: none, footer: none, numbering: none)[]  // blank verso
