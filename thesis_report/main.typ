@@ -524,7 +524,8 @@ A delimitation for this project is that only a single HVC will be used. This the
   #strong[Layer ablation masks tested.] \
   Let the model have $L$ decoder layers indexed $0, ..., L - 1$. \
   Each ablation is represented by a kept-layer set $A subset.eq {0, ..., L - 1}$; \
-  all layers not in $A$ are skipped.
+  all layers not in $A$ are skipped. The experiments use a bounded sampled set
+  of mask sizes and placements, rather than every possible value.
 
   #line(length: 100%, stroke: 0.5pt + luma(200))
 
@@ -535,6 +536,11 @@ A delimitation for this project is that only a single HVC will be used. This the
 
     [#strong[Keep all]],
     [Keep every layer: $A = {0, ..., L - 1}$. This is the no-ablation baseline.],
+
+    [#strong[Thesis gap]],
+    [Keep the first $N$ and last $M$ layers: \
+    $A = {0, ..., N - 1} union {L - M, ..., L - 1}$. \
+    The explicitly included thesis masks are $(N, M) = (1, 1)$ and $(2, 2)$.],
 
     [#strong[Early exit]],
     [Keep only a prefix of the network: $A = {0, ..., k - 1}$. \
@@ -547,17 +553,18 @@ A delimitation for this project is that only a single HVC will be used. This the
     [#strong[Internal gap]],
     [Remove one contiguous block of internal layers while keeping layers before and after it: \
     $A = {0, ..., s - 1} union {s + g, ..., L - 1}$. \
-    The skipped gap has start $s$ and length $g$, and does not touch the first or last layer.],
+    The skipped gap has start $s$ and length $g$, does not touch the first or last layer,
+    and is sampled across several gap lengths and positions.],
 
     [#strong[Periodic drop]],
     [Drop one phase modulo a step size $p$: \
     $A = {i : i mod p != phi}$. \
-    This removes every $p$-th layer for several steps and phases.],
+    This removes every $p$-th layer for the sampled steps $p = 2, 3$ and phases.],
 
     [#strong[Periodic keep]],
     [Keep only one phase modulo a step size $p$: \
     $A = {i : i mod p = phi}$. \
-    This keeps every $p$-th layer and skips the rest.],
+    This keeps every $p$-th layer and skips the rest, again for sampled phases of $p = 2, 3$.],
   )
 ]
 
