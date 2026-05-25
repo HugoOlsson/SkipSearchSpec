@@ -386,7 +386,7 @@ For speculative decoding, if the drafter and verifier are two different models, 
 
 *Teacher-student training*
 
-To train for specualtive decoding, the goal is for the drafter to produce the same token the full model would generate. So the task is not to produce the next token that is the best or makes the most sense, because the full model, which will act as verifier, will reject any token that isn't the same as what it would generate #footnote[The verifier will reject any token itself wouldn't generate if greedy decoding is used. For this report, greedy decoding is always used.]. To train for this, a setup called teacher-student training is used. This means that the training signals will be from the deviation in behaviour from the full model. In this report, since it is for the application of training for self-speculative decoding, the terms teacher/student and verifier/drafter might be used interchangeably depending what is most natural to the context. 
+To train for speculative decoding, the goal is for the drafter to produce the same token the full model would generate. So the task is not to produce the next token that is the best or makes the most sense, because the full model, which will act as verifier, will reject any token that isn't the same as what it would generate #footnote[The verifier will reject any token itself wouldn't generate if greedy decoding is used. For this report, greedy decoding is always used.]. To train for this, a setup called teacher-student training is used. This means that the training signals will be from the deviation in behavior from the full model. In this report, since it is for the application of training for self-speculative decoding, the terms teacher/student and verifier/drafter might be used interchangeably depending what is most natural to the context. 
 
 
 *Cross entropy, KL divergence and Top-1*
@@ -455,7 +455,7 @@ This project has several limitations to keep the workload feasible:
 
 = Methodology
 
-The overall methodology for the project is to implement the inference setups in PyTorch. Different configurations with different hyper-parameters are measured how well they perform for their targeted task. Metrics like cross-entropy, KL divergence, Top1 match and acceptance rate is used to measure performance. The project is availible as an open source repository at #link("https://github.com/HugoOlsson/SkipSearchSpec")[SkipSearchSpec]. All measurements presented in this thesis uses the same measurement-pipeline so that they always follow a shared structure, includes their git commit/tag and stores the raw data in the repository. By including the exact commit for each result, the reader can always visit the exact state of the project for when a measurement was performed.
+The overall methodology for the project is to implement the inference setups in PyTorch. Different configurations with different hyper-parameters are measured how well they perform for their targeted task. Metrics like cross-entropy, KL divergence, Top1 match and acceptance rate is used to measure performance. The project is available as an open source repository at #link("https://github.com/HugoOlsson/SkipSearchSpec")[SkipSearchSpec]. All measurements presented in this thesis uses the same measurement-pipeline so that they always follow a shared structure, includes their git commit/tag and stores the raw data in the repository. By including the exact commit for each result, the reader can always visit the exact state of the project for when a measurement was performed.
 
 The methods to increase the speed of the body and head are largely separable. The job of the body is to deliver well converged hidden vectors and the job of the head is to find matching tokens given a hidden vector. The project therefore has several functions that isolates the task of skipping layers in the body, and then other functions that isolates the task of speeding up the head with ANNH. The best found solutions for each part are used to produce a drafter in a self-speculative setup where the acceptance rate, correctness and speedup is measured.
 
@@ -942,7 +942,7 @@ Here is a pseudocode of how the self-speculative decoding works:
   #line(length: 100%, stroke: 0.5pt + luma(200))
   
   #kw[Input:] prompt $x$, maximum generation length $T$, draft block size $K$, \
-  full model $M$, drafter $tilde(M)$ formed by skipping a layer gap in $M$ and inserting bridge $B$ \
+  full model $M$, drafter $tilde(M)$ formed by skipping a layers and using ANNH, and inserting bridge $B$ \
   #kw[Output:] generated sequence $y$
 
   #alg-counter.update(0)
@@ -2345,6 +2345,8 @@ The resulting system is a self-speculative inference method where the drafter is
 = Conclusion
 
 == Summary
+
+
 
 This thesis investigated whether an existing LLM can be turned into its own lightweight drafter for lossless inference speedup. The starting point was the Amdahl's law limitation of only accelerating the LM-head: if most computation is in the transformer body, then even a very fast head can only give limited end-to-end speedup. The thesis therefore combined two approximations in the draft path: layer skipping to reduce body cost, and ANNH to reduce LM-head cost. To make aggressive layer skipping usable, a lightweight hidden vector casting (HVC) bridge was trained to map hidden states across a skipped internal gap. The approximated model was then used only as a drafter in self-speculative decoding, while the original full model remained the verifier.
 
