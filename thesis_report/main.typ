@@ -2346,27 +2346,27 @@ The resulting system is a self-speculative inference method where the drafter is
 
 == Summary
 
+This thesis has investigated if an LLM can be transformed into a lightweight drafter for itself to produce a self-specualtive setup that is more performant than normal infernece. The key idea was to keep the LLM frozen and to have a inference drafter mode that uses approximations for both the body and the LM-head. The approximation for the body was to skip layers, and the approximation for the head was to use a FlashHead style approximate nearest neighbors head. To skip layers effectively, a mechanism here called HVC was used. This was a normed linear transformation that transformed the hidden vector from the representation of the exit layer to the representation of the entrance layer. The thesis has also investigated what ablation of skipped layers that is preferable to maximize the number of skipped layers while minimizing the damage to the generation quality. 
 
+The thesis found that an internal contiguous gap of skipped layers seemed to be preferable. It found that using less skipped layers made the quality higher, but inherently also increased the needed compute for the drafter. The choosen skipped layer ablation to maximize the self-specualtive speedup was therefore an aggressive gap of (1,1), which means to skip all layers except the first and the last one. The thesis found an average speedup between 1.2x to 1.63x for all models, block sizes and prompt sets. The largest speedups were observed for larger models, for example Mistral 7B Instruct, 0.3v together with concrete prompts. The smaller speedups where observed for smaller models, such as Llama 3.2 1B Instruct, together with more open-ended prompts.  
 
-This thesis investigated whether an existing LLM can be turned into its own lightweight drafter for lossless inference speedup. The starting point was the Amdahl's law limitation of only accelerating the LM-head: if most computation is in the transformer body, then even a very fast head can only give limited end-to-end speedup. The thesis therefore combined two approximations in the draft path: layer skipping to reduce body cost, and ANNH to reduce LM-head cost. To make aggressive layer skipping usable, a lightweight hidden vector casting (HVC) bridge was trained to map hidden states across a skipped internal gap. The approximated model was then used only as a drafter in self-speculative decoding, while the original full model remained the verifier.
-
-The results show that this approach can produce meaningful real inference speedups while keeping memory usage close to normal inference. Across the tested models and prompt sets, the skipped-layers + ANNH setup produced average per-token speedups from about 1.21x to 1.63x. The strongest results were observed on more concrete prompt sets and larger models around 7B paramters, while open-ended prompts and using smaller models around 1B paramters generally had lower acceptance rates and smaller speedups. Overall, the thesis shows that a frozen LLM can be adapted into a useful self-drafter by training a small bridge and building an approximate head index, without retraining the full model.
+The thesis found that the self-specualtive inference used approximatly the same amount of memory as normal inference. Since the original frozen model is verifier, the output will also be exactly the same as normal inference up to what the selected floating point precision allows for.
 
 == Contributions
 
 This thesis makes the following contributions:
 
-+ It implements and evaluates a self-speculative decoding setup where the verifier and drafter are the same base model, but the drafter uses skipped transformer layers and an optional ANN LM-head.
++ It implements a systematic way to evaluate different ablations of skipped layers for an LLM. This to investigate what subset of layers to deactivate that damages generation quality minimally. 
 
-+ It introduces and evaluates hidden vector casting (HVC), a lightweight bridge trained to map hidden states across a large skipped internal layer gap in a frozen transformer.
++ It implements a FlashHead style ANNH that makes the operation of the LM-head significantly faster.
 
-+ It implements a FlashHead-like approximate nearest-neighbor LM-head (ANNH) with equal-size spherical clusters and evaluates its accuracy, clustering cost, and effect on self-speculative decoding.
++ It implements training and inference to use HVC to skip layers in the LM-body. 
 
-+ It compares layer-skipping patterns across multiple model families and finds that skipping one contiguous internal gap is generally less damaging per skipped layer than early-exit, late-start, or periodic skip patterns.
++ It implements a drafter inference mode for a frozen LLM where the LM-body skips a subset its layers with HVC and the head uses ANNH.
 
-+ It provides end-to-end benchmarks across several open instruction-tuned models and prompt sets, measuring speedup, acceptance rate, exact-match behavior, memory usage, drafter cost, verifier cost, and ANNH head speedup.
++ It implements a self-speculative setup where an LLM is used both as verifier and drafter by switching between an approximated drafter inference mode and the original inference mode.
 
-
++ It implements a comprehensive benchmark for this self-specualtive inference where skipped layers is used and optionally ANNH. The benchmark reports things like VRAM usage, acceptance rates, the computational split in the head, exact match rate and more.
 
 
 #pagebreak()
