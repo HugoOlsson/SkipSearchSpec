@@ -144,7 +144,7 @@
       Cover: #cover-caption
 
     ]
-    Typeset in Typst \
+    //Typeset in Typst \
     Gothenburg, Sweden #year
   ]
 }

@@ -110,9 +110,9 @@
 
   The thesis has produced an open source implementation to train the HVC, build the ANN head and run inference with KV-cache handling. It also includes experiments to evaluate what layer-skipping ablations that are the best to skip as many layers as possible while degrading the generation performance as little as possible. 
 
-  The thesis found that skipping an contiguous internal gap of layers is in general advantageous to early-exit, late-start of an periodic variant of skipped layers. The selected layer-skipping ablations to produce inference systems were (1,1) and (2,2) which means that all layers except the first and the last are skipped or all layers skipped except the two first and two last respectively.
+  The thesis found that skipping an contiguous internal gap of layers is in general advantageous compared to early-exit, late-start of an periodic variant of skipped layers. The selected layer-skipping ablations to produce inference systems were (1,1) and (2,2) which means that all layers except the first and the last are skipped or all layers skipped except the two first and two last respectively.
 
-  The found results are average speedups of 1.21x to 1.63x while having on average of 0.9% higher peak memory usage compared to normal inference and producing identical generation to normal inference up to what the selected floating point precision allows for. The speedup depends on the model and the type of prompt used. Larger models seem to have higher potential for speedup while smaller models seem to have less overhead to save computation and thus smaller potential for speedup. Since the mechanism fundamentally is to cheaply speculate ahead of the full model, the results indicate that more concrete prompts get larger speedups while more open-ended prompts produces lower speedups in general. 
+  The found results are average speedups of 1.21x to 1.63x while having on average of 0.9% higher peak memory usage compared to normal inference and producing identical generation to normal inference up to what the selected floating point precision allows for. The speedup depends on the model and the type of prompt used. Larger models seem to have higher potential for speedup while smaller models seem to have less overhead to save computation and thus smaller potential for speedup. Since the mechanism fundamentally is to cheaply speculate ahead of the full model, the results also indicate that more concrete prompts get larger speedups while more open-ended prompts produces lower speedups in general. 
 
   The measured total times to train the HVC and to build the ANN LM-head are 16 to 38 minutes depending on the model. The HVC was trained on a NVIDIA RTX PRO 6000 and the ANN LM-head was built on an Apple MacBook Pro M5 24GB.
 
@@ -268,7 +268,7 @@ When skipping layers, it's not obvious that the hidden vector can be efficiently
 
 #figure(
   image("my-figures/annh3.jpeg", width: 80%),
-  caption: [Illustration of the idea to score clusters, then only select among token unembedding vectors inside the top-k clusters. In the illustration top-k = 3. The green vector is the query hidden vector produced by the body. In this case, the query vector is in the intersection of all returned clusters, so the top matching vector can be in any of them. The figure uses clusering in 3D presented as a 2D profile image.],
+  caption: [Illustration of the idea to score clusters, then only select among token unembedding vectors inside the top-k clusters. In the illustration top-k = 3. The green vector is the query hidden vector produced by the body. In this case, the query vector is in the intersection of all returned clusters, so the top matching vector can be in any of them. The figure uses clustering in 3D presented as a 2D profile image.],
 ) <annh-image>
 
 The LM-head takes the hidden vector produced by the body and projects this to the unembedding vectors for all tokens in the vocabulary. This produces a dot product score with all tokens, essentially matching-scores. These scores are called logits and can be positive or negative. To then get probabilities for each token, a softmax is performed over the vocabulary which normalizes the logits into a probability distribution that sums to 1. This is expensive, the hidden vector often has thousands of dimensions and the vocabulary is often bigger than 100 000, so the matrix to multiply is big. FlashHead proposed an idea to avoid performing the full LM-head unembedding matrix multiplication. The core concept is organize similar unembedding vectors into clusters where each clusters has a centroid vector that is the average of the included vectors. During inference, the query hidden vector will then calculate the dot product only with the cluster centroids, then select the top-k best matched clusters and calculate score only with the unembedding vectors from those. If the vocabulary is 150 000, the number of clusters is 10 000 and top-k of 100 is used, then the initial matrix multiplication is with 10 000 vectors instead of 150 000 vectors, and then $100 times frac(150 000, 10 000) = 1500$ unembedding vectors are gathered and scored. So the process of finding the best matching tokens is divided into the two-step process of scoring a small routing-matrix and then scoring only the unembedding vectors that are close to the query hidden vector.
@@ -393,7 +393,7 @@ To train for speculative decoding, the goal is for the drafter to produce the sa
  
 The output of the LM-head is a vector of logits, one value for each token in the vocabulary. After applying softmax, these logits become a probability distribution over the next token. This means that two inference setups can be compared not only by checking whether they choose the same top token, but also by comparing the full probability distributions they assign over the vocabulary.
 
-Cross entropy is used when there is a target token, such as when training an LLM to predict the same tokens as an example from a dataset. If the target token is $y$ and the model assigns probability $q(y)$ to it, the cross entropy loss is
+Cross entropy is typically used when there is a target token, such as when training an LLM to predict the same tokens as an example from a dataset. If the target token is $y$ and the model assigns probability $q(y)$ to it, the cross entropy loss is
 
 $
 L_"CE" = - log q(y).
@@ -401,21 +401,21 @@ $
 
 This loss becomes small when the model gives high probability to the target token. In this thesis, cross entropy is mainly used to train the drafter to put high probability on the token selected by the verifier. This is especially relevant for greedy speculative decoding, where a drafted token is accepted when it matches the verifier's selected token.
 
-KL divergence is used to compare two full probability distributions. Let $p$ be the verifier's next-token distribution and $q$ be the drafter's next-token distribution. The KL divergence from verifier to drafter is
+KL divergence is used to compare two full probability distributions. Let $p$ be the verifier's next token distribution and $q$ be the drafter's next token distribution. The KL divergence from verifier to drafter is
 
 $
 D_"KL"(p || q) = sum_i p_i log frac(p_i, q_i).
 $
 
-A low KL divergence means that the drafter assigns probability mass similarly to the verifier, not only to the top token but across the vocabulary. This is useful because two models can have the same top1 token while still having different uncertainty over alternative tokens. In this thesis, KL divergence is therefore used as a measure of how closely the drafter imitates the verifier's full next-token behavior.
+A low KL divergence means that the drafter assigns probability mass similarly to the verifier, not only to the top token but across the vocabulary. This is useful because two models can have the same top-1 token while still having different probability over other tokens. In this thesis, KL divergence is therefore used as a measure of how closely the drafter imitates the verifier's full next-token behavior.
 
-Top-1 agreement is used to measure whether two distributions make the same greedy choice. For each token position, the top-1 token is the token with the highest probability. The top-1 agreement between drafter and verifier is then the fraction of positions where they select the same highest-probability token:
+Top-1 agreement is used to measure whether two distributions make the same top-1 choice. For each token position, the top-1 token is the token with the highest probability. The top-1 agreement between drafter and verifier is then the fraction of positions where they select the same highest probability token:
 
 $
 "Top-1 agreement" = frac("matching top-1 tokens", "evaluated token positions").
 $
 
-Top-1 is not used directly as a training objective in this thesis. It is a measurement of the placed token and does not show how close the rest of the distribution is. For example, a drafter can have the same top-1 token as the verifier while assigning very different probabilities to the other tokens. Still, top-1 is a useful and intuitive metric because it measures exactly whether the drafter and verifier would make the same greedy next-token choice. This makes it especially relevant for the greedy self-speculative decoding used in this thesis.
+Top-1 is not used directly as a training objective in this thesis. It is a measurement of the placed token and does not show how close the rest of the distribution is. For example, a drafter can have the same top-1 token as the verifier while assigning very different probabilities to the other tokens. However, top-1 is a useful and intuitive metric because it measures exactly whether the drafter and verifier would make the same top-1 next token choice. This makes it especially relevant for the greedy self-speculative decoding used in this thesis.
 
 == Research Questions
 
@@ -459,9 +459,6 @@ The overall methodology for the project is to implement the inference setups in 
 
 The methods to increase the speed of the body and head are largely separable. The job of the body is to deliver well converged hidden vectors and the job of the head is to find matching tokens given a hidden vector. The project therefore has several functions that isolates the task of skipping layers in the body, and then other functions that isolates the task of speeding up the head with ANNH. The best found solutions for each part are used to produce a drafter in a self-speculative setup where the acceptance rate, correctness and speedup is measured.
 
-== Metrics
-
-The end goal is to make the drafter performant and close in generation to the verifier. There are different metrics to measure this behavior, the two most important ones are KL divergence and top1 match. Top1 match means the fraction of generations where the drafter and verifier produces the same highest probability token. Which one is more important depends on the acceptance policy the speculative decoding will use. If the speculative decoding uses greedy sampling, then mostly top1 matching matters, if it uses sampling with temperature then both KL and and top1 will be of importance.
 
 == Environment
 The project is written with Python, PyTorch and Hugging Face. It uses open instruction-tuned models from Meta Llama, Mistral AI and Qwen: `meta-llama/Llama-3.2-1B-Instruct`, `meta-llama/Llama-3.2-3B-Instruct`, `Qwen/Qwen3-4B-Instruct-2507`, `meta-llama/Llama-3.1-8B-Instruct`, and `mistralai/Mistral-7B-Instruct-v0.3`. The models are run with completion-style prompt sets through their standard Hugging Face forward functions. To skip layers, targeted transformer layers are overwritten with a hook that turns them into no-operations, passing the hidden vector forward unchanged.
@@ -482,7 +479,7 @@ class NoOpDecoderLayer(nn.Module):
         return hidden_states```
 
 == Datasets
-The datasets used to train the HVC-bridge are 18% "HuggingFaceTB/cosmopedia-100k", 18% "codelion/fineweb-edu-1B", 41%  "MBZUAI/LaMini-instruction", 18% "flytech/python-codes-25k", and 5% "roneneldan/TinyStories".  All training are made with a single epoch. This is to maximize the amount of examples seen given allocated compute, but also to get KL/CE/top1 training graphs that don't include progress where the module has seen the data before. 
+The datasets used to train the HVC-bridge are 18% "HuggingFaceTB/cosmopedia-100k", 18% "codelion/fineweb-edu-1B", 41%  "MBZUAI/LaMini-instruction", 18% "flytech/python-codes-25k", and 5% "roneneldan/TinyStories".  All training are made with a single epoch. This is to maximize the amount of examples seen given allocated compute, but also to get KL/CE/top1 training graphs that don't include progress where the module has seen the data before. The datasets are selected to work with the completion-style training setup and to be a good foundation to handle a spectrum of different prompts. 
 
 == Body Approximation
 
@@ -942,7 +939,7 @@ Here is a pseudocode of how the self-speculative decoding works:
   #line(length: 100%, stroke: 0.5pt + luma(200))
   
   #kw[Input:] prompt $x$, maximum generation length $T$, draft block size $K$, \
-  full model $M$, drafter $tilde(M)$ formed by skipping a layers and using ANNH, and inserting bridge $B$ \
+  full model $M$, drafter $tilde(M)$ formed by skipping a layers and optinally using ANNH, and inserting bridge $B$ \
   #kw[Output:] generated sequence $y$
 
   #alg-counter.update(0)
@@ -1052,6 +1049,8 @@ Here are examples from each prompt set:
 ) <tab-main-prompt-sets>
 
 All prompts in the three prompt sets are generated by ChatGPT 5.5 Thinking. The main idea with the different prompt sets is to measure if the acceptance rate is higher when the prompt is less open-ended and more concrete. If the prompt is open-ended, there are many possible good continuations from the prompt, and thus possibly less probability that the drafter and the verifier predict the same next tokens.
+
+The reason to generate benchmark prompts instead of using an existing prompt-set is to have full control of the concrete to open-ended dimension, but also that availible benchmark prompt-sets might be too difficult for the relatively small models used. If a very complex prompt is used, then the generated answer from a small model like Llama 3.2 1B Instruct might be wrong or primarly a guess. In that situation, the task of the drafter then becomes to predict a guess or an incorrect generation. That would make the evaluation of the drafter performance less clear. By having prompts that are on a controlled difficulty level, the small models can have a chance to generate tokens that aren't pure guesses.  
 
 Literal examples from the three prompt sets are shown below. The concrete set covers bounded tasks with short, checkable outputs, while the open-ended and Python-diverse sets include prompts where the continuation is naturally longer.
 
