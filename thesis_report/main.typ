@@ -419,8 +419,6 @@ Top-1 is not used directly as a training objective in this thesis. It is a measu
 
 == Research Questions
 
-// The aim of this thesis is to investigate whether combining layer skipping, HVC, and ANNH in a self-speculative decoding setup can produce meaningful inference speedups for small-scale LLMs while keeping original generation quality or not increasing memory usage.
-
 The following research questions are addressed:
 + Which layer-skipping strategy minimizes damage to generation quality per layer skipped, and does this pattern hold across model families?
 
