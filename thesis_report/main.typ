@@ -508,10 +508,9 @@ A delimitation for this project is that only a single HVC will be used. This the
   #set text(size: 10pt)
 
   #strong[Layer ablation masks tested.] \
-  Let the model have $L$ decoder layers indexed $0, ..., L - 1$. \
-  Each ablation is represented by a kept-layer set $A subset.eq {0, ..., L - 1}$; \
-  all layers not in $A$ are skipped. The experiments use a bounded sampled set
-  of mask sizes and placements, rather than every possible value.
+  The model has $L$ layers indexed $0, ..., L - 1$. \
+  Each ablation is represented with the set $S subset.eq {0, ..., L - 1}$. \
+  All layers in $S$ are skipped, and all other layers are kept.
 
   #line(length: 100%, stroke: 0.5pt + luma(200))
 
@@ -521,36 +520,21 @@ A delimitation for this project is that only a single HVC will be used. This the
     row-gutter: 8pt,
 
     [#strong[Keep all]],
-    [Keep every layer: $A = {0, ..., L - 1}$. This is the no-ablation baseline.],
-
-    [#strong[Thesis gap]],
-    [Keep the first $N$ and last $M$ layers: \
-    $A = {0, ..., N - 1} union {L - M, ..., L - 1}$. \
-    The explicitly included thesis masks are $(N, M) = (1, 1)$ and $(2, 2)$.],
+    [Skip no layers: $S = emptyset$. This is the baseline that is compared to.],
 
     [#strong[Early exit]],
-    [Keep only a prefix of the network: $A = {0, ..., k - 1}$. \
-    This tests how well the model performs when computation stops after the first $k$ layers.],
+    [Skip after the first $k$ layers: $S = {k, ..., L - 1}$.],
 
     [#strong[Late start]],
-    [Keep only a suffix of the network: $A = {L - k, ..., L - 1}$. \
-    This tests whether the later layers can operate without the earlier layers.],
+    [Skip before the last $k$ layers: $S = {0, ..., L - k - 1}$.],
 
     [#strong[Internal gap]],
-    [Remove one contiguous block of internal layers while keeping layers before and after it: \
-    $A = {0, ..., s - 1} union {s + g, ..., L - 1}$. \
-    The skipped gap has start $s$ and length $g$, does not touch the first or last layer,
-    and is sampled across several gap lengths and positions.],
+    [Skip a contiguous block of internal layers: \
+    $S = {s, ..., s + g - 1}$. \
+    The skipped gap has start $s$ and length $g$. The first and last layer are not skipped.],
 
-    [#strong[Periodic drop]],
-    [Drop one phase modulo a step size $p$: \
-    $A = {i : i mod p != phi}$. \
-    This removes every $p$-th layer for the sampled steps $p = 2, 3$ and phases.],
-
-    [#strong[Periodic keep]],
-    [Keep only one phase modulo a step size $p$: \
-    $A = {i : i mod p = phi}$. \
-    This keeps every $p$-th layer and skips the rest, again for sampled phases of $p = 2, 3$.],
+    [#strong[Periodic]],
+    [Skipping every 2nd or 3rd layer or keeping only every 2nd or 3rd layers. Duplicate masks are removed.]
   )
 ]
 
