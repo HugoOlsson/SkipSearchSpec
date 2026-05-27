@@ -283,17 +283,20 @@ This project produces an implementation of this idea and refers to it as ANNH wh
 
 The proposed methods to speedup the head and body use approximations of the full calculations. This can save compute but will also make generation quality worse, it's just a question about how much worse. When selecting an inference setup, it is usually not satisfying to apply inference speedups without clear information how the generation quality is affected. If the speedup is 30% but the generation quality has dropped with 30% then it's not necessarily a good deal. To ensure that the generation quality is the same as the original model, this project uses speculative decoding. The idea behind speculative decoding is that it's much faster to verify tokens than it is to produce them. The setup is that you have a _drafter_ and a _verifier_ model. The drafter generates a block of tokens and the verifier verifies if the tokens are the same as the verifier would have generated. If yes, then the tokens are accepted, and if not, then they are rejected from the point where the the verifier disagrees. If the drafter is fast and fairly accurate, this setup can be more performant than running the model normally while also not compromising the quality of generation. For this thesis, since the model parameters are unchanged, the verifier and drafter can be the same model, just running with different inference logic during drafting and verification. This is called _self-speculation_. The advantage with this is that only one model needs to be loaded into GPU memory.
 
-The expected speedup from self-speculative decoding can be estimated from the draft block size $gamma$, the measured draft-token acceptance rate $a$, the verifier cost, and the drafter cost.
+The speedup from self-speculative decoding can be theoretically estimated by using the variables $gamma$ to denote the block size, $d$ to denote the drafter to normal ratio, $v$ for the verifier to normal ratio, and $a$ to denote the acceptance rate.
 
-The acceptance rate in this thesis is defined as
-
+The acceptance rate is here defined as 
 $
 a = frac("total accepted draft tokens", "total drafted tokens").
 $
 
-Let $T_"normal"$ be the time for one normal autoregressive generation step. Let $T_"verifier"$ be the time for one verifier call in self-speculative decoding, and let $T_"drafter"$ be the time for one drafter step.
+The variables $d,v$ are defined as time to call the drafter or verifier compared to the normal full model. If $d = 0.1$, then the drafter needs 10% to generate a next token compared to what the full normal model would take. If $v = 1.05$, then it takes the verifier 1.05x of the normal next token generation time to verify the entire block with $gamma$ tokens.
 
-Each speculative round drafts $gamma$ tokens. The expected number of accepted draft tokens per round is then
+
+Let $T_"normal"$ be the absolute time for one normal full model generation step. Let $T_"verifier"$ be the absolute time for the verifier to verify a drafted block of tokens, and let $T_"drafter"$ be the absolute time for one drafter step. 
+
+
+Each speculated block is $gamma$ tokens. So the expected number of accepted draft tokens per round is
 
 $
 gamma a.
@@ -317,26 +320,14 @@ $
 EE["normal time for same tokens"] = (1 + gamma a) T_"normal".
 $
 
-The expected speedup is normal time divided by self-speculative time:
+The estimated speedup is normal time divided by self-speculative time:
 
 $
 S =
 frac((1 + gamma a) T_"normal", T_"verifier" + gamma T_"drafter").
 $
 
-Now define the measured relative costs
-
-$
-v = frac(T_"verifier", T_"normal")
-$
-
-and
-
-$
-d = frac(T_"drafter", T_"normal").
-$
-
-Substituting $T_"verifier" = v T_"normal"$ and $T_"drafter" = d T_"normal"$ gives
+Now substitute the relative variables that were defined in the beginning $T_"verifier" = v T_"normal"$ and $T_"drafter" = d T_"normal"$ gives
 
 $
 S =
