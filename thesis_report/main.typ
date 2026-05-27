@@ -627,17 +627,17 @@ Every HVC-training produces a run.json file that includes training and loss valu
 
     [`kl_verifier_to_drafter`], [
       #set text(size: 9pt)
-      The KL divergence between the verifier's next-token distribution and the drafter's next-token distribution. Lower values mean that the drafter assigns probability mass more similarly to the verifier over the vocabulary.
+      The KL divergence between the verifier's next token distribution and the drafter's next token distribution. Lower values mean that the drafter assigns probability mass more similarly to the verifier over the vocabulary.
     ],
 
     [`top1_drafter_matches_verifier`], [
       #set text(size: 9pt)
-      The fraction of token positions where the drafter and verifier have the same top1 token. This is especially important for greedy self-speculation, since a drafted token is accepted when it matches the verifier's selected token.
+      The fraction of token positions where the drafter and verifier have the same top-1 token. This is especially important for greedy self-speculation, since a drafted token is accepted when it matches the verifier's selected token.
     ],
 
     [`loss_ce_drafter_on_verifier_top1`], [
       #set text(size: 9pt)
-      The CE loss of the drafter using the verifier's top1 token as the target. This trains the drafter to put high probability on the token that the verifier would select at the same position.
+      The CE loss of the drafter using the verifier's top-1 token as the target. This trains the drafter to put high probability on the token that the verifier would select at the same position.
     ],
 
     [`loss_bridge_reentry_mse`], [
@@ -1077,9 +1077,15 @@ def invoice_total(rows: list[dict[str, float]], tax_rate: float) -> float:
 
 Each benchmark variant has three phases:
 
-+ _Warmup phase_: the first `N` prompts are run before any reported measurement, where `N` is a benchmark setting. These runs are discarded. Their purpose is to remove any bias for where initial prompts might be processed slower.
-+ _Profile phase_: the next `M` prompts are run with internal timings enabled, where `M` is a benchmark setting. These results are saved separately and are used for diagnostic quantities such as verifier cost, drafter cost, drafter body/head/overhead split, ANNH head speedup, and verifier-to-normal ratios. They are not used for the total speedup numbers because internal profiling inserts device synchronizations around sub-operations which can affect total performance.
-+ _Speed phase_: the full selected prompt set is run with internal timings disabled. These are the measurements used for acceptance rate, exact-match rate, memory usage, per-prompt speedup histograms, and total per-token speedup. The speed phase begins from the first prompt in the prompt set.
+
++ _Warmup phase_: An initial 5 prompts are processed to warmup the inference to exclude any errors in the measurements becuse of possible cold start effects. These are not included in the benchmark values.
+
++ _Profile phase_: After running the warmup, 15 prompts are run where internal measurements are turned on. This will measure times for the drafter and its internal parts, the verifier, and for the normal model as comparison. This will affect the total inference time due to GPU syncs and possible overhead, so the total times are not used to calculate inference speedup in the benchmark. 
+
++ _Benchmark phase_: Benchmarking all prompts in the prompt set, from the first to the last in order. Internal measurements are turned off to get unaffected performance. Total times are measured and used to calculate and report speedups. 
+
+These three phases are run first with the drafter only using skipped layers, and then again with the drafter using skipped layers and ANNH. So Warmup -> Profile -> Benchmark, then enabling ANNH, and doing Warmup -> Profile -> Benchmark again.
+
 
 
 === Timing measurements
