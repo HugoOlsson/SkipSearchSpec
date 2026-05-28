@@ -2277,8 +2277,6 @@ of the approximated drafter compute. Therefore, using ANNH/FlashHead becomes eve
 
 === Speculative decoding
 
-// Maybe refine
-
 Speculative decoding is an established technique that was created to reduce the sequential inefficiency for autoregressive generation. The idea is, as presented in the introduction, to use the full model to verify a block of tokens, which can be performed in parallel. To have something to verify, a less expensive model is used to produce a draft block that have a good chance of being the same as the full model would have produced. The paper _Fast Inference from Transformers via Speculative Decoding_ @leviathan2023fast from 2023 formulates a method to use a smaller model that drafts multiple tokens and then using a larger model to verify them in parallel. This would be regular specualtive decoding and not self-specualtive decoding since it is two different models. The paper shows how many proposed tokens can be accepted in one verifier call and by this give an inference speedup. 
 
 _Accelerating Large Language Model Decoding with Speculative Sampling_ @chen2023accelerating also from 2023 presents a similar specualtive sampling algorithm. It also uses a draft model and a verifier/target model. Together these two papers formulated the approach of specualtive decoding which this thesis uses. 
@@ -2300,11 +2298,10 @@ What is more useful therefore depends on the inference situation. However, unles
 
 === Intermediate representations and Tuned Lens
 
-// Maybe refine
+The HVC bridge is also related to existing research. A paper called _Eliciting Latent Predictions from Transformers with the Tuned Lens_ uses the similar idea of transforming a hidden vector to the output prediction space. It shows that intermediate states can have information about the next token prediction, but that the information might not be represented in the same geometry as the final layer. A learned transformation can make it easier to compare results between different layers.
 
-The HVC bridge is also related to work that studies how transformer hidden states evolve across layers. Tuned Lens @belrose2023tuned trains learned transformations from intermediate hidden states to the output prediction space. It shows that intermediate states can contain information about future predictions, but that they are not necessarily represented in the same geometry as the final layer. A learned translator can make these intermediate predictions more interpretable and more comparable across layers.
+As presented in the introduction, this thesis uses similar intuition to skip layers. By using a learned transformation, the intermediate result from an internal layer can be translated to the geometry of the entrance layer. The training results from this thesis seem to support the idea that a significant part of the degradation in generation quality is from geometry mismatch. The figures @fig-gap11-training-top1-agreement and @fig-gap22-training-top1-agreement show a drastic increase in top-1 match, from around 0% to the range of 60-70% by translating the geometry with the HVC bridge. An important difference to the Tuned Lens paper is that the HVC bridge also gets the previous final hidden vector as additional information. 
 
-This thesis uses a similar intuition, but for an inference objective rather than an interpretability objective. When a hidden vector is moved across a skipped layer gap, the problem is not only whether it contains useful semantic information. It must also be in a representation that the later layers can process. The HVC bridge is therefore trained to cast a hidden vector from before the gap into a form that is useful after the gap. In this sense, Tuned Lens motivates the idea that hidden states at different depths may require learned translation, while this thesis applies that idea to make aggressive layer skipping usable for self-speculative decoding.
 
 === Position of this thesis
 
