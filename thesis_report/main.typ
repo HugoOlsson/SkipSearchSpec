@@ -2305,12 +2305,7 @@ As presented in the introduction, this thesis uses similar intuition to skip lay
 
 === Position of this thesis
 
-// Maybe refine
-
-The closest conceptual combination is therefore FlashHead plus LayerSkip, with Tuned Lens providing motivation for the learned hidden vector bridge. Compared with FlashHead, this thesis does not only approximate the head; it also reduces body cost. Compared with LayerSkip, this thesis does not retrain/fine-tune the model for layer skipping, it trains a lightweight HVC bridge for frozen models and uses internal gap skipping rather than direct early exit. Compared with Tuned Lens, the learned transformation is not used to analyze model internals, but to make an approximated drafter operational during inference.
-
-The resulting system is a self-speculative inference method where the drafter is made cheaper in both body and head, while the verifier remains the original model. This positions the work as a practical investigation of how far an existing LLM can be turned into its own lightweight drafter without meaningfully increasing memory usage or changing generation.
-
+The existing research has many of the individual components that this thesis uses. The self-speculation is similar to LayerSkip and the specualtive decoding papers, the HVC bridge follows the same inuition the Tuned Lens paper but used with some modifications, and the ANNH uses the technique proposed by FlashHead. The novelty of this thesis is the combination of these existing research domains, and implementing the ideas in a modified way to produce a complete inference system.   
 
 = Conclusion
 
