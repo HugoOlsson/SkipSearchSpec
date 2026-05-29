@@ -1170,7 +1170,7 @@ The first metric plotted for each model is KL divergence from the full model dis
   caption: [Top-1 agreement with the full model for skip ablations of `meta-llama/Llama-3.2-1B-Instruct`.],
 ) <fig-skip-ablations-llama32-1b-top1>
 
-The skip ablations for Llama 3.2 1B Instruct show that per layer skipped, an internal gap seems to hurt the generation performance less. In the top-1 agreement figure @fig-skip-ablations-llama32-1b-top1, an early-exit version does produce the highest score, but it is also skipping less layers than any of the gap-jump ablations. Worst layer to skip seems to be the first layer. Periodic ablations seem to be able to perform okay but it heavily depends on what specific layers that were skipped. One periodic ablatino is in among the better ablations while another one is among the worst, even though they seemingly use the same stratergy. 
+The skip ablations for Llama 3.2 1B Instruct show that per layer skipped, an internal gap seems to hurt the generation performance less. In the top-1 agreement figure @fig-skip-ablations-llama32-1b-top1, an early-exit version does produce the highest score, but it is also skipping less layers than any of the gap-jump ablations. The worst layer to skip seems to be the first layer. Periodic ablations seem to be able to perform okay but it heavily depends on what specific layers that were skipped. One periodic ablation is among the better ablations while another one is among the worst, even though they seemingly use the same strategy. 
 
 #figure(
   image("my-figures/plots/skip-ablations/layer_ablations_meta-llama_Llama-3.2-3B-Instruct_20260517_132758_kl_per_removed_layer_multicolumn.png", width: 110%),
@@ -1182,7 +1182,7 @@ The skip ablations for Llama 3.2 1B Instruct show that per layer skipped, an int
   caption: [Top-1 agreement with the full model for skip ablations of `meta-llama/Llama-3.2-3B-Instruct`.],
 ) <fig-skip-ablations-llama32-3b-top1>
 
-The same approximate pattern can be seen for Llama 3.2 3B Instruct. Minimal per layer degradation seem to be dominiated by internal gaps. Periodic gaps again seem to produce very different results depending on exactly what holes the periodic pattern produced. Per layer skipped, neither early-exit or late-start seem competitive with an internal contiguous gap. Similar to Llama 3.2 1B Instruct, the generation quality degrades very quickly when layers are skipped. It does not look possible to use skipped layers to gain a speedup in self-speculation without a HVC-bridge.
+The same approximate pattern can be seen for Llama 3.2 3B Instruct. Minimal per layer degradation seems to be dominated by internal gaps. Periodic gaps again seem to produce very different results depending on exactly what holes the periodic pattern produced. Per layer skipped, neither early-exit or late-start seem competitive with an internal contiguous gap. Similar to Llama 3.2 1B Instruct, the generation quality degrades very quickly when layers are skipped. It does not look possible to use skipped layers to gain a speedup in self-speculation without a HVC-bridge.
 
 #figure(
   image("my-figures/plots/skip-ablations/layer_ablations_mistralai_Mistral-7B-Instruct-v0.3_20260517_132707_kl_per_removed_layer_multicolumn.png", width: 110%),
@@ -1194,7 +1194,7 @@ The same approximate pattern can be seen for Llama 3.2 3B Instruct. Minimal per 
   caption: [Top-1 agreement with the full model for skip ablations of `mistralai/Mistral-7B-Instruct-v0.3`.],
 ) <fig-skip-ablations-mistral-7b-top1>
 
-Mistral 7B Instruct continues the pattern but with slightly more optimistic results for early-exit and late-start. An observation is that for this model, large number of skipped layers with early-exit and late-start look more promising than large gaps with gap-jump. 
+Mistral 7B Instruct continues the pattern but with slightly more optimistic results for early-exit and late-start. An observation is that for this model, a large number of skipped layers with early-exit and late-start look more promising than large gaps with gap-jump. 
 
 #figure(
   image("my-figures/plots/skip-ablations/layer_ablations_meta-llama_Llama-3.1-8B-Instruct_20260517_132853_kl_per_removed_layer_multicolumn.png", width: 110%),
@@ -1206,7 +1206,7 @@ Mistral 7B Instruct continues the pattern but with slightly more optimistic resu
   caption: [Top-1 agreement with the full model for skip ablations of `meta-llama/Llama-3.1-8B-Instruct`.],
 ) <fig-skip-ablations-llama31-8b-top1>
 
-Llama 3.1 8B Instruct shows approximatly the same pattern as Llama 3.2 1B and 3B Instruct.
+Llama 3.1 8B Instruct shows approximately the same pattern as Llama 3.2 1B and 3B Instruct.
 
 #figure(
   image("my-figures/plots/skip-ablations/layer_ablations_Qwen_Qwen3-4B-Instruct-2507_20260517_132930_kl_per_removed_layer_multicolumn.png", width: 110%),
