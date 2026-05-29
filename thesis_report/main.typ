@@ -1947,7 +1947,7 @@ This gives $d_1 = 6.94%$ for the (1,1) + ANNH drafter. With 65% top-1 accuracy, 
   supplement: [T],
 ) <tab-less-skipped-required-top1-block1>
 
-The estimates in @tab-less-skipped-required-top1-block1 show that when keeping more layers, the acceptance threashold to achive the same speedup increases rapidly. If the top1 is 65% with (1,1) then it needs to be 73.8% for (2,2) and 82.5% for (3,3). This is not the increase we see when using smaller gaps which suggests that it will not be a viable alternative to test for gaps smaller than (2,2). The table also shows that its impossible to reach the same speedup as the (1,1) with (5,5) or smaller gaps, which for this model is to keep 30.7% or more of the layers. So it doesn't matter how good the a skipping ablation is that keeps more than 30.7% of the layers, it won't produce a self-specualtive system faster than the (1,1) baseline.
+The estimates in @tab-less-skipped-required-top1-block1 show that when keeping more layers, the acceptance threshold to achieve the same speedup increases rapidly. If the top1 is 65% with (1,1) then it needs to be 73.8% for (2,2) and 82.5% for (3,3). This is not the increase we see when using smaller gaps which suggests that it will not be a viable alternative to test for gaps smaller than (2,2). The table also shows that its impossible to reach the same speedup as the (1,1) with (5,5) or smaller gaps, which for this model is to keep 30.7% or more of the layers. So it doesn't matter how good a skipping ablation is that keeps more than 30.7% of the layers, it won't produce a self-speculative system faster than the (1,1) baseline.
 
 
 === Self-speculation speedups and memory usage
