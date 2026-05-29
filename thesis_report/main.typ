@@ -1501,7 +1501,7 @@ The results show that using more clusters produces a higher top-1 accuracy for a
 
 == Training HVC-bridge
 
-Here are the results for the HVC-bridge training. It shows training for the gaps (1,1) and (2,2) since those are the gaps that have the best possibility for speedup. See the discussion for why smaller gaps where choosen to not be included.
+Here are the results for the HVC-bridge training. It shows training for the gaps (1,1) and (2,2) since those are the gaps that have the best possibility for speedup. See the discussion for why smaller gaps were chosen to not be included.
 
 === Training (1,1) gap
 
