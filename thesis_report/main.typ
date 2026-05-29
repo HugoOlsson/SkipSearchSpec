@@ -1250,7 +1250,7 @@ Figure @clustering-llama3.2-1B-instruct-img shows the process of clustering 5344
   caption: [Cluster quality metrics for the 5344-cluster ANNH index built from Llama 3.2 1B Instruct LM-head vectors.],
 ) <tab-cluster-quality-llama32-1b-5344>
 
-The fraction assigned to nearest centroid of 0.947 signals that most of the vectors belong to a cluster whose centroid is the nearest centroid. The minimum and maximum cluster size also show that all clusters have the same size and the correct size for 5344 clusters with 128,256 unembedding token vectors.
+The fraction assigned to the nearest centroid being 0.947 signals that most of the vectors belong to a cluster whose centroid is the nearest centroid. The minimum and maximum cluster size also show that all clusters have the same size and the correct size for 5344 clusters with 128,256 unembedding token vectors.
 
 
 By running evaluation on the cluster with different number of top-k probings these are the results: 
@@ -1496,7 +1496,7 @@ Here is the data for 2.6k, 8k, and 16k clusters:
 ) <evaluation-sweep-cluster-llama32-3b-instruct-16032-table>
 
 
-The results show that using more clusters produces a higher top-1 accuracy for a given top-k. This also means that more clusters mean a smaller fraction of the total vocabulary unembedding vectors to gather to reach a threashold accuracy. To balance still having a routing matrix that is significantly cheaper than the full LM-head, the cluster size of around 8k will be used for all models (exact number depending on divisibility) for the self-speculation benchmarks. The exception will be for Mistral 7B since that has a vocabulary of 32 768 tokens. A cluster target of 8k will be too big to make sense, so a 4096 will be used for that one. 
+The results show that using more clusters produces a higher top-1 accuracy for a given top-k. This also means that more clusters mean a smaller fraction of the total vocabulary unembedding vectors to gather to reach a threshold accuracy. To balance still having a routing matrix that is significantly cheaper than the full LM-head, the cluster size of around 8k will be used for all models (exact number depending on divisibility) for the self-speculation benchmarks. The exception will be for Mistral 7B since that has a vocabulary of 32 768 tokens. A cluster target of 8k will be too big to make sense, so a 4096 will be used for that one. 
 
 
 == Training HVC-bridge
