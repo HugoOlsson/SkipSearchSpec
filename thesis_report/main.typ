@@ -436,7 +436,7 @@ Following the Amdahl's law reasoning presented in the background, these enhancem
 === Limitations
 This project has several limitations to keep the workload feasible:
 
-+ Model scale: Only small-scale models are used (about 0.5B–10B parameters). This limitation makes building and testing quicker since the models need less resources and time to run. It also make sense because it is where ANNH gives the biggest speedup and thus differentiation for this research.
++ Model scale: Only small-scale models are used (about 1B–10B parameters). This limitation makes building and testing quicker since the models need less resources and time to run. It also makes sense because it is where ANNH gives the biggest speedup and thus differentiation for this research.
 
 + Hardware testing: The project doesn't do comprehensive testing of performance on different chips and possible hardware. The benchmark GPUs are NVIDIA L4 and L40s. 
 + Model selection: This project limits itself to a small number of open models from Llama 3.1, Llama 3.2, Qwen 3 and Mistral.
