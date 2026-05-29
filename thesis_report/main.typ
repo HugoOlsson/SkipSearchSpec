@@ -2253,11 +2253,11 @@ This thesis makes the following contributions:
 
 + It implements training and inference to use HVC to skip layers in the LM-body. 
 
-+ It implements a drafter inference mode for a frozen LLM where the LM-body skips a subset its layers with HVC and the head uses ANNH.
++ It implements a drafter inference mode for a frozen LLM where the LM-body skips a subset of its layers with HVC and the head uses ANNH.
 
 + It implements a self-speculative setup where an LLM is used both as verifier and drafter by switching between an approximated drafter inference mode and the original inference mode.
 
-+ It implements a comprehensive benchmark for this self-specualtive inference where skipped layers is used and optionally ANNH. The benchmark reports things like VRAM usage, acceptance rates, the computational split in the head, exact match rate and more.
++ It implements a comprehensive benchmark for this self-speculative inference where skipped layers are used and optionally ANNH. The benchmark reports things like VRAM usage, acceptance rates, the computational split in the head, exact match rate and more.
 
 
 #pagebreak()
