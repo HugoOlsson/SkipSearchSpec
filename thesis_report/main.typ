@@ -1002,7 +1002,7 @@ def invoice_total(rows: list[dict[str, float]], tax_rate: float) -> float:
 Each benchmark variant has three phases:
 
 
-+ _Warmup phase_: An initial 5 prompts are processed to warmup the inference to exclude any errors in the measurements becuse of possible cold start effects. These are not included in the benchmark values.
++ _Warmup phase_: An initial 5 prompts are processed to warmup the inference to exclude any errors in the measurements because of possible cold start effects. These are not included in the benchmark values.
 
 + _Profile phase_: After running the warmup, 15 prompts are run where internal measurements are turned on. This will measure times for the drafter and its internal parts, the verifier, and for the normal model as comparison. This will affect the total inference time due to GPU syncs and possible overhead, so the total times are not used to calculate inference speedup in the benchmark. 
 
