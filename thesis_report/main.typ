@@ -2231,7 +2231,7 @@ As presented in the introduction, this thesis uses similar intuition to skip lay
 
 === Position of this thesis
 
-The existing research has many of the individual components that this thesis uses. The self-speculation is similar to LayerSkip and the specualtive decoding papers, the HVC bridge follows the same inuition the Tuned Lens paper but used with some modifications, and the ANNH uses the technique proposed by FlashHead. The novelty of this thesis is the combination of these existing research domains, and implementing the ideas in a modified way to produce a complete inference system.   
+The existing research has many of the individual components that this thesis uses. The self-speculation is similar to LayerSkip and the speculative decoding papers, the HVC bridge follows the same intuition as the Tuned Lens paper but used with some modifications, and the ANNH uses the technique proposed by FlashHead. The novelty of this thesis is the combination of these existing research domains, and implementing the ideas in a modified way to produce a complete inference system. 
 
 = Conclusion
 
