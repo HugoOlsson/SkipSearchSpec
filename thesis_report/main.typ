@@ -472,13 +472,6 @@ The datasets used to train the HVC-bridge are 18% "HuggingFaceTB/cosmopedia-100k
 
 == Body Approximation
 
-// Multiple setups are used to find the solution that gives the best result:
-
-// - Naive early-exits (without HVC)
-// - Early-exits with HVC
-// - How different ablations of skipping layers (early-exit, gap-jump, late-start, etc.) affect KL and top-1 per removed layer
-// - How the best skipping-ablations perform with HVC
-
 #figure(
   image("my-figures/gap-skip-setup.jpg", width: 80%),
   caption: [Structure of skipping layers. The low opacity layers in the middle are skipped. ],
@@ -494,7 +487,7 @@ To get best possible drafting performance per layer skipped, it is likely import
 
 The setup exists in `evaluate_layer_skip_ablations.py`. It begins with running next-token prediction with the full model over a set of windows from the dataset, it records the logits produced at every position. Different layer-skip-ablations of the model are then run over the same windows and the next-token predictions are compared to the full model. This produces an average KL divergence compared to the full model and an average top1 score for each ablation. This is then presented in a plot that can show the results of KL, KL per removed layer, or top1 for all ablations. 
 
-This setup does not use the HVC when skipping layers. Even though the HVC should be relatively lightweight to train, training one for all possible ablations would require a lot of compute. The skip-ablations are therefore measured with the hidden vector going directly from the last layer before the gap to entry layer. The idea is that this will still show what skip-ablations that are promising starting points to then improve further with the HVC.
+This setup does not use the HVC when skipping layers. Even though the HVC should be relatively lightweight to train, training one for all possible ablations would require a lot of compute. The skip-ablations are therefore measured with the hidden vector going directly from the last layer before the gap to the entry layer. The idea is that this will still show what skip-ablations that are promising starting points to then improve further with the HVC.
 
 A delimitation for this project is that only a single HVC will be used. This then requires there to be a single contiguous gap, not multiple holes of skipped layers. The ablations tested are mostly such with a contiguous gap, but some non-contiguous periodic ablations are also included to see how they perform in this test where the HVC doesn't need to be added. Here is a specification of the ablations that are used:
 
