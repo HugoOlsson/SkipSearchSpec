@@ -1599,7 +1599,7 @@ From figure @fig:self-spec-llama-31-8b-concrete a speedup of 1.46x with skipped 
 
 The profile measurements show that the drafter head becomes 7.47x faster when replacing the dense LM-head with ANNH. This makes the acceptance rate go from 47.7% without ANNH to 46.9% with it. The fraction of when the outputs exactly match normal generation is 43.3% both with and without ANNH. This does not mean that the self-speculation is incorrect or that it is approximate. See the discussion for why this happens even without approximation. 
 
-Before the measured benchmarks, 5 warmup runs and 15 profile runs were performed. The used GPU was a NVIDIA L4. The result shows that a verifier call costs 1.05x of a normal token generation call. The block size is 2, which means that this follows the expectation that verifying two tokens and generating a bonus token is cheaper is significantly cheaper then generation. The result shows that speeding up both the head and the body does increase total speedup which follows the Amdahl's law reasoning. The profile shows that the drafter costs about 14.4% of normal generation with skipped layers, and about 8.5% with skipped layers and ANNH.
+Before the measured benchmarks, 5 warmup runs and 15 profile runs were performed. The used GPU was a NVIDIA L4. The result shows that a verifier call costs 1.05x of a normal token generation call. The block size is 2, which means that this follows the expectation that verifying two tokens and generating a bonus token is significantly cheaper than generation. The result shows that speeding up both the head and the body does increase total speedup which follows Amdahl's law reasoning. The profile shows that the drafter costs about 14.4% of normal generation with skipped layers, and about 8.5% with skipped layers and ANNH.
 
 Using @selfs-speedup with the observed values $v = 1.05$, $gamma = 2$, $a = 47.7%$, and $d = 14.4%$, the predicted speedup is
 $
@@ -1608,7 +1608,7 @@ $
 which aligns exactly with the measured 1.46x. For the version with ANNH, setting $d = 8.5%$ and $a = 46.9%$ gives $S approx 1.59$x, again consistent with the measured 1.58x.
 
 
-The drafter split shows that without ANNH, the share is 49.1% body, 46.0% head and 4.8% body. With ANNH this changes to 82.0% body, 10.2% head and 7.7% overhead. This shows that there is some overhead in the system, such as reconfiguration for the model between acting as a verifier and a drafter, and other costs that come with the built self-specualtive system. However, if the overhead is 7.7% of the drafter and the drafter is 8.5% of the normal model, then the total overhead is quite small in absolute time. 
+The drafter split shows that without ANNH, the share is 49.1% body, 46.0% head and 4.8% body. With ANNH this changes to 82.0% body, 10.2% head and 7.7% overhead. This shows that there is some overhead in the system, such as reconfiguration for the model between acting as a verifier and a drafter, and other costs that come with the built self-speculative system. However, if the overhead is 7.7% of the drafter and the drafter is 8.5% of the normal model, then the total overhead is quite small in absolute time. 
 
 #figure(
   move(
