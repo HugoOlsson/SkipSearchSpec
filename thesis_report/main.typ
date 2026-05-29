@@ -562,7 +562,7 @@ The bridge is implemented as a linear transformation in PyTorch with residual up
 
 
 === Training skipping layers
-The file `train_skipping_layers.py` exposes the function `def train_skipping_layers` which is used to train the HVC-bridge for an ablation of layer skipping. This function uses infrastructure to load datasets, build windows, load bridge module class, setup model and bridge as frozen and non-frozen respectively. It uses the full model in its standard inference mode to act teacher and the inference setup to skip layers as the student. The optimization objectives is to, for a window, minimize the KL divergence and CE compared to the teacher output for the tokens. 
+The file `train_skipping_layers.py` exposes the function `def train_skipping_layers` which is used to train the HVC-bridge for an ablation of layer skipping. This function uses infrastructure to load datasets, build windows, load bridge module class, setup model and bridge as frozen and non-frozen respectively. It uses the full model in its standard inference mode to act teacher and the inference setup to skip layers as the student. The optimization objectives are to, for a window, minimize the KL divergence and CE compared to the teacher output for the tokens. 
 
 
 #```python
