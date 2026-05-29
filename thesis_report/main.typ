@@ -2050,7 +2050,7 @@ Here are the answers to the research questions that were stated in the Introduct
 
 The experiments indicate that skipping one contiguous internal gap is the best tested strategy. The skip-ablation results show that early-exit and late-start strategies damage the output distribution more for the same number of skipped layers, while non-contiguous skip patterns such as skipping every other layer do not give a clear advantage. The useful pattern is therefore to keep the first layers, keep the last layers, and skip a block in the middle.
 
-This pattern is also makes sense regarding the role of the layers. The first layers transform the token embeddings into the model's internal representation, and the last layers prepare the hidden vector for the final unembedding. An internal gap is then likely less destructive because it leaves both the first and last layers of the model intact. 
+This pattern also makes sense regarding the role of the layers. The first layers transform the token embeddings into the model's internal representation, and the last layers prepare the hidden vector for the final unembedding. An internal gap is then likely less destructive because it leaves both the first and last layers of the model intact. 
 
 === Can a lightweight HVC bridge recover the generation quality lost from skipping layers well enough to produce an effective drafter?
 
