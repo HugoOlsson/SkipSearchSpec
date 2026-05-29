@@ -1836,7 +1836,7 @@ The layer skipping ablations also showed that it does not seem beneficial to do 
 
 The KL per layer results show that skipping the first layer hurts performance the most. In the current runs, keeping every layer except the first gives top-1 agreement between 0.021 and 0.093 across the five tested models, and it is the worst single-layer skip for all of them in terms of KL. This is reasonable since the first layer is the one trained to route the embedding vector.
 
-The patterns seems somewhat stable between different model families. Some models such as Llama 3.2 1B Instruct seems to handle early-exit relatively well compared to its result for other ablations. However, per skipped layer, the internal gaps still have the better results.
+The patterns seem somewhat stable between different model families. Some models such as Llama 3.2 1B Instruct seem to handle early-exit relatively well compared to its result for other ablations. However, per skipped layer, the internal gaps still have the better results.
 
 === HVC bridge training
 
