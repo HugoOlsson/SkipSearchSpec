@@ -106,13 +106,13 @@
 
   #heading(level: 2, numbering: none, outlined: false)[Abstract]
 
-  This thesis has investigated the possibility to speedup inference by producing a self-speculative setup where the original model is verifier and drafter. The model is frozen so the original quality is preserved and no retraining required. The frozen model switches between being verifier and drafter. In the drafter mode, a gap of almost all layers are skipped and an approximated nearest neighbors (ANN) LM-head is used. To prevent completely degraded performance from skipping many layers, this thesis proposes Hidden Vector Casting (HVC) which casts the hidden vector from the representation of the exit-layer to the representation of the entrance-layer.
+  This thesis has investigated the possibility to speedup inference by producing a self-speculative setup where the original model is verifier and drafter. The model is frozen so the original quality is preserved and no retraining required. The frozen model switches between being verifier and drafter. In the drafter mode, a gap of almost all layers are skipped and an approximated nearest neighbors (ANN) LM-head is used. To prevent completely degraded performance from skipping many layers, this thesis proposes Hidden Vector Casting (HVC) which casts the hidden vector from the geometric representation of the exit-layer to the geometric representation of the entrance-layer.
 
-  The thesis has produced an open source implementation to train the HVC, build the ANN head and run inference with KV-cache handling. It also includes experiments to evaluate what layer-skipping ablations that are the best to skip as many layers as possible while degrading the generation performance as little as possible. 
+  The thesis has produced an open source implementation to train the HVC, build the ANN head and run self-speculative inference with KV-cache handling. It also includes experiments to evaluate what layer-skipping ablations that are the best to skip as many layers as possible while degrading the generation performance as little as possible. 
 
   The thesis found that skipping an contiguous internal gap of layers is in general advantageous compared to early-exit, late-start of an periodic variant of skipped layers. The selected layer-skipping ablations to produce inference systems were (1,1) and (2,2) which means that all layers except the first and the last are skipped or all layers skipped except the two first and two last respectively.
 
-  The found results are average speedups of 1.21x to 1.63x while having on average 0.9% higher peak memory usage compared to normal inference and producing identical generation to normal inference up to what the selected floating point precision allows for. The speedup depends on the model and the type of prompt used. Larger models seem to have higher potential for speedup while smaller models seem to have less overhead to save computation and thus smaller potential for speedup. Since the mechanism fundamentally is to cheaply speculate ahead of the full model, the results also indicate that more concrete prompts get larger speedups while more open-ended prompts produces lower speedups in general. 
+  The found results are average speedups of 1.21x to 1.63x while having on average 0.9% higher peak memory usage compared to normal inference and producing identical generation to normal inference up to what the selected floating point precision allows for. The speedup depends on the LM model and the type of prompt used. Larger models seem to have higher potential for speedup while smaller models seem to have less overhead to save computation and thus smaller potential for speedup. Since the mechanism fundamentally is to cheaply speculate ahead of the full model, the results also indicate that more concrete prompts get larger speedups while more open-ended prompts produces lower speedups in general. 
 
   The measured total times to train the HVC and to build the ANN LM-head are 16 to 38 minutes depending on the model. The HVC was trained on a NVIDIA RTX PRO 6000 and the ANN LM-head was built on an Apple MacBook Pro M5 24GB.
 
@@ -165,6 +165,7 @@
     [HVC], [Hidden vector casting],
     [KL], [Kullback-Leibler divergence],
     [KV-cache], [Key-value cache],
+    [LM], [Language model],
     [LLM], [Large language model],
     [LM-head], [Language model head],
     [VRAM], [Video random-access memory],
@@ -281,7 +282,7 @@ This project produces an implementation of this idea and refers to it as ANNH wh
 
 *Speculative decoding*
 
-The proposed methods to speedup the head and body use approximations of the full calculations. This can save compute but will also make generation quality worse, it's just a question about how much worse. When selecting an inference setup, it is usually not satisfying to apply inference speedups without clear information how the generation quality is affected. If the speedup is 30% but the generation quality has dropped with 30% then it's not necessarily a good deal. To ensure that the generation quality is the same as the original model, this project uses speculative decoding. The idea behind speculative decoding is that it's much faster to verify tokens than it is to produce them. The setup is that you have a _drafter_ and a _verifier_ model. The drafter generates a block of tokens and the verifier verifies if the tokens are the same as the verifier would have generated. If yes, then the tokens are accepted, and if not, then they are rejected from the point where the verifier disagrees. If the drafter is fast and fairly accurate, this setup can be more performant than running the model normally while also not compromising the quality of generation. For this thesis, since the model parameters are unchanged, the verifier and drafter can be the same model, just running with different inference logic during drafting and verification. This is called _self-speculation_. The advantage with this is that only one model needs to be loaded into GPU memory.
+The proposed methods to speedup the head and body use approximations of the full calculations. This can save compute but will also make generation quality worse, it's just a question about how much worse. When selecting an inference setup, it is usually not satisfying to apply inference speedups without clear information how the generation quality is affected. If the speedup is 30% but the generation quality has dropped with 30% then it's not necessarily a good deal. To ensure that the generation quality is the same as the original model, this project uses speculative decoding. The idea behind speculative decoding is that it's much faster to verify tokens than it is to produce them, because it can be performed in parallel. The setup is that you have a _drafter_ and a _verifier_ model. The drafter generates a block of tokens and the verifier verifies if the tokens are the same as the verifier would have generated. If yes, then the tokens are accepted, and if not, then they are rejected from the point where the verifier disagrees. If the drafter is fast and fairly accurate, this setup can be more performant than running the model normally while also not compromising the quality of generation. For this thesis, since the model parameters are unchanged, the verifier and drafter can be the same model, just running with different inference logic during drafting and verification. This is called _self-speculation_. The advantage with this is that only one model needs to be loaded into GPU memory.
 
 The speedup from self-speculative decoding can be theoretically estimated by using the variables $gamma$ to denote the block size, $d$ to denote the drafter to normal ratio, $v$ for the verifier to normal ratio, and $a$ to denote the acceptance rate.
 
@@ -452,6 +453,8 @@ The methods to increase the speed of the body and head are largely separable. Th
 == Environment
 The project is written with Python, PyTorch and Hugging Face. It uses open instruction-tuned models from Meta Llama, Mistral AI and Qwen: `meta-llama/Llama-3.2-1B-Instruct`, `meta-llama/Llama-3.2-3B-Instruct`, `Qwen/Qwen3-4B-Instruct-2507`, `meta-llama/Llama-3.1-8B-Instruct`, and `mistralai/Mistral-7B-Instruct-v0.3`. The models are run with completion-style prompt sets through their standard Hugging Face forward functions. To skip layers, targeted transformer layers are overwritten with a hook that turns them into no-operations, passing the hidden vector forward unchanged.
 
+#pagebreak()
+
 #```python
 class NoOpDecoderLayer(nn.Module):
     """
@@ -531,6 +534,7 @@ A delimitation for this project is that only a single HVC will be used. This the
   )
 ]
 
+#pagebreak()
 
 === HVC setup
 Internally in the code, the HVC is often called _bridge_ due to the inherent mechanism of connecting two distant points. The text might refer to it as HVC or bridge.
@@ -1221,6 +1225,8 @@ Llama 3.1 8B Instruct shows approximately the same pattern as Llama 3.2 1B and 3
 Qwen 3 4B Instruct also seems to produce the same pattern where a gap-jump is better per skipped layer than the other variants. 
 
 The results show a clear pattern that skipping a contiguous gap in the middle tends to do less damage to generation quality than early-exit or late-start ablations. The best-ranked ablations for all five models are in general internal gaps, while periodic patterns with multiple holes do not show an obvious advantage. This makes the gap-jump setup the most promising general solution to use when training the HVC-bridge and benchmarking speedups.
+
+#pagebreak()
 
 == ANNH cluster building and evaluation
 
@@ -2041,7 +2047,7 @@ The main drawback is that the potential speedup is dependent on the nature of th
 
 
 
-
+#pagebreak()
 
 == Answering the research questions
 Here are the answers to the research questions that were stated in the Introduction chapter.
