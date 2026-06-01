@@ -1922,7 +1922,7 @@ The theoretical estimation from @selfs-speedup can be used to check if a smaller
 $
 d_N = 0.95 dot frac(2N, 32) + frac(0.05, 5).
 $
-This gives $d_1 = 6.94%$ for the (1,1) + ANNH drafter. With 65% top-1 accuracy, this baseline gives a theoretical speedup of $1.47 times$ for block size 1. For greedy self-speculation with block size 1, top-1 agreement is approximately the same as the acceptance rate because each speculative round drafts only one token. The table below therefore shows what acceptance rate a more expensive $(N, N)$ drafter would need to match that baseline speedup.
+This gives $d_1 = 6.94%$ for the (1,1) + ANNH drafter. With 65% top-1 accuracy, this baseline gives a theoretical speedup of $1.474 times$ for block size 1. For greedy self-speculation with block size 1, top-1 agreement is approximately the same as the acceptance rate because each speculative round drafts only one token. The table below therefore shows what acceptance rate a more expensive $(N, N)$ drafter would need to match that baseline speedup.
 
 #figure(
   text(size: 8pt)[
@@ -2060,7 +2060,7 @@ This pattern also makes sense regarding the role of the layers. The first layers
 
 === Can a lightweight HVC bridge recover the generation quality lost from skipping layers well enough to produce an effective drafter?
 
-The HVC bridge can recover a large portion of the lost generation quality when skipping layers. The training figures @fig-gap11-training-top1-agreement and @fig-gap22-training-top1-agreement show that for a large gap, (1,1) or (2,2) respectively, the HVC can increase the accuracy from around 0% top-1 to a top-1 in the range of 60 to 73%. The HVC is not powerful enough to produce a standalone model, but strong enough to often predict the same next token as the full model. The training results show that it's easier to cast a hidden vector through a smaller gap, (2,2) instead of (1,1), with KL and top-1 being better for every model tested. However, the result does not indicate a dramatic improvement from (1,1) to (2,2), so given the added compute with more layers, for self-speculation (1,1) seems to be the more attractive configuration. The answer to this research question is then that a linear HVC seems to be very effective to recover much of the degradation from skipped layers, especially for the small amount of compute the HVC needs, and it does work well enough to produce a drafter that gives a speedup in speculative decoding.
+The HVC bridge can recover a large portion of the lost generation quality when skipping layers. The training figures @fig-gap11-training-top1-agreement and @fig-gap22-training-top1-agreement show that for a large gap, (1,1) or (2,2) respectively, the HVC can increase the accuracy from around 0% top-1 to a top-1 in the range of 60% to 73%. The HVC is not powerful enough to produce a standalone model, but strong enough to often predict the same next token as the full model. The training results show that it's easier to cast a hidden vector through a smaller gap, (2,2) instead of (1,1), with KL and top-1 being better for every model tested. However, the result does not indicate a dramatic improvement from (1,1) to (2,2), so given the added compute with more layers, for self-speculation (1,1) seems to be the more attractive configuration. The answer to this research question is then that a linear HVC seems to be very effective to recover much of the degradation from skipped layers, especially for the small amount of compute the HVC needs, and it does work well enough to produce a drafter that gives a speedup in speculative decoding.
  
 === What is the minimum acceptance rate required for the proposed self-speculative setup to outperform normal inference, given empirically observed verifier and drafter costs?
 
@@ -2112,11 +2112,11 @@ Using the measured verifier and drafter costs from the concrete prompt set with 
         [*Speedup*],
       ),
 
-      [`Llama-3.2-1B-Instruct`], [1.05], [19.6%], [22.0%], [43.0%], [1.28x],
-      [`Llama-3.2-3B-Instruct`], [1.05], [11.5%], [13.8%], [43.9%], [1.46x],
+      [`Llama-3.2-1B-Instruct`], [1.05], [19.6%], [22.1%], [43.0%], [1.28x],
+      [`Llama-3.2-3B-Instruct`], [1.05], [11.5%], [14.0%], [43.9%], [1.46x],
       [`Qwen3-4B-Instruct`], [1.05], [9.7%], [12.2%], [35.9%], [1.37x],
-      [`Llama-3.1-8B-Instruct`], [1.04], [8.5%], [10.6%], [46.9%], [1.58x],
-      [`Mistral-7B-Instruct-v0.3`], [1.05], [8.5%], [10.8%], [50.7%], [1.63x],
+      [`Llama-3.1-8B-Instruct`], [1.04], [8.5%], [10.5%], [46.9%], [1.58x],
+      [`Mistral-7B-Instruct-v0.3`], [1.05], [8.5%], [11.0%], [50.7%], [1.63x],
     )
   ],
   caption: [
@@ -2126,7 +2126,7 @@ Using the measured verifier and drafter costs from the concrete prompt set with 
   supplement: [T],
 ) <tab-required-acceptance-measured-costs>
 
-The answer to the research question is therefore that, for the main block-size-2 ANNH setup, the drafter only needed acceptance rates of about 10.6%--22.0% to break even. Equivalently, the system could reject about 78%--89% of drafted tokens and still be faster than normal inference, depending on the model. The measured average acceptance rates were significantly higher than these break-even points, ranging from 35.9% to 50.7% in the table. This explains why the setup can produce speedups even though the drafter is not a highly accurate standalone approximation of the full model. 
+The answer to the research question is therefore that, for the skipped layers + ANNH setup with block size 2, the drafter only needed acceptance rates of about 10.5%--22.1% to break even. Equivalently, the system could reject about 78%--89% of drafted tokens and still be faster than normal inference, depending on the model. The measured average acceptance rates were significantly higher than these break-even points, ranging from 35.9% to 50.7% in the table. This explains why the setup can produce speedups even though the drafter is not a highly accurate standalone approximation of the full model. 
 
 === To what extent can inference for LLMs be sped up by using a setup where the draft model is made computationally cheaper in both body and head by using the techniques: skipping layers + HVC + ANNH + self-speculative decoding?
 
