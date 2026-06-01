@@ -84,7 +84,7 @@
 
 #cover-pages(
   title: "Skip, Search, Speculate",
-  subtitle: "Turning an LLM into Its Own Lightweight Drafter for Lossless Inference Speedup",
+  subtitle: "Turning a Frozen LLM into Its Own Lightweight Drafter for Lossless Inference Speedup",
   author: "Hugo Olsson",
   supervisor: "Matti Karpa, Data Science och AI",
   examiner: "Devdatt Dubhashi, Data Science och AI",
@@ -97,7 +97,7 @@
 // ---------- ABSTRACT ----------
 #page(header: none)[
   Skip, Search, Speculate \
-  Turning an LLM into Its Own Lightweight Drafter for Lossless Inference Speedup \
+  Turning a Frozen LLM into Its Own Lightweight Drafter for Lossless Inference Speedup \
   Hugo Olsson \
   Department of Computer Science and Engineering \
   Chalmers University of Technology 
@@ -1842,7 +1842,7 @@ The layer skipping ablations also showed that it does not seem beneficial to do 
 
 The KL per layer results show that skipping the first layer hurts performance the most. In the current runs, keeping every layer except the first gives top-1 agreement between 0.021 and 0.093 across the five tested models, and it is the worst single-layer skip for all of them in terms of KL. This is reasonable since the first layer is the one trained to route the embedding vector.
 
-The patterns seem somewhat stable between different model families. Some models such as Llama 3.2 1B Instruct seem to handle early-exit relatively well compared to its result for other ablations. However, per skipped layer, the internal gaps still have the better results.
+The patterns seem somewhat stable between different model families. Some models such as Llama 3.2 1B Instruct seem to handle early-exit relatively well compared to its result for other ablations. However, per skipped layer, the internal gaps still seem to have the better results.
 
 === HVC bridge training
 
@@ -1916,7 +1916,7 @@ A simple sanity check supports that this is plausible. Consider logits around 12
 
 === Why not test with less skipped layers
 
-The project decided to mostly focus on very large gaps of skipped layers. The primary benchmarks are for (1,1) and (2,2) gaps. The question is then whether bigger speedups could have been achieved with smaller gaps so the drafter accuracy gets higher. From extensive internal experiments and optimization to reach as large speedups as possible, it is considered to be quite hard to compensate for a more expensive drafter from the accuracy increase of keeping more layers. Even with many layers kept, it is difficult to reach a top1 of > 80%. The fundamental reason for this is probably because the choices of the verifier are not gold tokens, they are just the subjective calculation the full model happens to produce. The drafter is therefore not learning a fundamental truth but is instead guessing what the verifier would do. So it is not easy to reach \~100% because there is no stable foundation to converge to. The project thus found that only a few layers gave the large jump in top-1 but that then adding more layers made the result incrementally better, while making the drafter linearly more expensive.
+The project decided to mostly focus on very large gaps of skipped layers. The primary benchmarks are for (1,1) and (2,2) gaps. The question is then whether bigger speedups could have been achieved with smaller gaps so the drafter accuracy gets higher. From extensive internal experiments and optimization to reach as large speedups as possible, it is considered to be quite hard to compensate for a more expensive drafter from the accuracy increase of keeping more layers. Even with many layers kept, it is difficult to reach a top1 of > 80%. The fundamental reason for this is probably because the choices of the verifier are not gold tokens, they are just the subjective calculation the full model happens to produce. The drafter is therefore not learning a fundamental truth but is instead guessing what the verifier would do. The project thus found that only a few layers gave the large jump in top-1 but that then adding more layers made the result incrementally better, while making the drafter linearly more expensive.
 
 The theoretical estimation from @selfs-speedup can be used to check if a smaller gap will have a chance of producing a better drafter than (1,1) or (2,2). Assume the head is 5% of the compute, that ANNH makes the head 5x faster and that (1,1) with HVC gives a top1 accuracy of 65%. For a 32-layer model, assuming that body compute is linear in the number of kept layers, the drafter cost for a gap $(N, N)$ is
 $
