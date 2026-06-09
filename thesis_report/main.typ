@@ -1012,7 +1012,7 @@ Each benchmark variant has three phases:
 
 + _Benchmark phase_: Benchmarking all prompts in the prompt set, from the first to the last in order. Internal measurements are turned off to get unaffected performance. Total times are measured and used to calculate and report speedups. 
 
-These three phases are run first with the drafter only using skipped layers, and then again with the drafter using skipped layers and ANNH. So Warmup -> Profile -> Benchmark, then enabling ANNH, and doing Warmup -> Profile -> Benchmark again.
+These three phases are run first with the drafter only using skipped layers, and then again with the drafter using skipped layers and ANNH. So Warmup → Profile → Benchmark, then enabling ANNH, and doing Warmup → Profile → Benchmark again.
 
 
 
