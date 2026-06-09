@@ -83,7 +83,7 @@
     ],
     caption: caption,
     kind: "table",
-    supplement: [T],
+    supplement: [Table],
   )
 }
 
@@ -152,7 +152,7 @@
     ],
     caption: caption,
     kind: "table",
-    supplement: [T],
+    supplement: [Table],
   )
 }
 

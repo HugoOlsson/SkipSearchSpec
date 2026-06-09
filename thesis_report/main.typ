@@ -20,17 +20,17 @@
     if el.kind == image {
       context {
         let n = el.counter.at(el.location()).first()
-        link(it.target, "F" + str(n))
+        link(it.target, str(n))
       }
     } else if el.kind == "algorithm" {
       context {
         let n = el.counter.at(el.location()).first()
-        link(it.target, "A" + str(n))
+        link(it.target, str(n))
       }
-    } else if el.kind == "table" {
+    } else if el.kind == table or el.kind == "table" {
       context {
         let n = el.counter.at(el.location()).first()
-        link(it.target, "T" + str(n))
+        link(it.target, str(n))
       }
     } else {
       it
@@ -46,14 +46,14 @@
 #show figure.caption.where(kind: table): it => {
   context {
     let n = it.counter.at(it.location()).first()
-    [T #n#it.separator#it.body]
+    [Table #n#it.separator#it.body]
   }
 }
 
 #show figure.caption.where(kind: "table"): it => {
   context {
     let n = it.counter.at(it.location()).first()
-    [T #n#it.separator#it.body]
+    [Table #n#it.separator#it.body]
   }
 }
 
@@ -553,7 +553,7 @@ Internally in the code, the HVC is often called _bridge_ due to the inherent mec
   caption: [The input to the HVC bridge. It gets a stacked vector of the final hidden vector from token position $t - 1$ and the hidden vector from the last layer before the gap at position $t$.],
 ) <finalvsreentry-img>
 
-The bridge is implemented as a linear transformation in PyTorch with residual update and layer normalizations for the two input vectors. As figure @finalvsreentry-img shows, the HVC bridge at position $t$ gets the hidden vector from the last layer before the gap and the final hidden vector from token position $t - 1$. In the code `prev_reference_hidden` is a tensor with previous position hidden vectors. The code to forward the bridge is this:
+The bridge is implemented as a linear transformation in PyTorch with residual update and layer normalizations for the two input vectors. As Figure @finalvsreentry-img shows, the HVC bridge at position $t$ gets the hidden vector from the last layer before the gap and the final hidden vector from token position $t - 1$. In the code `prev_reference_hidden` is a tensor with previous position hidden vectors. The code to forward the bridge is this:
 
 
 #```python
@@ -614,9 +614,9 @@ def train_skipping_layers(
 
 The training aims to produce a good drafter for the full model. When running in self-speculation, the drafter will run from where the verifier last stopped. It will do so by continuing from the KV-cache the verifier produced. The training objective is therefore to "cast" a hidden vector through the gap using the input hidden vectors, but to also do so when starting from the verifier's KV-cache. 
 
-To train for this, the teacher runs next-token prediction on the training window and its logits for all positions and the created KV-cache are stored. The window is then conceptually split into multiple sections like figure @training_window-img shows. The student will do next-token prediction runs on the sections from one starting point to the next. At each boundary, it will start from the KV-cache the teacher has produced at that position. This simulates the objective to start from a verifier prefix and generate from there. 
+To train for this, the teacher runs next-token prediction on the training window and its logits for all positions and the created KV-cache are stored. The window is then conceptually split into multiple sections like Figure @training_window-img shows. The student will do next-token prediction runs on the sections from one starting point to the next. At each boundary, it will start from the KV-cache the teacher has produced at that position. This simulates the objective to start from a verifier prefix and generate from there. 
 
-If the intended block size for the self-speculation is 1-5, then dividing the window into sections of that size would make sense. However, that would be a lot of compute to produce so many versions of the teacher KV-cache history and to run so many small drafter trainings. Therefore, a number of sections that balances compute and realism will have to be selected. The parameter to set the number of sections is `num_draft_sections`. In figure @training_window-img, `num_draft_sections = 5`.
+If the intended block size for the self-speculation is 1-5, then dividing the window into sections of that size would make sense. However, that would be a lot of compute to produce so many versions of the teacher KV-cache history and to run so many small drafter trainings. Therefore, a number of sections that balances compute and realism will have to be selected. The parameter to set the number of sections is `num_draft_sections`. In Figure @training_window-img, `num_draft_sections = 5`.
 
 Every HVC-training produces a run.json file that includes training and loss values for every Nth step. These will be used to then plot training convergence and to do analysis. Examples of such values are:
 
@@ -654,7 +654,7 @@ Every HVC-training produces a run.json file that includes training and loss valu
   ),
   caption: [Summary of HVC training metrics],
   kind: "table",
-  supplement: [T],
+  supplement: [Table],
 ) <metric-summary-table>
 
 
@@ -750,7 +750,7 @@ The algorithm that is used to produce the clustering is the following:
 ) <alg:strict-equal-lm-head-clustering>
 
 
-The algorithm @alg:strict-equal-lm-head-clustering builds an output of this Python structure:
+Algorithm @alg:strict-equal-lm-head-clustering builds an output of this Python structure:
 #```python
 class BuiltANNHClusters:
     cluster_to_token_ids: Tensor      # [num_clusters, cluster_size], no padding
@@ -896,7 +896,7 @@ Here is a pseudocode of how the self-speculative decoding works:
   supplement: [Algorithm],
 ) <alg:self-spec>
 
-As shown in figure @finalvsreentry-img, the HVC bridge takes the hidden vector from the previous layer but also a hidden vector from the previous position $t - 1$. During speculation when the draft block has a size of more than 1, the hidden vector at draft step 1 is from the verifier, but from step 2 and forward, it is from the drafter itself.
+As shown in Figure @finalvsreentry-img, the HVC bridge takes the hidden vector from the previous layer but also a hidden vector from the previous position $t - 1$. During speculation when the draft block has a size of more than 1, the hidden vector at draft step 1 is from the verifier, but from step 2 and forward, it is from the drafter itself.
 
 The real implementation records the generated text, the output token ids, the number of verifier calls, the number of drafted tokens, and the number of accepted draft tokens. 
 
@@ -904,7 +904,7 @@ It can optionally also store a token-level trace JSON file for visualization. Ea
 
 ==== KV-cache
 
-A single KV-cache $C$ is used by both the verifier and the drafter, see algorithm @alg:self-spec. The drafter will start where the verifier left off and manipulate $C$ in place. Just before a draft block is started, the length of $C$ is stored as $C_0$. After the drafter has processed a draft block, $C$ will be cropped back to $C_0$ so that then when the verifier runs, it will start from the prefix of $C$ that is guaranteed to be correct. Then when it verifies the proposed draft block, it will update $C$ with the KV-cache up until the mismatch if there is any or for the entire draft block if it is accepted.
+A single KV-cache $C$ is used by both the verifier and the drafter, see Algorithm @alg:self-spec. The drafter will start where the verifier left off and manipulate $C$ in place. Just before a draft block is started, the length of $C$ is stored as $C_0$. After the drafter has processed a draft block, $C$ will be cropped back to $C_0$ so that then when the verifier runs, it will start from the prefix of $C$ that is guaranteed to be correct. Then when it verifies the proposed draft block, it will update $C$ with the KV-cache up until the mismatch if there is any or for the entire draft block if it is accepted.
 
 This approach gives that only a single KV-cache needs to be stored instead of having one for the verifier and one for the drafter. The KV-cache is mutated in place with cropping. This avoids having memory spikes that would be created if the rollback position $C_0$ was a copy. The KV-cache memory pressure is therefore not higher than running the model normally.
 
@@ -956,7 +956,7 @@ Here are examples from each prompt set:
   ],
   caption: [Prompt sets used in the main self-speculation benchmark.],
   kind: "table",
-  supplement: [T],
+  supplement: [Table],
 ) <tab-main-prompt-sets>
 
 All prompts in the three prompt sets are generated by ChatGPT 5.5 Thinking. The main idea with the different prompt sets is to measure if the acceptance rate is higher when the prompt is less open-ended and more concrete. If the prompt is open-ended, there are many possible good continuations from the prompt, and thus possibly less probability that the drafter and the verifier predict the same next tokens.
@@ -1037,7 +1037,7 @@ Peak PyTorch CUDA memory usage is measured for both drafter versions, skipping l
 
 === Plot metrics
 
-The benchmark plots include both setup information and measured quantities. The setup and runtime fields are defined in @tab-benchmark-plot-setup-fields, while the measured result fields are defined in @tab-benchmark-plot-result-fields.
+The benchmark plots include both setup information and measured quantities. The setup and runtime fields are defined in Table @tab-benchmark-plot-setup-fields, while the measured result fields are defined in Table @tab-benchmark-plot-result-fields.
 
 #figure(
   text(size: 8pt)[
@@ -1104,7 +1104,7 @@ The benchmark plots include both setup information and measured quantities. The 
   ],
   caption: [Setup and runtime fields shown in the benchmark plot footers.],
   kind: "table",
-  supplement: [T],
+  supplement: [Table],
 ) <tab-benchmark-plot-setup-fields>
 
 #figure(
@@ -1160,7 +1160,7 @@ The benchmark plots include both setup information and measured quantities. The 
   ],
   caption: [Measured result and profile fields shown in the benchmark plot footers.],
   kind: "table",
-  supplement: [T],
+  supplement: [Table],
 ) <tab-benchmark-plot-result-fields>
 
 
@@ -1184,7 +1184,7 @@ The first metric plotted for each model is KL divergence from the full model dis
   caption: [Top-1 agreement with the full model for skip ablations of `meta-llama/Llama-3.2-1B-Instruct`.],
 ) <fig-skip-ablations-llama32-1b-top1>
 
-The skip ablations for Llama 3.2 1B Instruct show that per layer skipped, an internal gap seems to hurt the generation performance less. In the top-1 agreement figure @fig-skip-ablations-llama32-1b-top1, an early-exit version does produce the highest score, but it is also skipping less layers than any of the gap-jump ablations. The worst layer to skip seems to be the first layer. Periodic ablations seem to be able to perform okay but it heavily depends on what specific layers that were skipped. One periodic ablation is among the better ablations while another one is among the worst, even though they seemingly use the same strategy. 
+The skip ablations for Llama 3.2 1B Instruct show that per layer skipped, an internal gap seems to hurt the generation performance less. In the top-1 agreement in Figure @fig-skip-ablations-llama32-1b-top1, an early-exit version does produce the highest score, but it is also skipping less layers than any of the gap-jump ablations. The worst layer to skip seems to be the first layer. Periodic ablations seem to be able to perform okay but it heavily depends on what specific layers that were skipped. One periodic ablation is among the better ablations while another one is among the worst, even though they seemingly use the same strategy. 
 
 #figure(
   image("my-figures/plots/skip-ablations/layer_ablations_meta-llama_Llama-3.2-3B-Instruct_20260517_132758_kl_per_removed_layer_multicolumn.png", width: 110%),
@@ -1297,7 +1297,7 @@ By running evaluation on the cluster with different number of top-k probings the
   ),
 ) <evaluation-sweep-cluster-llama32-1B-instruct-table>
 
-@evaluation-sweep-cluster-llama32-1B-instruct-table shows that the probability of getting the true top-1 converges to 1 when the number of top-k probed clusters increases. To find the true top-1 token more than 99% of the time a top-k of around 300 is needed which is 5.61% of all clusters probed. Top-3 containment means that given the top selected token from the cluster, is that within top-3 what the full LM-head would have selected. 
+Table @evaluation-sweep-cluster-llama32-1B-instruct-table shows that the probability of getting the true top-1 converges to 1 when the number of top-k probed clusters increases. To find the true top-1 token more than 99% of the time a top-k of around 300 is needed which is 5.61% of all clusters probed. Top-3 containment means that given the top selected token from the cluster, is that within top-3 what the full LM-head would have selected. 
 
 Here is the data for 2.6k, 8k, and 16k clusters:
 
@@ -1547,7 +1547,7 @@ Top-1 starts at around 0% and reaches between 60-70% with the training. For a la
   ],
 ) <fig-gap11-training-kl-verifier-to-drafter>
 
-From the same training as figure @fig-gap11-training-top1-agreement, the verifier-to-drafter KL also shows a quick convergence in the first iteration and then incremental improvement over the later iterations. The training results have the same order here as from the top-1 metric perspective. Mistral 7B Instruct has the best KL at 0.89 and Qwen 3 4B Instruct has the highest at 1.32. The KL also seems to plateau around iteration 4000 to 6000.
+From the same training as Figure @fig-gap11-training-top1-agreement, the verifier-to-drafter KL also shows a quick convergence in the first iteration and then incremental improvement over the later iterations. The training results have the same order here as from the top-1 metric perspective. Mistral 7B Instruct has the best KL at 0.89 and Qwen 3 4B Instruct has the highest at 1.32. The KL also seems to plateau around iteration 4000 to 6000.
 
 === Training (2,2) gap
 
@@ -1589,7 +1589,7 @@ The self-speculation is first run with the drafter skipping layers but using the
 
 === Gap (1,1), block size 2, bfloat16
 
-The benchmark uses the same five models as the skip-ablation and HVC-training sections and the prompt sets described in @tab-main-prompt-sets.
+The benchmark uses the same five models as the skip-ablation and HVC-training sections and the prompt sets described in Table @tab-main-prompt-sets.
 Unless stated otherwise, the runs use bfloat16 model execution, bfloat16 HVC bridge execution, ANNH top-k 100, both variants, 5 warmup prompts, 15 profiled prompts, and all available prompts in each prompt set.
 These results are with the gap $(1,1)$, which means that all layers are skipped except the first and the last one.
 No internal timing is used when measuring speedup to avoid synchronization that would affect performance.
@@ -1611,7 +1611,7 @@ No internal timing is used when measuring speedup to avoid synchronization that 
   ],
 ) <fig:self-spec-llama-31-8b-concrete>
 
-From figure @fig:self-spec-llama-31-8b-concrete a speedup of 1.46× with skipped layers and a speedup of 1.58× with skipped layers and ANNH can be seen. The peak memory usage remains approximately the same as normal inference for skipped layers and for skipped layers + ANNH.
+From Figure @fig:self-spec-llama-31-8b-concrete a speedup of 1.46× with skipped layers and a speedup of 1.58× with skipped layers and ANNH can be seen. The peak memory usage remains approximately the same as normal inference for skipped layers and for skipped layers + ANNH.
 
 The profile measurements show that the drafter head becomes 7.47× faster when replacing the dense LM-head with ANNH. This makes the acceptance rate go from 47.7% without ANNH to 46.9% with it. The fraction of when the outputs exactly match normal generation is 43.3% both with and without ANNH. This does not mean that the self-speculation is incorrect or that it is approximate. See the discussion for why this happens even without approximation. 
 
@@ -1640,7 +1640,7 @@ The drafter split shows that without ANNH, the share is 49.1% body, 46.0% head a
   ],
 ) <fig:self-spec-llama-32-3b-concrete>
 
-Figure @fig:self-spec-llama-32-3b-concrete shows the same pattern of speedup as figure @fig:self-spec-llama-31-8b-concrete. The speedups are here smaller, 1.30× and 1.46× respectively. This illustrates the hypothesis of overhead for easy tokens. When the model is smaller, there is less overhead for easy tokens resulting in less gain. The figure shows that the memory usage is approximately the same for all three versions.
+Figure @fig:self-spec-llama-32-3b-concrete shows the same pattern of speedup as Figure @fig:self-spec-llama-31-8b-concrete. The speedups are here smaller, 1.30× and 1.46× respectively. This illustrates the hypothesis of overhead for easy tokens. When the model is smaller, there is less overhead for easy tokens resulting in less gain. The figure shows that the memory usage is approximately the same for all three versions.
 
 #figure(
   move(
@@ -1812,7 +1812,7 @@ Table @tab-main-benchmark-speedups shows the benchmarks for all prompt sets, all
     All combinations in this table are runs from the main benchmark matrix.
   ],
   kind: "table",
-  supplement: [T],
+  supplement: [Table],
 ) <tab-main-benchmark-speedups>
 
 The table shows three broad patterns.
@@ -1856,7 +1856,7 @@ The patterns seem somewhat stable between different model families. Some models 
 
 === HVC bridge training
 
-In figure @fig-gap11-training-top1-agreement and @fig-gap22-training-top1-agreement a very aggressive gap of (1,1) and (2,2) respectively is trained. The figures show that the top-1 agreement starts at approximately 0% which is coherent with what the skip-ablations showed for so many skipped layers, but that the top-1 agreement converges to around 60-72% depending on the model. This is a result that strongly shows that the HVC-bridge can partially compensate for a large gap. The same pattern shows for the verifier to drafter KL metrics in figure @fig-gap11-training-kl-verifier-to-drafter and @fig-gap22-training-kl-verifier-to-drafter. For gap (1,1) the KL starts very high, but converges to between 0.89 to 1.32 depending on the model.
+In Figures @fig-gap11-training-top1-agreement and @fig-gap22-training-top1-agreement a very aggressive gap of (1,1) and (2,2) respectively is trained. The figures show that the top-1 agreement starts at approximately 0% which is coherent with what the skip-ablations showed for so many skipped layers, but that the top-1 agreement converges to around 60-72% depending on the model. This is a result that strongly shows that the HVC-bridge can partially compensate for a large gap. The same pattern shows for the verifier to drafter KL metrics in Figures @fig-gap11-training-kl-verifier-to-drafter and @fig-gap22-training-kl-verifier-to-drafter. For gap (1,1) the KL starts very high, but converges to between 0.89 to 1.32 depending on the model.
 
 Using a gap (2,2) results in a better KL and top-1 for all five plotted models, but not much better. Top-1 for Mistral 7B Instruct went from 69.5% to 71.7%, for Llama 3.1 8B from 63.9% to 67.8%, and for Qwen3 4B from 60.1% to 61.9%. These are improvements but the number of layers used doubled. To produce a drafter that can give speedups in self-speculation, it is highly advantageous if it is cheap.
 
@@ -1894,13 +1894,13 @@ For a target speedup of $S = 1.4 times$, a block size of $gamma = 1$, and a veri
   ],
   caption: [Acceptance rate required to reach a theoretical self-speculation speedup of $1.4 times$ with block size $gamma = 1$ and verifier cost $v = 1.05$.],
   kind: "table",
-  supplement: [T],
+  supplement: [Table],
 ) <tab-required-acceptance-14x>
 
 
 === ANNH cluster building
 
-The FlashHead-alike ANNH cluster took between 57 and 309 seconds to build on an Apple M5 24GB depending on the model. The more clusters, higher hidden dimensions and larger vocabulary size, the longer the clustering takes. The clusters files are not notably big, the Llama 3.2 3B 8016 cluster has a file size of 99 MB. The clusterings in the result sections used a max iterations of 40. However, figure @clustering-llama3.2-1B-instruct-img and the clusterings made internally during the project show that the process converges after around 15 iterations. Therefore using 40 iterations is not strictly needed.
+The FlashHead-alike ANNH cluster took between 57 and 309 seconds to build on an Apple M5 24GB depending on the model. The more clusters, higher hidden dimensions and larger vocabulary size, the longer the clustering takes. The clusters files are not notably big, the Llama 3.2 3B 8016 cluster has a file size of 99 MB. The clusterings in the result sections used a max iterations of 40. However, Figure @clustering-llama3.2-1B-instruct-img and the clusterings made internally during the project show that the process converges after around 15 iterations. Therefore using 40 iterations is not strictly needed.
 
 
 === ANNH accuracy
@@ -1919,7 +1919,7 @@ Running ANNH with speculative decoding is distinctively different than running t
 
 === Exact match and numerical precision
 
-As shown in the figures @fig:self-spec-llama-31-8b-concrete, @fig:self-spec-llama-32-3b-concrete, @fig:self-spec-llama-32-1b-concrete, @fig:self-spec-mistral-7b-concrete, and @fig:self-spec-qwen3-4b-concrete the exact match to the normal generation is not 100%, even though it is greedy argmax generation. This was a strange result and the project investigated why it is the case because the generation should not be approximate or lossy compared to the normal model. The reason is that when selecting the next token, there are a lot of logit-ties when using bfloat16, tokens that get the exact same score. These ties happen in both normal generation and in self-speculation. So in bfloat16 there is not enough information to select an unambiguous winner. To debug if this was really the case the project added a flag `--debug-argmax-ties` in `bench_self_spec.py` that makes the normal generation and self-speculation implementation print if there is ever a logit tie when doing argmax, see the function `argmax_debug_first_tie(..)` in the open source repository. When using this, there were usually 1-5 ties detected for each generation of at max 200 tokens. If this is the case, then there should be a 100% match rate when using float32 because then the limitation of precision is mostly removed. As figure @fig:self-spec-llama32-1b-float32-concrete shows but also all internal runs, float32 generations did always get a 100% match rate which heavily suggests that the self-speculation setup and logic is not faulty but that there needs to be high enough precision to make unambiguous choices, both for the normal and self-speculative generation.
+As shown in Figures @fig:self-spec-llama-31-8b-concrete, @fig:self-spec-llama-32-3b-concrete, @fig:self-spec-llama-32-1b-concrete, @fig:self-spec-mistral-7b-concrete, and @fig:self-spec-qwen3-4b-concrete the exact match to the normal generation is not 100%, even though it is greedy argmax generation. This was a strange result and the project investigated why it is the case because the generation should not be approximate or lossy compared to the normal model. The reason is that when selecting the next token, there are a lot of logit-ties when using bfloat16, tokens that get the exact same score. These ties happen in both normal generation and in self-speculation. So in bfloat16 there is not enough information to select an unambiguous winner. To debug if this was really the case the project added a flag `--debug-argmax-ties` in `bench_self_spec.py` that makes the normal generation and self-speculation implementation print if there is ever a logit tie when doing argmax, see the function `argmax_debug_first_tie(..)` in the open source repository. When using this, there were usually 1-5 ties detected for each generation of at max 200 tokens. If this is the case, then there should be a 100% match rate when using float32 because then the limitation of precision is mostly removed. As Figure @fig:self-spec-llama32-1b-float32-concrete shows but also all internal runs, float32 generations did always get a 100% match rate which heavily suggests that the self-speculation setup and logic is not faulty but that there needs to be high enough precision to make unambiguous choices, both for the normal and self-speculative generation.
 
 A simple sanity check supports that this is plausible. Consider logits around 12 as an example. The value 12 is not special, but just an example of a value logits might be. It will illustrate what happens when several token logits are close to each other around the same magnitude. In bfloat16, numbers around 12 are in the exponent range $[8, 16)$ and have 7 explicit mantissa bits. The spacing between representable values is therefore $2^(3 - 7) = 2^(-4) = 0.0625$. Between 12.0 and 12.1 there are only two bfloat16 values: 12.0 and 12.0625. The next representable value is 12.125, which is already outside the interval. Float32 has 23 mantissa bits, so the spacing in the same range is $2^(3 - 23) = 2^(-20) approx 9.54 dot 10^(-7)$. This means that the interval from 12.0 to 12.1 contains about $floor(0.1 dot 2^20) + 1 = 104858$ representable float32 values. Since the vocabulary contains many tokens and the top logits can be close to each other, it is therefore not surprising that bfloat16 can collapse distinct logits into exact ties while float32 usually separates them.
 
@@ -1960,10 +1960,10 @@ This gives $d_1 = 6.94%$ for the (1,1) + ANNH drafter. With 65% top-1 accuracy, 
   ],
   caption: [Acceptance rate needed for a larger $(N, N)$ drafter with ANNH to match the $1.47 times$ theoretical speedup of a (1,1) + ANNH drafter with 65% acceptance rate, using block size $gamma = 1$, verifier cost $v = 1.05$, and a 32-layer model.],
   kind: "table",
-  supplement: [T],
+  supplement: [Table],
 ) <tab-less-skipped-required-top1-block1>
 
-The estimates in @tab-less-skipped-required-top1-block1 show that when keeping more layers, the acceptance threshold to achieve the same speedup increases rapidly. If the top1 is 65% with (1,1) then it needs to be 73.8% for (2,2) and 82.5% for (3,3). This is not the increase we see when using smaller gaps which suggests that it will not be a viable alternative to test for gaps smaller than (2,2). The table also shows that its impossible to reach the same speedup as the (1,1) with (5,5) or smaller gaps, which for this model is to keep 30.7% or more of the layers. So it doesn't matter how good a skipping ablation is that keeps more than 30.7% of the layers, it won't produce a self-speculative system faster than the (1,1) baseline.
+The estimates in Table @tab-less-skipped-required-top1-block1 show that when keeping more layers, the acceptance threshold to achieve the same speedup increases rapidly. If the top1 is 65% with (1,1) then it needs to be 73.8% for (2,2) and 82.5% for (3,3). This is not the increase we see when using smaller gaps which suggests that it will not be a viable alternative to test for gaps smaller than (2,2). Table @tab-less-skipped-required-top1-block1 also shows that its impossible to reach the same speedup as the (1,1) with (5,5) or smaller gaps, which for this model is to keep 30.7% or more of the layers. So it doesn't matter how good a skipping ablation is that keeps more than 30.7% of the layers, it won't produce a self-speculative system faster than the (1,1) baseline.
 
 
 === Self-speculation speedups and memory usage
@@ -1981,7 +1981,7 @@ All models seem to use approximately the same amount of VRAM as the normal infer
 
 === How long is the total training time?
 
-The speedup benchmarks in @fig:self-spec-llama-31-8b-concrete,
+The speedup benchmarks in Figures @fig:self-spec-llama-31-8b-concrete,
 @fig:self-spec-llama-32-3b-concrete, @fig:self-spec-llama-32-1b-concrete,
 @fig:self-spec-mistral-7b-concrete, and @fig:self-spec-qwen3-4b-concrete
 use the following training times to produce the HVC-bridge and the ANNH. 
@@ -2036,7 +2036,7 @@ use the following training times to produce the HVC-bridge and the ANNH.
   ],
   caption: [Total setup time for the HVC bridge and ANNH index used in the self-speculation speedup benchmarks.],
   kind: "table",
-  supplement: [T],
+  supplement: [Table],
 ) <tab-total-training-time>
 
 For these times, the HVC-brige is trained on a NVIDIA RTX PRO 6000 and the ANNH is built on an Apple Macbook Pro M5 24GB.
@@ -2070,7 +2070,7 @@ This pattern also makes sense regarding the role of the layers. The first layers
 
 === Can a lightweight HVC bridge recover the generation quality lost from skipping layers well enough to produce an effective drafter?
 
-The HVC bridge can recover a large portion of the lost generation quality when skipping layers. The training figures @fig-gap11-training-top1-agreement and @fig-gap22-training-top1-agreement show that for a large gap, (1,1) or (2,2) respectively, the HVC can increase the accuracy from around 0% top-1 to a top-1 in the range of 60% to 73%. The HVC is not powerful enough to produce a standalone model, but strong enough to often predict the same next token as the full model. The training results show that it's easier to cast a hidden vector through a smaller gap, (2,2) instead of (1,1), with KL and top-1 being better for every model tested. However, the result does not indicate a dramatic improvement from (1,1) to (2,2), so given the added compute with more layers, for self-speculation (1,1) seems to be the more attractive configuration. The answer to this research question is then that a linear HVC seems to be very effective to recover much of the degradation from skipped layers, especially for the small amount of compute the HVC needs, and it does work well enough to produce a drafter that gives a speedup in speculative decoding.
+The HVC bridge can recover a large portion of the lost generation quality when skipping layers. Figures @fig-gap11-training-top1-agreement and @fig-gap22-training-top1-agreement show that for a large gap, (1,1) or (2,2) respectively, the HVC can increase the accuracy from around 0% top-1 to a top-1 in the range of 60% to 73%. The HVC is not powerful enough to produce a standalone model, but strong enough to often predict the same next token as the full model. The training results show that it's easier to cast a hidden vector through a smaller gap, (2,2) instead of (1,1), with KL and top-1 being better for every model tested. However, the result does not indicate a dramatic improvement from (1,1) to (2,2), so given the added compute with more layers, for self-speculation (1,1) seems to be the more attractive configuration. The answer to this research question is then that a linear HVC seems to be very effective to recover much of the degradation from skipped layers, especially for the small amount of compute the HVC needs, and it does work well enough to produce a drafter that gives a speedup in speculative decoding.
  
 === What is the minimum acceptance rate required for the proposed self-speculative setup to outperform normal inference, given empirically observed verifier and drafter costs?
 
@@ -2133,7 +2133,7 @@ Using the measured verifier and drafter costs from the concrete prompt set with 
     Minimum draft-token acceptance rate needed to outperform normal inference, using measured verifier and drafter costs from the concrete prompt set with gap $(1,1)$, block size 2, and ANNH enabled. The measured acceptance rates and speedups are from the same benchmark runs.
   ],
   kind: "table",
-  supplement: [T],
+  supplement: [Table],
 ) <tab-required-acceptance-measured-costs>
 
 The answer to the research question is therefore that, for the skipped layers + ANNH setup with block size 2, the drafter only needed acceptance rates of about 10.5%--22.1% to break even. Equivalently, the system could reject about 78%--89% of drafted tokens and still be faster than normal inference, depending on the model. The measured average acceptance rates were significantly higher than these break-even points, ranging from 35.9% to 50.7% in the table. This explains why the setup can produce speedups even though the drafter is not a highly accurate standalone approximation of the full model. 
@@ -2170,7 +2170,7 @@ For small models, one could imagine that the overhead for easy tokens is smaller
 ) <fig:speedup-vs-model-size>
 
 
-The figure @fig:speedup-vs-model-size shows the relation between parameter count on the x-axis and the measured speedup on the y-axis. From the few tested models in this project, a correlation of r = 0.92 is calculated. This is however not a conclusive or confident result because of the low number of datapoints and mix of model families. But it indicates that there can be a relation and that larger models can see even larger speedups than those tested in this project.
+Figure @fig:speedup-vs-model-size shows the relation between parameter count on the x-axis and the measured speedup on the y-axis. From the few tested models in this project, a correlation of r = 0.92 is calculated. This is however not a conclusive or confident result because of the low number of datapoints and mix of model families. But it indicates that there can be a relation and that larger models can see even larger speedups than those tested in this project.
 
 
 == Future work
@@ -2242,7 +2242,7 @@ What is more useful therefore depends on the inference situation. However, unles
 
 The HVC bridge is also related to existing research. A paper called _Eliciting Latent Predictions from Transformers with the Tuned Lens_ @belrose2023tuned uses the similar idea of transforming a hidden vector to the output prediction space. It shows that intermediate states can have information about the next token prediction, but that the information might not be represented in the same geometry as the final layer. A learned transformation can make it easier to compare results between different layers.
 
-As presented in the introduction, this thesis uses similar intuition to skip layers. By using a learned transformation, the intermediate result from an internal layer can be translated to the geometry of the entrance layer. The training results from this thesis seem to support the idea that a significant part of the degradation in generation quality is from geometry mismatch. The figures @fig-gap11-training-top1-agreement and @fig-gap22-training-top1-agreement show a drastic increase in top-1 match, from around 0% to the range of 60-70% by translating the geometry with the HVC bridge. An important difference to the Tuned Lens paper is that the HVC bridge also gets the previous final hidden vector as additional information. 
+As presented in the introduction, this thesis uses similar intuition to skip layers. By using a learned transformation, the intermediate result from an internal layer can be translated to the geometry of the entrance layer. The training results from this thesis seem to support the idea that a significant part of the degradation in generation quality is from geometry mismatch. Figures @fig-gap11-training-top1-agreement and @fig-gap22-training-top1-agreement show a drastic increase in top-1 match, from around 0% to the range of 60-70% by translating the geometry with the HVC bridge. An important difference to the Tuned Lens paper is that the HVC bridge also gets the previous final hidden vector as additional information. 
 
 
 === Position of this thesis
