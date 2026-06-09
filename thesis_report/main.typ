@@ -40,10 +40,20 @@
   }
 }
 
+#show figure.where(kind: table): set figure.caption(position: top)
+#show figure.where(kind: "table"): set figure.caption(position: top)
+
+#show figure.caption.where(kind: table): it => {
+  context {
+    let n = it.counter.at(it.location()).first()
+    [T #n#it.separator#it.body]
+  }
+}
+
 #show figure.caption.where(kind: "table"): it => {
   context {
     let n = it.counter.at(it.location()).first()
-    [T#n#it.separator#it.body]
+    [T #n#it.separator#it.body]
   }
 }
 
