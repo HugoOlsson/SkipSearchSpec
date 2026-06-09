@@ -360,7 +360,7 @@ $
 The $T_"normal"$ terms cancel, leaving
 
 #[
-  #set math.equation(numbering: _ => "(speedup equation)")
+  #set math.equation(numbering: "(1)")
   $
   S = frac(1 + gamma a, v + gamma d).
   $ <selfs-speedup>
@@ -1080,7 +1080,7 @@ The benchmark plots include both setup information and measured quantities. The 
       The layer-skipping shape, where `a` is the number of kept layers before the skipped gap and `b` is the number of kept layers after it.
     ],
     [`Block size`], [integer], [
-      The number of draft tokens proposed before each verifier call, denoted $gamma$ in the speedup equation.
+      The number of draft tokens proposed before each verifier call, denoted $gamma$ in @selfs-speedup.
     ],
     [`Layers`], [integer], [
       The total number of transformer layers in the base model.
@@ -1881,7 +1881,7 @@ In Figures @fig-gap11-training-top1-agreement and @fig-gap22-training-top1-agree
 
 Using a gap (2,2) results in a better KL and top-1 for all five plotted models, but not much better. Top-1 for Mistral 7B Instruct went from 69.5% to 71.7%, for Llama 3.1 8B from 63.9% to 67.8%, and for Qwen3 4B from 60.1% to 61.9%. These are improvements but the number of layers used doubled. To produce a drafter that can give speedups in self-speculation, it is highly advantageous if it is cheap.
 
-This can be shown directly from the speedup equation @selfs-speedup. Solving for the required acceptance rate gives
+This can be shown directly from @selfs-speedup. Solving for the required acceptance rate gives
 $
 a = frac(S (v + gamma d) - 1, gamma).
 $
@@ -2097,7 +2097,7 @@ The HVC bridge can recover a large portion of the lost generation quality when s
 
 // Maybe refine
 
-The minimum required acceptance rate can be derived from the speedup equation @selfs-speedup. The estimated self-speculative speedup is
+The minimum required acceptance rate can be derived from @selfs-speedup. The estimated self-speculative speedup is
 
 $
 S = frac(1 + gamma a, v + gamma d),
@@ -2198,7 +2198,7 @@ Figure @fig:speedup-vs-model-size shows the relation between parameter count on 
 
 === Adaptive block sizes
 
-For the best possible performance on general prompts, using an adaptive block size is likely preferable. This would mean that the inference system chooses the optimal block size during generation depending on what the average acceptance rate has been for the last drafted blocks. Using the @selfs-speedup, the system could cheaply calculate what blocksize that would produce the biggest speedup and dynamically select that. This would allow for very large speedups when the prompt is very easy, but also to prevent a slowdown when the prompt is difficult. Implementing this should be straightforward but this project decided to stay with the primitive constant block size for less complexity and easier debugging.  
+For the best possible performance on general prompts, using an adaptive block size is likely preferable. This would mean that the inference system chooses the optimal block size during generation depending on what the average acceptance rate has been for the last drafted blocks. Using @selfs-speedup, the system could cheaply calculate what blocksize that would produce the biggest speedup and dynamically select that. This would allow for very large speedups when the prompt is very easy, but also to prevent a slowdown when the prompt is difficult. Implementing this should be straightforward but this project decided to stay with the primitive constant block size for less complexity and easier debugging.  
 
 
 === Testing on larger models
