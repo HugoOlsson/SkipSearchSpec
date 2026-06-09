@@ -1521,8 +1521,8 @@ def _major_ticks(lower: float, upper: float) -> list[float]:
 
 def _speedup_tick_label(value: float, _: Any) -> str:
     if abs(value - round(value)) < 0.001:
-        return f"{int(round(value))}x"
-    return f"{value:.1f}x"
+        return f"{int(round(value))}×"
+    return f"{value:.1f}×"
 
 
 def _normal_fit_curves(
@@ -1830,7 +1830,7 @@ def _info_sections(
     
     fh_accuracy = _flashhead_acceptance_ratio(variants)
     if fh_accuracy is not None:
-        profile_rows.append(("ANNH acceptance ratio", _fmt_pct(fh_accuracy)))
+        profile_rows.append(("ANNH accuracy", _fmt_pct(fh_accuracy)))
 
     fh_head_speedup = _flashhead_head_speedup(variants)
     if fh_head_speedup is not None:
@@ -2204,7 +2204,7 @@ def _fmt_drafter_split(
 def _fmt_x(value: float | None) -> str:
     if value is None:
         return "n/a"
-    return f"{value:.2f}x"
+    return f"{value:.2f}×"
 
 
 def _fmt_pct(value: float | None) -> str:

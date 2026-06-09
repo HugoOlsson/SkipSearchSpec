@@ -112,7 +112,7 @@
 
   The thesis found that skipping an contiguous internal gap of layers is in general advantageous compared to early-exit, late-start of an periodic variant of skipped layers. The selected layer-skipping ablations to produce inference systems were (1,1) and (2,2) which means that all layers except the first and the last are skipped or all layers skipped except the two first and two last respectively.
 
-  The found results are average speedups of 1.21x to 1.63x while having on average 0.9% higher peak memory usage compared to normal inference and producing identical generation to normal inference up to what the selected floating point precision allows for. The speedup depends on the LM model and the type of prompt used. Larger models seem to have higher potential for speedup while smaller models seem to have less overhead to save computation and thus smaller potential for speedup. Since the mechanism fundamentally is to cheaply speculate ahead of the full model, the results also indicate that more concrete prompts get larger speedups while more open-ended prompts produces lower speedups in general. 
+  The found results are average speedups of 1.21× to 1.63× while having on average 0.9% higher peak memory usage compared to normal inference and producing identical generation to normal inference up to what the selected floating point precision allows for. The speedup depends on the LM model and the type of prompt used. Larger models seem to have higher potential for speedup while smaller models seem to have less overhead to save computation and thus smaller potential for speedup. Since the mechanism fundamentally is to cheaply speculate ahead of the full model, the results also indicate that more concrete prompts get larger speedups while more open-ended prompts produces lower speedups in general. 
 
   The measured total times to train the HVC and to build the ANN LM-head are 16 to 38 minutes depending on the model. The HVC was trained on a NVIDIA RTX PRO 6000 and the ANN LM-head was built on an Apple MacBook Pro M5 24GB.
 
@@ -243,7 +243,7 @@
 
 
 = Introduction
-Large language models (LLMs) have become popular since the release of ChatGPT @openai2022chatgpt and are used weekly by hundreds of millions of people for personal and professional tasks @chatterji2025howpeopleusechatgpt. LLMs are expensive to run. They require a lot of memory and compute @kwon2023pagedattention @dettmers2023qlora. It is of interest to make them efficient so that the best possible model can run on available hardware and energy resources. LLMs use an architecture called the _transformer_ which can be understood as having a body and a head. A recent paper called FlashHead @flashhead2026 proposed a solution to speed up the head using approximate nearest neighbors (ANN). This ANN head solution seems promising but a key insight is that the head is usually 1-20% of the total compute to produce the next token. This means that even if the head becomes _zero_ in computational cost, the total speedup cannot exceed 1.01x-1.25x since the compute of the body is still there and becomes the bottleneck. This thesis takes an Amdahl's law framing  and produces an inference setup where both the head and the body are approximated by skipping layers and using an ANN head respectively. Together, they compose a formula to enable a frozen LLM to have a cheap drafter mode for itself to perform self-speculation. This enables speedups where the Amdahl's ceiling is substantially increased, while also guaranteeing an unchanged model and lossless generation compared to normal inference. 
+Large language models (LLMs) have become popular since the release of ChatGPT @openai2022chatgpt and are used weekly by hundreds of millions of people for personal and professional tasks @chatterji2025howpeopleusechatgpt. LLMs are expensive to run. They require a lot of memory and compute @kwon2023pagedattention @dettmers2023qlora. It is of interest to make them efficient so that the best possible model can run on available hardware and energy resources. LLMs use an architecture called the _transformer_ which can be understood as having a body and a head. A recent paper called FlashHead @flashhead2026 proposed a solution to speed up the head using approximate nearest neighbors (ANN). This ANN head solution seems promising but a key insight is that the head is usually 1-20% of the total compute to produce the next token. This means that even if the head becomes _zero_ in computational cost, the total speedup cannot exceed 1.01×-1.25× since the compute of the body is still there and becomes the bottleneck. This thesis takes an Amdahl's law framing  and produces an inference setup where both the head and the body are approximated by skipping layers and using an ANN head respectively. Together, they compose a formula to enable a frozen LLM to have a cheap drafter mode for itself to perform self-speculation. This enables speedups where the Amdahl's ceiling is substantially increased, while also guaranteeing an unchanged model and lossless generation compared to normal inference. 
 
 == Background and theory
 
@@ -291,7 +291,7 @@ $
 a = frac("total accepted draft tokens", "total drafted tokens").
 $
 
-The variables $d,v$ are defined as time to call the drafter or verifier compared to the normal full model. If $d = 0.1$, then the drafter needs 10% to generate a next token compared to what the full normal model would take. If $v = 1.05$, then it takes the verifier 1.05x of the normal next token generation time to verify the entire block with $gamma$ tokens.
+The variables $d,v$ are defined as time to call the drafter or verifier compared to the normal full model. If $d = 0.1$, then the drafter needs 10% to generate a next token compared to what the full normal model would take. If $v = 1.05$, then it takes the verifier 1.05× of the normal next token generation time to verify the entire block with $gamma$ tokens.
 
 
 Let $T_"normal"$ be the absolute time for one normal full model generation step. Let $T_"verifier"$ be the absolute time for the verifier to verify a drafted block of tokens, and let $T_"drafter"$ be the absolute time for one drafter step. 
@@ -1113,7 +1113,7 @@ The benchmark plots include both setup information and measured quantities. The 
     [`Peak mem normal`], [`GiB`/`MiB`], [
       Mean CUDA peak allocated memory over normal generation runs.
     ],
-    [`Mean speedup`], [`1.23x`], [
+    [`Mean speedup`], [`1.23×`], [
       Overall per-token speedup for the variant. It is computed as self-speculative tokens per second divided by normal tokens per second after summing seconds and generated tokens over measured prompts.
     ],
     [`Acceptance rate`], [percent], [
@@ -1131,16 +1131,16 @@ The benchmark plots include both setup information and measured quantities. The 
     [`Drafter split`], [`B x% / H y% / O z%`], [
       Profile-phase split of drafter time, where `x` is body time (`B`), `y` is head time (`H`), and `z` is remaining overhead (`O`).
     ],
-    [`Verifier/normal`], [`1.23x`], [
+    [`Verifier/normal`], [`1.23×`], [
       Mean verifier-call time divided by normal time per generated token. The initial prompt prefill verifier call is excluded.
     ],
     [`Drafter/normal`], [percent], [
       Mean drafter-token time divided by normal time per generated token.
     ],
-    [`ANNH acceptance ratio`], [percent], [
-      Acceptance rate with ANNH divided by acceptance rate without ANNH.
+    [`ANNH accuracy`], [percent], [
+      Acceptance rate with ANNH divided by acceptance rate without ANNH, used as a proxy for how well the ANNH preserves the dense-head drafter behavior.
     ],
-    [`ANNH head speedup`], [`1.23x`], [
+    [`ANNH head speedup`], [`1.23×`], [
       Dense LM-head time divided by ANNH head lookup time in the profile phase.
     ],
     [`ANNH index`], [`C clusters; top-k K`], [
@@ -1601,17 +1601,17 @@ No internal timing is used when measuring speedup to avoid synchronization that 
   ],
 ) <fig:self-spec-llama-31-8b-concrete>
 
-From figure @fig:self-spec-llama-31-8b-concrete a speedup of 1.46x with skipped layers and a speedup of 1.58x with skipped layers and ANNH can be seen. The peak memory usage remains approximately the same as normal inference for skipped layers and for skipped layers + ANNH.
+From figure @fig:self-spec-llama-31-8b-concrete a speedup of 1.46× with skipped layers and a speedup of 1.58× with skipped layers and ANNH can be seen. The peak memory usage remains approximately the same as normal inference for skipped layers and for skipped layers + ANNH.
 
-The profile measurements show that the drafter head becomes 7.47x faster when replacing the dense LM-head with ANNH. This makes the acceptance rate go from 47.7% without ANNH to 46.9% with it. The fraction of when the outputs exactly match normal generation is 43.3% both with and without ANNH. This does not mean that the self-speculation is incorrect or that it is approximate. See the discussion for why this happens even without approximation. 
+The profile measurements show that the drafter head becomes 7.47× faster when replacing the dense LM-head with ANNH. This makes the acceptance rate go from 47.7% without ANNH to 46.9% with it. The fraction of when the outputs exactly match normal generation is 43.3% both with and without ANNH. This does not mean that the self-speculation is incorrect or that it is approximate. See the discussion for why this happens even without approximation. 
 
-Before the measured benchmarks, 5 warmup runs and 15 profile runs were performed. The used GPU was a NVIDIA L4. The result shows that a verifier call costs 1.05x of a normal token generation call. The block size is 2, which means that this follows the expectation that verifying two tokens and generating a bonus token is significantly cheaper than generation. The result shows that speeding up both the head and the body does increase total speedup which follows Amdahl's law reasoning. The profile shows that the drafter costs about 14.4% of normal generation with skipped layers, and about 8.5% with skipped layers and ANNH.
+Before the measured benchmarks, 5 warmup runs and 15 profile runs were performed. The used GPU was a NVIDIA L4. The result shows that a verifier call costs 1.05× of a normal token generation call. The block size is 2, which means that this follows the expectation that verifying two tokens and generating a bonus token is significantly cheaper than generation. The result shows that speeding up both the head and the body does increase total speedup which follows Amdahl's law reasoning. The profile shows that the drafter costs about 14.4% of normal generation with skipped layers, and about 8.5% with skipped layers and ANNH.
 
 Using @selfs-speedup with the observed values $v = 1.05$, $gamma = 2$, $a = 47.7%$, and $d = 14.4%$, the predicted speedup is
 $
 S = frac(1 + 2 dot 0.477, 1.05 + 2 dot 0.144) = frac(1.954, 1.338) approx 1.460 times,
 $
-which aligns exactly with the measured 1.46x. For the version with ANNH, setting $d = 8.5%$ and $a = 46.9%$ gives $S approx 1.59$x, again consistent with the measured 1.58x.
+which aligns exactly with the measured 1.46×. For the version with ANNH, setting $d = 8.5%$ and $a = 46.9%$ gives $S approx 1.59$×, again consistent with the measured 1.58×.
 
 
 The drafter split shows that without ANNH, the share is 49.1% body, 46.0% head and 4.8% body. With ANNH this changes to 82.0% body, 10.2% head and 7.7% overhead. This shows that there is some overhead in the system, such as reconfiguration for the model between acting as a verifier and a drafter, and other costs that come with the built self-speculative system. However, if the overhead is 7.7% of the drafter and the drafter is 8.5% of the normal model, then the total overhead is quite small in absolute time. 
@@ -1630,7 +1630,7 @@ The drafter split shows that without ANNH, the share is 49.1% body, 46.0% head a
   ],
 ) <fig:self-spec-llama-32-3b-concrete>
 
-Figure @fig:self-spec-llama-32-3b-concrete shows the same pattern of speedup as figure @fig:self-spec-llama-31-8b-concrete. The speedups are here smaller, 1.30x and 1.46x respectively. This illustrates the hypothesis of overhead for easy tokens. When the model is smaller, there is less overhead for easy tokens resulting in less gain. The figure shows that the memory usage is approximately the same for all three versions.
+Figure @fig:self-spec-llama-32-3b-concrete shows the same pattern of speedup as figure @fig:self-spec-llama-31-8b-concrete. The speedups are here smaller, 1.30× and 1.46× respectively. This illustrates the hypothesis of overhead for easy tokens. When the model is smaller, there is less overhead for easy tokens resulting in less gain. The figure shows that the memory usage is approximately the same for all three versions.
 
 #figure(
   move(
@@ -1647,7 +1647,7 @@ Figure @fig:self-spec-llama-32-3b-concrete shows the same pattern of speedup as 
 ) <fig:self-spec-llama-32-1b-concrete>
 
 
-Figure @fig:self-spec-llama-32-1b-concrete shows that the Llama 3.2 1B Instruct also gets speedups of 1.13x and 1.28x. The speedups are here smaller and again following the idea of overhead. The self-speculation runs use approximately the same amount of memory as normal inference.
+Figure @fig:self-spec-llama-32-1b-concrete shows that the Llama 3.2 1B Instruct also gets speedups of 1.13× and 1.28×. The speedups are here smaller and again following the idea of overhead. The self-speculation runs use approximately the same amount of memory as normal inference.
 
 
 #figure(
@@ -1665,17 +1665,17 @@ Figure @fig:self-spec-llama-32-1b-concrete shows that the Llama 3.2 1B Instruct 
 ) <fig:self-spec-mistral-7b-concrete>
 
 
-The Mistral 7B Instruct shows a relatively large speedup of 1.62x with skipped layers and a speedup of 1.63x with skipped layers + ANNH. Figure @fig:self-spec-mistral-7b-concrete shows that the LM-head portion is small compared with the body, so the head approximation contributes less to total speedup than the layer skipping does.
+The Mistral 7B Instruct shows a relatively large speedup of 1.62× with skipped layers and a speedup of 1.63× with skipped layers + ANNH. Figure @fig:self-spec-mistral-7b-concrete shows that the LM-head portion is small compared with the body, so the head approximation contributes less to total speedup than the layer skipping does.
 
 Using @selfs-speedup with $v = 1.06$, $gamma = 2$, $a = 51.3%$, and $d = 9.7%$ (skipped layers only), the predicted speedup is
 $
 S = frac(1 + 2 dot 0.513, 1.06 + 2 dot 0.097) = frac(2.026, 1.254) approx 1.62 times,
 $
-which matches the measured 1.62x exactly. With ANNH, substituting $a = 50.7%$ and $d = 8.5%$ gives
+which matches the measured 1.62× exactly. With ANNH, substituting $a = 50.7%$ and $d = 8.5%$ gives
 $
 S = frac(1 + 2 dot 0.507, 1.06 + 2 dot 0.085) = frac(2.014, 1.230) approx 1.64 times,
 $
-which is slightly above but still close to the measured 1.63x. 
+which is slightly above but still close to the measured 1.63×. 
 
 
 #figure(
@@ -1693,7 +1693,7 @@ which is slightly above but still close to the measured 1.63x.
 ) <fig:self-spec-qwen3-4b-concrete>
 
 
-Figure @fig:self-spec-qwen3-4b-concrete shows that the implementation also gives speedups for Qwen3. The acceptance rates are relatively low at 36.2% without ANNH and 35.9% with ANNH. This manages to result in speedups of 1.26x and 1.37x. A block size of 2 can be too big for this drafter for this prompt set.
+Figure @fig:self-spec-qwen3-4b-concrete shows that the implementation also gives speedups for Qwen3. The acceptance rates are relatively low at 36.2% without ANNH and 35.9% with ANNH. This manages to result in speedups of 1.26× and 1.37×. A block size of 2 can be too big for this drafter for this prompt set.
 
 ==== Python-diverse prompt set
 
@@ -1762,7 +1762,7 @@ Figure @fig:self-spec-qwen3-4b-concrete shows that the implementation also gives
   ],
 ) <fig:self-spec-qwen3-4b-python-gap11-block2>
 
-Across the Python-diverse prompt set, the skipped-layers + ANNH variant gives speedups from 1.24x for Llama 3.2 1B to 1.55x for Mistral 7B.
+Across the Python-diverse prompt set, the skipped-layers + ANNH variant gives speedups from 1.24× for Llama 3.2 1B to 1.55× for Mistral 7B.
 The larger models generally get larger speedups, but Qwen3 4B is lower than Llama 3.2 3B in this setup because its acceptance rate is lower.
 
 === Benchmark summary
@@ -1787,12 +1787,12 @@ Table @tab-main-benchmark-speedups shows the benchmarks for all prompt sets, all
         [*Mistral* #linebreak() *7B-Inst*],
       ),
 
-      [$(1,1)$, Python-diverse, block size 2], [1.24x / 40%], [*1.47x / 45%*], [*1.40x / 38%*], [*1.51x / 44%*], [*1.55x / 47%*],
-      [$(1,1)$, concrete, block size 2], [*1.28x / 43%*], [*1.46x / 44%*], [*1.37x / 36%*], [*1.58x / 47%*], [*1.63x / 51%*],
-      [$(1,1)$, open-ended, block size 2], [*1.22x / 37%*], [*1.40x / 39%*], [1.20x / 25%], [*1.45x / 39%*], [*1.48x / 42%*],
-      [$(2,2)$, Python-diverse, block size 2], [1.20x / 48%], [1.46x / 53%], [1.43x / 47%], [1.50x / 52%], [1.55x / 55%],
-      [$(1,1)$, Python-diverse, block size 1], [*1.25x / 58%*], [1.38x / 64%], [1.36x / 58%], [1.40x / 64%], [1.43x / 68%],
-      [$(1,1)$, open-ended, block size 1], [1.22x / 54%], [1.32x / 56%], [*1.21x / 40%*], [1.35x / 56%], [1.38x / 60%],
+      [$(1,1)$, Python-diverse, block size 2], [1.24× / 40%], [*1.47× / 45%*], [*1.40× / 38%*], [*1.51× / 44%*], [*1.55× / 47%*],
+      [$(1,1)$, concrete, block size 2], [*1.28× / 43%*], [*1.46× / 44%*], [*1.37× / 36%*], [*1.58× / 47%*], [*1.63× / 51%*],
+      [$(1,1)$, open-ended, block size 2], [*1.22× / 37%*], [*1.40× / 39%*], [1.20× / 25%], [*1.45× / 39%*], [*1.48× / 42%*],
+      [$(2,2)$, Python-diverse, block size 2], [1.20× / 48%], [1.46× / 53%], [1.43× / 47%], [1.50× / 52%], [1.55× / 55%],
+      [$(1,1)$, Python-diverse, block size 1], [*1.25× / 58%*], [1.38× / 64%], [1.36× / 58%], [1.40× / 64%], [1.43× / 68%],
+      [$(1,1)$, open-ended, block size 1], [1.22× / 54%], [1.32× / 56%], [*1.21× / 40%*], [1.35× / 56%], [1.38× / 60%],
     )
   ],
   caption: [
@@ -1918,7 +1918,7 @@ A simple sanity check supports that this is plausible. Consider logits around 12
 
 The project decided to mostly focus on very large gaps of skipped layers. The primary benchmarks are for (1,1) and (2,2) gaps. The question is then whether bigger speedups could have been achieved with smaller gaps so the drafter accuracy gets higher. From extensive internal experiments and optimization to reach as large speedups as possible, it is considered to be quite hard to compensate for a more expensive drafter from the accuracy increase of keeping more layers. Even with many layers kept, it is difficult to reach a top1 of > 80%. The fundamental reason for this is probably because the choices of the verifier are not gold tokens, they are just the subjective calculation the full model happens to produce. The drafter is therefore not learning a fundamental truth but is instead guessing what the verifier would do. The project thus found that only a few layers gave the large jump in top-1 but that then adding more layers made the result incrementally better, while making the drafter linearly more expensive.
 
-The theoretical estimation from @selfs-speedup can be used to check if a smaller gap will have a chance of producing a better drafter than (1,1) or (2,2). Assume the head is 5% of the compute, that ANNH makes the head 5x faster and that (1,1) with HVC gives a top1 accuracy of 65%. For a 32-layer model, assuming that body compute is linear in the number of kept layers, the drafter cost for a gap $(N, N)$ is
+The theoretical estimation from @selfs-speedup can be used to check if a smaller gap will have a chance of producing a better drafter than (1,1) or (2,2). Assume the head is 5% of the compute, that ANNH makes the head 5× faster and that (1,1) with HVC gives a top1 accuracy of 65%. For a 32-layer model, assuming that body compute is linear in the number of kept layers, the drafter cost for a gap $(N, N)$ is
 $
 d_N = 0.95 dot frac(2N, 32) + frac(0.05, 5).
 $
@@ -1960,11 +1960,11 @@ The estimates in @tab-less-skipped-required-top1-block1 show that when keeping m
 
 // Maybe refine
 
-All combinations in the benchmark resulted in a speedup with the self-speculative system. At the precision reported in the table, adding ANNH never reduced and usually increased speedup compared with skipping layers alone. When using the best block size for each model and prompt set, the skipped-layers + ANNH speedups were in the range 1.21x to 1.63x in bfloat16. The lower end was Qwen 3 4B on open-ended prompts with block size 1, and the upper end was Mistral 7B Instruct v0.3 on the concrete prompt set with block size 2.
+All combinations in the benchmark resulted in a speedup with the self-speculative system. At the precision reported in the table, adding ANNH never reduced and usually increased speedup compared with skipping layers alone. When using the best block size for each model and prompt set, the skipped-layers + ANNH speedups were in the range 1.21× to 1.63× in bfloat16. The lower end was Qwen 3 4B on open-ended prompts with block size 1, and the upper end was Mistral 7B Instruct v0.3 on the concrete prompt set with block size 2.
 
-The measured speedups are prompt dependent and form an approximate normal distribution. With skipped layers + ANNH on the concrete prompt set, Mistral 7B Instruct had an overall speedup of 1.63x and per-prompt speedups from 1.21x to 1.90x. With the same prompt set and block size, Llama 3.2 3B Instruct had an overall speedup of 1.46x and per-prompt speedups from 0.86x to 2.27x.
+The measured speedups are prompt dependent and form an approximate normal distribution. With skipped layers + ANNH on the concrete prompt set, Mistral 7B Instruct had an overall speedup of 1.63× and per-prompt speedups from 1.21× to 1.90×. With the same prompt set and block size, Llama 3.2 3B Instruct had an overall speedup of 1.46× and per-prompt speedups from 0.86× to 2.27×.
 
-On NVIDIA L4, replacing the dense LM-head with ANNH made the profiled drafter head 2.80x to 7.53x faster across the benchmark. The model with largest relative additional speedup from using ANNH in the concrete block-size-2 setup was Llama 3.2 1B, which went from 1.13x to 1.28x in average per-token speedup. Large speedups for the LM-head do not directly translate to large speedup in the self-speculative setup, but the results show that it helps most when the head is a meaningful part of the drafter cost. For Mistral 7B Instruct v0.3 the head is proportionally small, so ANNH gives little extra speedup even when the head itself becomes faster. This follows the Amdahl's law reasoning exactly.
+On NVIDIA L4, replacing the dense LM-head with ANNH made the profiled drafter head 2.80× to 7.53× faster across the benchmark. The model with largest relative additional speedup from using ANNH in the concrete block-size-2 setup was Llama 3.2 1B, which went from 1.13× to 1.28× in average per-token speedup. Large speedups for the LM-head do not directly translate to large speedup in the self-speculative setup, but the results show that it helps most when the head is a meaningful part of the drafter cost. For Mistral 7B Instruct v0.3 the head is proportionally small, so ANNH gives little extra speedup even when the head itself becomes faster. This follows the Amdahl's law reasoning exactly.
 
 All models seem to use approximately the same amount of VRAM as the normal inference. Loading the ANNH index into memory adds slightly to memory usage, but across the benchmarks the observed peak-allocation overhead for the skipped-layers + ANNH variant is small: about 0.9% on average, with a maximum of about 2.1%. To use the same model for the verifier and the drafter to do self-speculation and also to share the KV-cache therefore results in a solution that does not need meaningfully more memory than normal inference. 
 
@@ -2037,7 +2037,7 @@ This method does seem to produce a useful set of properties:
 
 + No more memory usage than normal inference.
 + Lossless generation quality relative to the stock model, up to numerical tie-breaking effects.
-+ Observed possible average speedups between 1.21x and 1.63x.
++ Observed possible average speedups between 1.21× and 1.63×.
 + Total training time for the HVC bridge and the ANNH index of less than 1 hour.
 + A concrete recipe to turn a model into a drafter for itself.
 
@@ -2112,11 +2112,11 @@ Using the measured verifier and drafter costs from the concrete prompt set with 
         [*Speedup*],
       ),
 
-      [`Llama-3.2-1B-Instruct`], [1.05], [19.6%], [22.1%], [43.0%], [1.28x],
-      [`Llama-3.2-3B-Instruct`], [1.05], [11.5%], [14.0%], [43.9%], [1.46x],
-      [`Qwen3-4B-Instruct`], [1.05], [9.7%], [12.2%], [35.9%], [1.37x],
-      [`Llama-3.1-8B-Instruct`], [1.04], [8.5%], [10.5%], [46.9%], [1.58x],
-      [`Mistral-7B-Instruct-v0.3`], [1.05], [8.5%], [11.0%], [50.7%], [1.63x],
+      [`Llama-3.2-1B-Instruct`], [1.05], [19.6%], [22.1%], [43.0%], [1.28×],
+      [`Llama-3.2-3B-Instruct`], [1.05], [11.5%], [14.0%], [43.9%], [1.46×],
+      [`Qwen3-4B-Instruct`], [1.05], [9.7%], [12.2%], [35.9%], [1.37×],
+      [`Llama-3.1-8B-Instruct`], [1.04], [8.5%], [10.5%], [46.9%], [1.58×],
+      [`Mistral-7B-Instruct-v0.3`], [1.05], [8.5%], [11.0%], [50.7%], [1.63×],
     )
   ],
   caption: [
@@ -2130,10 +2130,10 @@ The answer to the research question is therefore that, for the skipped layers + 
 
 === To what extent can inference for LLMs be sped up by using a setup where the draft model is made computationally cheaper in both body and head by using the techniques: skipping layers + HVC + ANNH + self-speculative decoding?
 
-Across the main benchmark matrix, the proposed setup produced speedups for all tested combinations of model, prompt set, gap, and block size. With skipped layers, HVC, ANNH, and self-speculative decoding, the measured per-generated-token speedups ranged from 1.20x to 1.63x compared to normal generation. When choosing the better tested block size for each model and prompt set, the range was 1.21x to 1.63x. The setup also kept approximately the same memory usage as normal inference because the drafter and verifier are the same model and share the KV-cache.
+Across the main benchmark matrix, the proposed setup produced speedups for all tested combinations of model, prompt set, gap, and block size. With skipped layers, HVC, ANNH, and self-speculative decoding, the measured per-generated-token speedups ranged from 1.20× to 1.63× compared to normal generation. When choosing the better tested block size for each model and prompt set, the range was 1.21× to 1.63×. The setup also kept approximately the same memory usage as normal inference because the drafter and verifier are the same model and share the KV-cache.
 
 
-The answer to the third research question is therefore that the proposed combination can give meaningful real inference speedups, in this report up to about 1.6x, without increasing memory usage and keeping the output lossless compared to normal inference. 
+The answer to the third research question is therefore that the proposed combination can give meaningful real inference speedups, in this report up to about 1.6×, without increasing memory usage and keeping the output lossless compared to normal inference. 
 
 
 == Hypothesis about easy and hard tokens
@@ -2195,12 +2195,12 @@ This thesis builds on three main lines of related work: efficient LM-head infere
 
 FlashHead @flashhead2026 is the paper that proposed the idea to use ANN for the LM-head to reduce the computational work. This project has used that idea as one component to produce a cheap drafter from an LLM. This project produced an implementation from the paper's general description. The results such as speedup, accuracy and dynamics have been similar to the official paper. The exact clustering implementation is not revealed in the paper, so this project did come up with an algorithm that likely uses the same general approach. The clustering time seems to be significantly shorter with this project's implementation, 2 minutes and 30 seconds on CPU compared to the reported 4 hours on GPU in the FlashHead paper. This might indicate that their implementation uses a more fine grained greedy algorithm or some other details that increases the needed compute.
 
-FlashHead used their ANN LM-head without speculative decoding. They reported a total speedup of 1.08x for Llama 3.2 3B in bfloat16 with 8016 clusters and top-k = 512, with the LM-head getting 3.13x faster. This shows that their LM-head did get much faster, but due to the head only being around 12% of the total model, the total speedup is still not huge. Performing the Amdahl's Law math, the theoretical speedup of only speeding up the head is for that model thus: $frac(1,(0.88+0.12/3.13)) = 1.088$x which is close to their reported speedup. 
+FlashHead used their ANN LM-head without speculative decoding. They reported a total speedup of 1.08× for Llama 3.2 3B in bfloat16 with 8016 clusters and top-k = 512, with the LM-head getting 3.13× faster. This shows that their LM-head did get much faster, but due to the head only being around 12% of the total model, the total speedup is still not huge. Performing the Amdahl's Law math, the theoretical speedup of only speeding up the head is for that model thus: $frac(1,(0.88+0.12/3.13)) = 1.088$× which is close to their reported speedup. 
 
 
-This report has shown an average speedup of 1.3x with skipping layers, and 1.46x with skipping layers + ANNH for the Llama 3.2 3B. This shows that FlashHead can give a significant speedup when used in self-speculative decoding together with an approximated body. 
+This report has shown an average speedup of 1.3× with skipping layers, and 1.46× with skipping layers + ANNH for the Llama 3.2 3B. This shows that FlashHead can give a significant speedup when used in self-speculative decoding together with an approximated body. 
 
-An important observation is that 1.46/1.3 = 1.123 is larger than the speedup from 1x to 1.08x, even though the speculative decoding has a verifier that uses the full LM-head. Intuitively, the potential for speedup would be smaller when the drafter is equipped with ANNH but not the verifier. However, ANNH/FlashHead is more important for the drafter because its body is approximated, so the head becomes a significantly larger portion to speedup. In Llama 3.2 3B, if the head is normally 12% of the compute and the body has 28 layers, if all layers except 2 are skipped with gap (1,1), then only around 2/28 of the body-compute is left. This means that the head becomes 
+An important observation is that 1.46/1.3 = 1.123 is larger than the speedup from 1× to 1.08×, even though the speculative decoding has a verifier that uses the full LM-head. Intuitively, the potential for speedup would be smaller when the drafter is equipped with ANNH but not the verifier. However, ANNH/FlashHead is more important for the drafter because its body is approximated, so the head becomes a significantly larger portion to speedup. In Llama 3.2 3B, if the head is normally 12% of the compute and the body has 28 layers, if all layers except 2 are skipped with gap (1,1), then only around 2/28 of the body-compute is left. This means that the head becomes 
 $
 frac(0.12, 0.12 + 0.88 dot frac(2, 28)) = 0.656 approx 65.6%
 $
@@ -2219,7 +2219,7 @@ LayerSkip @elhoushi2024layerskip by Meta is the closest related work to the laye
 
 This thesis shares the goal of using one model as both drafter and verifier, but differs in how the drafter is obtained. LayerSkip relies on retraining the base model so it can early-exit with high quality. This thesis keeps the LLM frozen and instead produces a drafter by training a HVC-bridge and skipping an internal gap.
 
-The LayerSkip paper reports a speedup for Llama 2 7B of 1.54x to 1.86x for continual pretraining versions @elhoushi2024layerskip, while a later Hugging Face implementation benchmark reported 1.297x for `facebook/layerskip-llama2-7B` on summarization @gosthipaty2024layerskipblog. Assuming the dynamics is similar to what this project found, the exact speedup likely depends on hyper-paramters and the prompt. This project measured speedups between 1.45x to 1.58x for Llama 3.1 8B which is the closest model for comparison to Llama 2 7B.
+The LayerSkip paper reports a speedup for Llama 2 7B of 1.54× to 1.86× for continual pretraining versions @elhoushi2024layerskip, while a later Hugging Face implementation benchmark reported 1.297× for `facebook/layerskip-llama2-7B` on summarization @gosthipaty2024layerskipblog. Assuming the dynamics is similar to what this project found, the exact speedup likely depends on hyper-paramters and the prompt. This project measured speedups between 1.45× to 1.58× for Llama 3.1 8B which is the closest model for comparison to Llama 2 7B.
 
 This thesis and LayerSkip come with different sets of advantages and drawbacks. The strong feature with this project is that the model is frozen. This means that the upgrade is close to drop-in without any LLM retraining, but it also means that the output is the same as the stock model. When touching the parameters of the model, the LLM is changed and there is no guarantee that the output will be of the same quality as the original. This makes this a quick and no risk inference speedup. The advantage of the LayerSkip approach is that by allowing the LM model to change its parameters, there is likely more potential for speedup. The model can converge into a state where early-exits can be handled with less impact.
 
@@ -2245,7 +2245,7 @@ The existing research has many of the individual components that this thesis use
 
 This thesis has investigated if an LLM can be transformed into a lightweight drafter for itself to produce a self-speculative setup that is more performant than normal inference. The key idea was to keep the LLM frozen and to have an inference drafter mode that uses approximations for both the body and the LM-head. The approximation for the body was to skip layers, and the approximation for the head was to use a FlashHead style approximate nearest neighbors head. To skip layers effectively, a mechanism here called HVC was used. This was a normed linear transformation that transformed the hidden vector from the representation of the exit layer to the representation of the entrance layer. The thesis has also investigated what ablation of skipped layers that is preferable to maximize the number of skipped layers while minimizing the damage to the generation quality. 
 
-The thesis found that an internal contiguous gap of skipped layers seemed to be preferable. It found that using less skipped layers made the quality higher, but inherently also increased the needed compute for the drafter. The chosen skipped layer ablation to maximize the self-speculative speedup was therefore an aggressive gap of (1,1), which means to skip all layers except the first and the last one. The thesis found an average speedup between 1.2x to 1.63x for all models, block sizes and prompt sets. The largest speedups were observed for larger models, for example Mistral 7B Instruct, 0.3v together with concrete prompts. The smaller speedups were observed for smaller models, such as Llama 3.2 1B Instruct, together with more open-ended prompts.  
+The thesis found that an internal contiguous gap of skipped layers seemed to be preferable. It found that using less skipped layers made the quality higher, but inherently also increased the needed compute for the drafter. The chosen skipped layer ablation to maximize the self-speculative speedup was therefore an aggressive gap of (1,1), which means to skip all layers except the first and the last one. The thesis found an average speedup between 1.2× to 1.63× for all models, block sizes and prompt sets. The largest speedups were observed for larger models, for example Mistral 7B Instruct, 0.3v together with concrete prompts. The smaller speedups were observed for smaller models, such as Llama 3.2 1B Instruct, together with more open-ended prompts.  
 
 The thesis found that the self-speculative inference used approximately the same amount of memory as normal inference. Since the original frozen model is verifier, the output will also be exactly the same as normal inference up to what the selected floating point precision allows for.
 

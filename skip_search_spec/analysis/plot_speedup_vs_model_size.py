@@ -95,7 +95,7 @@ def main() -> None:
     for point in sorted(points, key=lambda item: item.parameters_b):
         print(
             f"{point.label}: {point.parameters_b:.3f}B params, "
-            f"{point.speedup:.3f}x speedup"
+            f"{point.speedup:.3f}× speedup"
         )
 
 
