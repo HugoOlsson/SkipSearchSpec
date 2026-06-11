@@ -725,7 +725,7 @@ Algorithm @alg:strict-equal-lm-head-clustering is used to produce the clustering
     [#alg-num():], [Let $V$ be the vocabulary size and $H$ the hidden size],
     [#alg-num():], [Require $C >= 1$, $C <= V$, and $V mod C = 0$],
     [#alg-num():], [Set the strict cluster capacity $q <- V / C$],
-    [#alg-num():], [#kw[if] normalization is enabled #kw[then] set $z_t <- W_t / ||W_t||_2$ for every token $t$],
+    [#alg-num():], [#kw[if] normalization is enabled #kw[then] set $z_t <- frac(W_t, ||W_t||_2)$ for every token $t$],
     [#alg-num():], [#kw[else] set $z_t <- W_t$],
     [#alg-num():], [Randomly sample $C$ token indices using the seed $S$],
     [#alg-num():], [Initialize centroids $mu_1, ..., mu_C$ from the vectors of the sampled token indices],
