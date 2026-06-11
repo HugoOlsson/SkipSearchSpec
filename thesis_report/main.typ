@@ -1203,60 +1203,60 @@ To know what layers are best to skip, different skip-ablations were evaluated. T
 The first metric plotted for each model is KL divergence from the full model distribution to the skipped model distribution, divided by the number of skipped layers. Lower values are better. Normalizing by skipped layers makes it easier to compare ablations that remove different amounts of compute. The second metric is top-1 agreement with the full model, where higher values are better. The dataset used to measure the ablations is `codelion/fineweb-edu-1B`.
 
 #figure(
-  image("my-figures/plots/skip-ablations/layer_ablations_meta-llama_Llama-3.2-1B-Instruct_20260517_132725_kl_per_removed_layer_multicolumn.png", width: 110%),
+  image("my-figures/plots/skip-ablations/layer_ablations_meta-llama_Llama-3.2-1B-Instruct_20260517_132725_kl_per_removed_layer_multicolumn.pdf", width: 110%),
   caption: [KL divergence per skipped layer for skip ablations of `meta-llama/Llama-3.2-1B-Instruct`.],
 ) <fig-skip-ablations-llama32-1b>
 
 #figure(
-  image("my-figures/plots/skip-ablations/layer_ablations_meta-llama_Llama-3.2-1B-Instruct_20260517_132725_mean_top1_agreement_multicolumn.png", width: 110%),
+  image("my-figures/plots/skip-ablations/layer_ablations_meta-llama_Llama-3.2-1B-Instruct_20260517_132725_mean_top1_agreement_multicolumn.pdf", width: 110%),
   caption: [Top-1 agreement with the full model for skip ablations of `meta-llama/Llama-3.2-1B-Instruct`.],
 ) <fig-skip-ablations-llama32-1b-top1>
 
 The skip ablations for Llama 3.2 1B Instruct show that per layer skipped, an internal gap seems to hurt the generation performance less. In the top-1 agreement in Figure @fig-skip-ablations-llama32-1b-top1, an early-exit version does produce the highest score, but it is also skipping fewer layers than any of the gap-jump ablations. The worst layer to skip seems to be the first layer. Periodic ablations seem to be able to perform okay but it heavily depends on what specific layers that were skipped. One periodic ablation is among the better ablations while another one is among the worst, even though they seemingly use the same strategy. 
 
 #figure(
-  image("my-figures/plots/skip-ablations/layer_ablations_meta-llama_Llama-3.2-3B-Instruct_20260517_132758_kl_per_removed_layer_multicolumn.png", width: 110%),
+  image("my-figures/plots/skip-ablations/layer_ablations_meta-llama_Llama-3.2-3B-Instruct_20260517_132758_kl_per_removed_layer_multicolumn.pdf", width: 110%),
   caption: [KL divergence per skipped layer for skip ablations of `meta-llama/Llama-3.2-3B-Instruct`.],
 ) <fig-skip-ablations-llama32-3b>
 
 #figure(
-  image("my-figures/plots/skip-ablations/layer_ablations_meta-llama_Llama-3.2-3B-Instruct_20260517_132758_mean_top1_agreement_multicolumn.png", width: 110%),
+  image("my-figures/plots/skip-ablations/layer_ablations_meta-llama_Llama-3.2-3B-Instruct_20260517_132758_mean_top1_agreement_multicolumn.pdf", width: 110%),
   caption: [Top-1 agreement with the full model for skip ablations of `meta-llama/Llama-3.2-3B-Instruct`.],
 ) <fig-skip-ablations-llama32-3b-top1>
 
 The same approximate pattern can be seen for Llama 3.2 3B Instruct. Minimal per layer degradation seems to be dominated by internal gaps. Periodic gaps again seem to produce very different results depending on exactly what holes the periodic pattern produced. Per layer skipped, neither early-exit or late-start seem competitive with an internal contiguous gap. Similar to Llama 3.2 1B Instruct, the generation quality degrades very quickly when layers are skipped. It does not look possible to use skipped layers to gain a speedup in self-speculation without a HVC-bridge.
 
 #figure(
-  image("my-figures/plots/skip-ablations/layer_ablations_mistralai_Mistral-7B-Instruct-v0.3_20260517_132707_kl_per_removed_layer_multicolumn.png", width: 110%),
+  image("my-figures/plots/skip-ablations/layer_ablations_mistralai_Mistral-7B-Instruct-v0.3_20260517_132707_kl_per_removed_layer_multicolumn.pdf", width: 110%),
   caption: [KL divergence per skipped layer for skip ablations of `mistralai/Mistral-7B-Instruct-v0.3`.],
 ) <fig-skip-ablations-mistral-7b>
 
 #figure(
-  image("my-figures/plots/skip-ablations/layer_ablations_mistralai_Mistral-7B-Instruct-v0.3_20260517_132707_mean_top1_agreement_multicolumn.png", width: 110%),
+  image("my-figures/plots/skip-ablations/layer_ablations_mistralai_Mistral-7B-Instruct-v0.3_20260517_132707_mean_top1_agreement_multicolumn.pdf", width: 110%),
   caption: [Top-1 agreement with the full model for skip ablations of `mistralai/Mistral-7B-Instruct-v0.3`.],
 ) <fig-skip-ablations-mistral-7b-top1>
 
 Mistral 7B Instruct continues the pattern but with slightly more optimistic results for early-exit and late-start. An observation is that for this model, a large number of skipped layers with early-exit and late-start look more promising than large gaps with gap-jump. 
 
 #figure(
-  image("my-figures/plots/skip-ablations/layer_ablations_meta-llama_Llama-3.1-8B-Instruct_20260517_132853_kl_per_removed_layer_multicolumn.png", width: 110%),
+  image("my-figures/plots/skip-ablations/layer_ablations_meta-llama_Llama-3.1-8B-Instruct_20260517_132853_kl_per_removed_layer_multicolumn.pdf", width: 110%),
   caption: [KL divergence per skipped layer for skip ablations of `meta-llama/Llama-3.1-8B-Instruct`.],
 ) <fig-skip-ablations-llama31-8b>
 
 #figure(
-  image("my-figures/plots/skip-ablations/layer_ablations_meta-llama_Llama-3.1-8B-Instruct_20260517_132853_mean_top1_agreement_multicolumn.png", width: 110%),
+  image("my-figures/plots/skip-ablations/layer_ablations_meta-llama_Llama-3.1-8B-Instruct_20260517_132853_mean_top1_agreement_multicolumn.pdf", width: 110%),
   caption: [Top-1 agreement with the full model for skip ablations of `meta-llama/Llama-3.1-8B-Instruct`.],
 ) <fig-skip-ablations-llama31-8b-top1>
 
 Llama 3.1 8B Instruct shows approximately the same pattern as Llama 3.2 1B and 3B Instruct.
 
 #figure(
-  image("my-figures/plots/skip-ablations/layer_ablations_Qwen_Qwen3-4B-Instruct-2507_20260517_132930_kl_per_removed_layer_multicolumn.png", width: 110%),
+  image("my-figures/plots/skip-ablations/layer_ablations_Qwen_Qwen3-4B-Instruct-2507_20260517_132930_kl_per_removed_layer_multicolumn.pdf", width: 110%),
   caption: [KL divergence per skipped layer for skip ablations of `Qwen/Qwen3-4B-Instruct-2507`.],
 ) <fig-skip-ablations-qwen3-4b>
 
 #figure(
-  image("my-figures/plots/skip-ablations/layer_ablations_Qwen_Qwen3-4B-Instruct-2507_20260517_132930_mean_top1_agreement_multicolumn.png", width: 110%),
+  image("my-figures/plots/skip-ablations/layer_ablations_Qwen_Qwen3-4B-Instruct-2507_20260517_132930_mean_top1_agreement_multicolumn.pdf", width: 110%),
   caption: [Top-1 agreement with the full model for skip ablations of `Qwen/Qwen3-4B-Instruct-2507`.],
 ) <fig-skip-ablations-qwen3-4b-top1>
 
@@ -1553,7 +1553,7 @@ Here are the results for the HVC-bridge training. It shows training for the gaps
 
 #figure(
   image(
-    "my-figures/plots/(1,1) gap training/thesis_gap11__top1_drafter_matches_verifier__train.png",
+    "my-figures/plots/(1,1) gap training/thesis_gap11__top1_drafter_matches_verifier__train.pdf",
     width: 85%,
   ),
   caption: [
@@ -1567,7 +1567,7 @@ Top-1 starts at around 0% and reaches between 60-70% with the training. For a la
 
 #figure(
   image(
-    "my-figures/plots/(1,1) gap training/thesis_gap11__kl_verifier_to_drafter__train.png",
+    "my-figures/plots/(1,1) gap training/thesis_gap11__kl_verifier_to_drafter__train.pdf",
     width: 85%,
   ),
   caption: [
@@ -1583,7 +1583,7 @@ From the same training as Figure @fig-gap11-training-top1-agreement, the verifie
 
 #figure(
   image(
-    "my-figures/plots/(2,2) gap training/thesis_gap22__top1_drafter_matches_verifier__train.png",
+    "my-figures/plots/(2,2) gap training/thesis_gap22__top1_drafter_matches_verifier__train.pdf",
     width: 85%,
   ),
   caption: [
@@ -1595,7 +1595,7 @@ From the same training as Figure @fig-gap11-training-top1-agreement, the verifie
 
 #figure(
   image(
-    "my-figures/plots/(2,2) gap training/thesis_gap22__kl_verifier_to_drafter__train.png",
+    "my-figures/plots/(2,2) gap training/thesis_gap22__kl_verifier_to_drafter__train.pdf",
     width: 85%,
   ),
   caption: [
@@ -1631,7 +1631,7 @@ No internal timing is used when measuring speedup to avoid synchronization that 
   move(
     dx: -0.2cm,
     image(
-      "my-figures/plots/benches/main_matrix/bench_self_spec__llama-3-1-8b-instruct__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_133323.png",
+      "my-figures/plots/benches/main_matrix/bench_self_spec__llama-3-1-8b-instruct__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_133323.pdf",
       width: 115%,
     ),
   ),
@@ -1660,7 +1660,7 @@ The drafter split shows that without ANNH, the share is 49.1% body, 46.0% head a
   move(
     dx: -0.2cm,
     image(
-      "my-figures/plots/benches/main_matrix/bench_self_spec__llama-3-2-3b-instruct__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_123233.png",
+      "my-figures/plots/benches/main_matrix/bench_self_spec__llama-3-2-3b-instruct__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_123233.pdf",
       width: 115%,
     ),
   ),
@@ -1676,7 +1676,7 @@ Figure @fig:self-spec-llama-32-3b-concrete shows the same pattern of speedup as 
   move(
     dx: -0.2cm,
     image(
-      "my-figures/plots/benches/main_matrix/bench_self_spec__llama-3-2-1b-instruct__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_120248.png",
+      "my-figures/plots/benches/main_matrix/bench_self_spec__llama-3-2-1b-instruct__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_120248.pdf",
       width: 115%,
     ),
   ),
@@ -1694,7 +1694,7 @@ Figure @fig:self-spec-llama-32-1b-concrete shows that the Llama 3.2 1B Instruct 
   move(
     dx: -0.2cm,
     image(
-      "my-figures/plots/benches/main_matrix/bench_self_spec__mistral-7b-instruct-v0-3__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_131146.png",
+      "my-figures/plots/benches/main_matrix/bench_self_spec__mistral-7b-instruct-v0-3__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_131146.pdf",
       width: 115%,
     ),
   ),
@@ -1722,7 +1722,7 @@ which is slightly above but still close to the measured 1.63×.
   move(
     dx: -0.2cm,
     image(
-      "my-figures/plots/benches/main_matrix/bench_self_spec__qwen3-4b-instruct-2507__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_131002.png",
+      "my-figures/plots/benches/main_matrix/bench_self_spec__qwen3-4b-instruct-2507__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_131002.pdf",
       width: 115%,
     ),
   ),
@@ -1741,7 +1741,7 @@ Figure @fig:self-spec-qwen3-4b-concrete shows that the implementation also gives
   move(
     dx: -0.2cm,
     image(
-      "my-figures/plots/benches/main_matrix/bench_self_spec__llama-3-1-8b-instruct__python-diverse-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_123622.png",
+      "my-figures/plots/benches/main_matrix/bench_self_spec__llama-3-1-8b-instruct__python-diverse-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_123622.pdf",
       width: 109%,
     ),
   ),
@@ -1754,7 +1754,7 @@ Figure @fig:self-spec-qwen3-4b-concrete shows that the implementation also gives
   move(
     dx: -0.2cm,
     image(
-      "my-figures/plots/benches/main_matrix/bench_self_spec__llama-3-2-3b-instruct__python-diverse-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_121540.png",
+      "my-figures/plots/benches/main_matrix/bench_self_spec__llama-3-2-3b-instruct__python-diverse-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_121540.pdf",
       width: 109%,
     ),
   ),
@@ -1767,7 +1767,7 @@ Figure @fig:self-spec-qwen3-4b-concrete shows that the implementation also gives
   move(
     dx: -0.2cm,
     image(
-      "my-figures/plots/benches/main_matrix/bench_self_spec__llama-3-2-1b-instruct__python-diverse-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_115150.png",
+      "my-figures/plots/benches/main_matrix/bench_self_spec__llama-3-2-1b-instruct__python-diverse-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_115150.pdf",
       width: 109%,
     ),
   ),
@@ -1780,7 +1780,7 @@ Figure @fig:self-spec-qwen3-4b-concrete shows that the implementation also gives
   move(
     dx: -0.2cm,
     image(
-      "my-figures/plots/benches/main_matrix/bench_self_spec__mistral-7b-instruct-v0-3__python-diverse-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_122903.png",
+      "my-figures/plots/benches/main_matrix/bench_self_spec__mistral-7b-instruct-v0-3__python-diverse-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_122903.pdf",
       width: 109%,
     ),
   ),
@@ -1793,7 +1793,7 @@ Figure @fig:self-spec-qwen3-4b-concrete shows that the implementation also gives
   move(
     dx: -0.2cm,
     image(
-      "my-figures/plots/benches/main_matrix/bench_self_spec__qwen3-4b-instruct-2507__python-diverse-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_122348.png",
+      "my-figures/plots/benches/main_matrix/bench_self_spec__qwen3-4b-instruct-2507__python-diverse-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_122348.pdf",
       width: 115%,
     ),
   ),
@@ -1856,7 +1856,7 @@ Third, the $(2,2)$ gap improves acceptance rate relative to $(1,1)$ on Python-di
   move(
     dx: -0.2cm,
     image(
-      "my-figures/plots/benches/debug/bench_self_spec__llama-3-2-1b-instruct__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260512_190254.png",
+      "my-figures/plots/benches/debug/bench_self_spec__llama-3-2-1b-instruct__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260512_190254.pdf",
       width: 115%,
     ),
   ),
@@ -2195,7 +2195,7 @@ For small models, one could imagine that the overhead for easy tokens is smaller
 // - Llama 3.1 8B: benchmarks/self_spec/L4_V2/bench_self_spec__llama-3-1-8b-instruct__concrete-completion-style__keep-1-1__block-2__max-200__warmup-5__profile-15__both__20260517_133323.json, lm_total_parameters = 8.030B, ANNH speedup = 1.575594
 // - Pearson correlation over these five points: r = 0.9234.
 #figure(
-  image("my-figures/plots/benches/speedup_vs_model_size_annh.png", width: 95%),
+  image("my-figures/plots/benches/speedup_vs_model_size_annh.pdf", width: 95%),
   caption: [Observed self-speculation speedup with ANNH compared to model size on the concrete prompt set. The fitted line suggests a positive correlation between model size and speedup in these measurements, but the sample is small and mixes model families, so it should be interpreted an illustraion of what this project has seen rather than any conclusive result.],
 ) <fig:speedup-vs-model-size>
 

@@ -430,6 +430,7 @@ def plot_thesis_gap11_metric(
     output_dir: str | Path | None = None,
     smooth_window: int = DEFAULT_SMOOTH_WINDOW,
     log_y: bool = False,
+    output_format: str = "png",
 ) -> list[Path]:
     metric_name = _resolve_metric(metric)
     if json_paths is None:
@@ -548,8 +549,17 @@ def plot_thesis_gap11_metric(
     gap_part = _gap_shape_slug(gap_shape)
     output_stem = f"thesis_{gap_part}__{_safe_path_part(metric_name)}__{phase}{suffix}"
 
-    output_path = output_dir / f"{output_stem}.png"
-    fig.savefig(output_path, dpi=300)
+    normalized_output_format = output_format.lower().lstrip(".")
+    if normalized_output_format not in {"png", "pdf", "svg"}:
+        raise ValueError(
+            f"output_format must be one of png, pdf, svg; got {output_format!r}"
+        )
+
+    output_path = output_dir / f"{output_stem}.{normalized_output_format}"
+    savefig_kwargs: dict[str, Any] = {}
+    if normalized_output_format == "png":
+        savefig_kwargs["dpi"] = 300
+    fig.savefig(output_path, **savefig_kwargs)
 
     plt.close(fig)
     return [output_path]
@@ -594,6 +604,12 @@ def main() -> None:
     parser.add_argument(
         "--log-y", action="store_true", help="Use a logarithmic y-axis."
     )
+    parser.add_argument(
+        "--output-format",
+        choices=("png", "pdf", "svg"),
+        default="png",
+        help="File format for the generated plot.",
+    )
     args = parser.parse_args()
 
     gap_shape = tuple(args.gap_shape)
@@ -606,6 +622,7 @@ def main() -> None:
         output_dir=args.output_dir,
         smooth_window=args.smooth_window,
         log_y=args.log_y,
+        output_format=args.output_format,
     )
 
     for output_path in output_paths:
