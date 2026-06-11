@@ -507,47 +507,54 @@ The setup exists in `evaluate_layer_skip_ablations.py`. It begins with running n
 
 This setup does not use the HVC when skipping layers. Even though the HVC should be relatively lightweight to train, training one for all possible ablations would require a lot of compute. The skip-ablations are therefore measured with the hidden vector going directly from the last layer before the gap to the entry layer. The idea is that this will still show what skip-ablations that are promising starting points to then improve further with the HVC.
 
-A delimitation for this project is that only a single HVC will be used. This then requires there to be a single contiguous gap, not multiple holes of skipped layers. The ablations tested are mostly such with a contiguous gap, but some non-contiguous periodic ablations are also included to see how they perform in this test where the HVC doesn't need to be added. Here is a specification of the ablations that are used:
+A delimitation for this project is that only a single HVC will be used. This then requires there to be a single contiguous gap, not multiple holes of skipped layers. The ablations tested are mostly such with a contiguous gap, but some non-contiguous periodic ablations are also included to see how they perform in this test where the HVC doesn't need to be added. The ablation families are summarized in Table @tab-layer-ablation-masks.
 
-#block(
-  fill: luma(250),
-  stroke: 0.5pt + luma(150),
-  inset: 12pt,
-  radius: 4pt,
-  width: 100%,
-)[
-  #set text(size: 10pt)
+#figure(
+  align(left)[
+    #block(
+      fill: luma(250),
+      stroke: 0.5pt + luma(150),
+      inset: 12pt,
+      radius: 4pt,
+      width: 100%,
+    )[
+      #set text(size: 10pt)
 
-  #strong[Layer ablation masks tested.] \
-  The model has $L$ layers indexed $0, ..., L - 1$. \
-  Each ablation is represented with the set $S subset.eq {0, ..., L - 1}$. \
-  All layers in $S$ are skipped, and all other layers are kept.
+      #strong[Layer ablation masks tested.] \
+      The model has $L$ layers indexed $0, ..., L - 1$. \
+      Each ablation is represented with the set $S subset.eq {0, ..., L - 1}$. \
+      All layers in $S$ are skipped, and all other layers are kept.
 
-  #line(length: 100%, stroke: 0.5pt + luma(200))
+      #line(length: 100%, stroke: 0.5pt + luma(200))
 
-  #grid(
-    columns: (8em, 1fr),
-    column-gutter: 1em,
-    row-gutter: 8pt,
+      #grid(
+        columns: (8em, 1fr),
+        column-gutter: 1em,
+        row-gutter: 8pt,
 
-    [#strong[Keep all]],
-    [Skip no layers: $S = emptyset$. This is the baseline that is compared to.],
+        [#strong[Keep all]],
+        [Skip no layers: $S = emptyset$. This is the baseline that is compared to.],
 
-    [#strong[Early exit]],
-    [Skip after the first $k$ layers: $S = {k, ..., L - 1}$.],
+        [#strong[Early exit]],
+        [Skip after the first $k$ layers: $S = {k, ..., L - 1}$.],
 
-    [#strong[Late start]],
-    [Skip before the last $k$ layers: $S = {0, ..., L - k - 1}$.],
+        [#strong[Late start]],
+        [Skip before the last $k$ layers: $S = {0, ..., L - k - 1}$.],
 
-    [#strong[Internal gap]],
-    [Skip a contiguous block of internal layers: \
-    $S = {s, ..., s + g - 1}$. \
-    The skipped gap has start $s$ and length $g$. The first and last layer are not skipped.],
+        [#strong[Internal gap]],
+        [Skip a contiguous block of internal layers: \
+        $S = {s, ..., s + g - 1}$. \
+        The skipped gap has start $s$ and length $g$. The first and last layer are not skipped.],
 
-    [#strong[Periodic]],
-    [Skipping every 2nd or 3rd layer or keeping only every 2nd or 3rd layers. Duplicate masks are removed.]
-  )
-]
+        [#strong[Periodic]],
+        [Skipping every 2nd or 3rd layer or keeping only every 2nd or 3rd layers. Duplicate masks are removed.]
+      )
+    ]
+  ],
+  caption: [The different layer skip ablations tested in the project.],
+  kind: "table",
+  supplement: [Table],
+) <tab-layer-ablation-masks>
 
 #pagebreak()
 
