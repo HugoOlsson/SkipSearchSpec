@@ -486,7 +486,7 @@ class NoOpDecoderLayer(nn.Module):
         return hidden_states```
 
 == Datasets
-The datasets used to train the HVC-bridge are 18% "HuggingFaceTB/cosmopedia-100k", 18% "codelion/fineweb-edu-1B", 41%  "MBZUAI/LaMini-instruction", 18% "flytech/python-codes-25k", and 5% "roneneldan/TinyStories".  All training are made with a single epoch. This is to maximize the amount of examples seen given the allocated compute, but also to get KL/CE/top1 training graphs that don't include progress where the module has seen the data before. The datasets are selected to work with the completion-style training setup and to be a good foundation to handle a spectrum of different prompts. 
+The datasets used to train the HVC-bridge are 18% `HuggingFaceTB/cosmopedia-100k` @huggingface_cosmopedia100k, 18% `codelion/fineweb-edu-1B` @huggingface_finewebedu1b, 41% `MBZUAI/LaMini-instruction` @huggingface_lamini_instruction, 18% `flytech/python-codes-25k` @huggingface_pythoncodes25k, and 5% `roneneldan/TinyStories` @huggingface_tinystories. All training runs use a single epoch. This is to maximize the amount of examples seen given the allocated compute, but also to get KL/CE/top1 training graphs that don't include progress where the module has seen the data before. The datasets are selected to work with the completion-style training setup and to be a good foundation to handle a spectrum of different prompts.
 
 == Body Approximation
 
