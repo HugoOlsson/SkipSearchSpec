@@ -1270,7 +1270,9 @@ The results show a clear pattern that skipping a contiguous gap in the middle te
 
 Here are results regarding building a cluster presented. The most relevant examples are for models that have a large head-to-body ratio, because those are where using ANNH instead of the full dense LM-head can produce the biggest speedup.
 
-*Results for Llama-3.2-1B-Instruct:*
+=== Llama 3.2 1B Instruct
+
+==== 5344 clusters
 
 #figure(
   image("my-figures/plots/clustering/flashhead_llama32_1b_5344c_mean_similarity.png", width: 100%),
@@ -1327,9 +1329,9 @@ By running evaluation on the cluster with different number of top-k probings the
 
 Table @evaluation-sweep-cluster-llama32-1B-instruct-table shows that the probability of getting the true top-1 converges to 1 when the number of top-k probed clusters increases. To find the true top-1 token more than 99% of the time a top-k of around 300 is needed which is 5.61% of all clusters probed. Top-3 containment means that given the top selected token from the cluster, is that within top-3 what the full LM-head would have selected. 
 
-Here is the data for 2.6k, 8k, and 16k clusters:
+The following subsections report the data for 2.6k, 8k, and 16k clusters.
 
-*2672 clusters:*
+==== 2672 clusters
 
 #cluster-quality-table(
   model-name: [Llama 3.2 1B Instruct, 2672 clusters],
@@ -1370,7 +1372,7 @@ Here is the data for 2.6k, 8k, and 16k clusters:
 ) <evaluation-sweep-cluster-llama32-1b-instruct-2672-table>
 
 
-*8016 clusters:*
+==== 8016 clusters
 
 
 #cluster-quality-table(
@@ -1413,7 +1415,7 @@ Here is the data for 2.6k, 8k, and 16k clusters:
 ) <evaluation-sweep-cluster-llama32-1b-instruct-8016-table>
 
 
-*16032 clusters:*
+==== 16032 clusters
 
 #cluster-quality-table(
   model-name: [Llama 3.2 1B Instruct, 16032 clusters],
@@ -1456,9 +1458,9 @@ Here is the data for 2.6k, 8k, and 16k clusters:
 
 
 
-*Results for Llama-3.2-3B-Instruct:*
+=== Llama 3.2 3B Instruct
 
-*For 8016 clusters:*
+==== 8016 clusters
 
 #cluster-quality-table(
   model-name: [Llama 3.2 3B Instruct, 8016 clusters],
@@ -1499,7 +1501,7 @@ Here is the data for 2.6k, 8k, and 16k clusters:
 ) <evaluation-sweep-cluster-llama32-3b-instruct-8016-table>
 
 
-*For 16032 clusters:*
+==== 16032 clusters
 
 #cluster-quality-table(
   model-name: [Llama 3.2 3B Instruct, 16032 clusters],
