@@ -2,6 +2,7 @@
 
 #set heading(numbering: "1.1.1")  // enable numbering first
 #set text(font: "New Computer Modern", size: 11pt, lang: "en")
+#set cite(style: "elsevier-vancouver")
 #show raw: set text(font: "New Computer Modern Mono")
 #import "functions.typ": *
 
