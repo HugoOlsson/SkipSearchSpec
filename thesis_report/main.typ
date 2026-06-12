@@ -307,7 +307,7 @@ $
 a = frac("total accepted draft tokens", "total drafted tokens").
 $
 
-The variables $d,v$ are defined as time to call the drafter or verifier compared to the normal full model. If $d = 0.1$, then the drafter needs 10% to generate a next token compared to what the full normal model would take. If $v = 1.05$, then it takes the verifier 1.05× of the normal next token generation time to verify the entire block with $gamma$ tokens.
+The variables $d,v$ are defined as time to call the drafter or verifier compared to the normal full model. If $d = 0.1$, then the drafter needs 10% to generate a next token compared to what the full normal model would take. If $v = 1.05$, then it takes the verifier 1.05× of the normal next token generation time to verify the entire block with $gamma$ tokens. The following estimation is produced by this project but similar estimations might exist elsewhere in the literature.
 
 
 Let $T_"normal"$ be the absolute time for one normal full model generation step. Let $T_"verifier"$ be the absolute time for the verifier to verify a drafted block of tokens, and let $T_"drafter"$ be the absolute time for one drafter step. 
