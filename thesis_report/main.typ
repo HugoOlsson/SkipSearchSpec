@@ -1,7 +1,8 @@
 #import "chalmers-cover2.typ": cover-pages
 
 #set heading(numbering: "1.1.1")  // enable numbering first
-#set text(font: "New Computer Modern", size: 11pt, lang: "en")
+#set text(font: "New Computer Modern", size: 11pt, lang: "en", hyphenate: true)
+#set par(justify: true)
 #set cite(style: "elsevier-vancouver")
 #show raw: set text(font: "New Computer Modern Mono")
 #import "functions.typ": *
