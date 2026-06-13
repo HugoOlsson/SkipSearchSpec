@@ -392,6 +392,7 @@ For speculative decoding, if the drafter and verifier are two different models, 
 
 // Following the Amdahl's law reasoning presented in the background, these enhancements could significantly improve the speed of the draft model. They will make its produced quality strictly worse, but since this setup uses a verifier, the output will still have a lower bound for the quality. It is not obvious that this will produce a solution that is better than simply running the model normally, or just with an ANN head. The quality of the drafter could become so weak that there is more harm than good to use this inference setup. In that case, the setup would add complexity without any performance gain. This provides natural baselines for evaluation: standard decoding and ANN-head-only decoding. 
 
+#pagebreak()
 
 *Teacher-student training*
 
@@ -501,7 +502,7 @@ The datasets used to train the HVC-bridge are 18% `HuggingFaceTB/cosmopedia-100k
 Figure @skipping-layers-structure-img illustrates the architecture when skipping layers. The figure illustrates the case of a gap-jump. If the variant is early-exit then the hidden vector goes directly into the final norm. If the case is late-start, then the hidden vector goes from the embedding to the first layer and then progresses from there. Naive layer skipping is achieved by turning off the HVC. 
 
 
-
+#pagebreak()
 === Finding best layer-skipping ablations
 
 To get best possible drafting performance per layer skipped, it is likely important to skip the right layers for the model. This can be late-start, gap-jump or early-exit and different placements of those. To test what ablations of skipped layers that do the least amount of damage to the generation quality, a setup is used to test the KL, Top1 deviation and CE to the full model for different skip-ablations. 
@@ -589,6 +590,7 @@ The bridge is implemented as a linear transformation in PyTorch with residual up
         return x + delta
         ```
 
+#pagebreak()
 
 === Training skipping layers
 The file `train_skipping_layers.py` exposes the function to train the HVC for a certain LM-model and skip ablation. This function uses infrastructure to load datasets, build windows, load bridge module class, setup model and bridge as frozen and non-frozen respectively. It uses the full model in its standard inference mode to act teacher and the inference setup to skip layers as the student. The optimization objectives are to, for a window, minimize the KL divergence and CE compared to the teacher output for the tokens. 
@@ -1032,6 +1034,8 @@ Literal examples from the three prompt sets are shown in Listing @lst-main-promp
   kind: "listing",
   supplement: [Listing],
 ) <lst-main-prompt-examples>
+
+#pagebreak()
 
 === Benchmark phases
 
@@ -1538,7 +1542,7 @@ The following subsections report the data for 2.6k, 8k, and 16k clusters.
 
 The results show that using more clusters produces a higher top-1 accuracy for a given top-$k$. This also means that more clusters mean a smaller fraction of the total vocabulary unembedding vectors to gather to reach a threshold accuracy. To balance still having a routing matrix that is significantly cheaper than the full LM-head, the cluster size of around 8k will be used for all models (exact number depending on divisibility) for the self-speculation benchmarks. The exception will be for Mistral 7B since that has a vocabulary of 32,768 tokens. A cluster target of 8k will be too big to make sense, so a 4096 will be used for that one. 
 
-
+#pagebreak()
 == Training HVC-bridge
 
 Here are the results for the HVC-bridge training. It shows training for the gaps (1,1) and (2,2) since those are the gaps that have the best possibility for speedup. See the discussion for why smaller gaps were chosen to not be included.
@@ -2301,7 +2305,7 @@ This thesis makes the following contributions:
 
 + It implements a comprehensive benchmark for this self-speculative inference where skipped layers are used and optionally ANNH. The benchmark reports things like VRAM usage, acceptance rates, the computational split in the head, exact match rate and more.
 
-+ The complete implementation is available open source on GitHub.
++ It provides the complete implementation as open source on GitHub.
 
 
 #pagebreak()
