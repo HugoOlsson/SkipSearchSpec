@@ -1255,7 +1255,7 @@ Llama 3.1 8B Instruct shows approximately the same pattern as Llama 3.2 1B and 3
 
 Qwen 3 4B Instruct also seems to produce the same pattern where a gap-jump is better per skipped layer than the other variants. 
 
-The results show a clear pattern that skipping a contiguous gap in the middle tends to do less damage to generation quality than early-exit or late-start ablations. The best-ranked ablations for all five models are in general internal gaps, while periodic patterns with multiple holes do not show an obvious advantage. This makes the gap-jump setup the most promising general solution to use when training the HVC-bridge and benchmarking speedups.
+Taken together, the skip-ablation results in Figures @fig-skip-ablations-llama32-1b to @fig-skip-ablations-qwen3-4b-top1 show a clear pattern that skipping a contiguous gap in the middle tends to do less damage to generation quality than early-exit or late-start ablations. The best-ranked ablations for all five models are in general internal gaps, while periodic patterns with multiple holes do not show an obvious advantage. This makes the gap-jump setup the most promising general solution to use when training the HVC-bridge and benchmarking speedups.
 
 #pagebreak()
 
