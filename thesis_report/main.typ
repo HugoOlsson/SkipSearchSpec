@@ -2283,21 +2283,25 @@ The thesis found that an internal contiguous gap of skipped layers seemed to be 
 
 The thesis found that the self-speculative inference used approximately the same amount of memory as normal inference. Since the original frozen model is verifier, the output will also be exactly the same as normal inference up to what the selected floating point precision allows for.
 
+
+#pagebreak()
 == Contributions
 
 This thesis makes the following contributions:
 
-+ It implements a systematic way to evaluate different ablations of skipped layers for an LLM. This to investigate what subset of layers to deactivate that damages generation quality minimally. 
++ It implements a systematic way to evaluate different ablations of skipped layers for an LLM.
 
 + It implements a FlashHead style ANNH that makes the operation of the LM-head significantly faster.
 
-+ It implements training and inference to use HVC to skip layers in the LM-body. 
++ It implements training and inference code to use HVC to skip layers in the LM-body. 
 
 + It implements a drafter inference mode for a frozen LLM where the LM-body skips a subset of its layers with HVC and the head uses ANNH.
 
 + It implements a self-speculative setup where an LLM is used both as verifier and drafter by switching between an approximated drafter inference mode and the original inference mode.
 
 + It implements a comprehensive benchmark for this self-speculative inference where skipped layers are used and optionally ANNH. The benchmark reports things like VRAM usage, acceptance rates, the computational split in the head, exact match rate and more.
+
++ The complete implementation is available open source on GitHub.
 
 
 #pagebreak()
