@@ -590,35 +590,7 @@ The bridge is implemented as a linear transformation in PyTorch with residual up
 
 
 === Training skipping layers
-The file `train_skipping_layers.py` exposes the function `def train_skipping_layers` which is used to train the HVC-bridge for an ablation of layer skipping. This function uses infrastructure to load datasets, build windows, load bridge module class, setup model and bridge as frozen and non-frozen respectively. It uses the full model in its standard inference mode to act teacher and the inference setup to skip layers as the student. The optimization objectives are to, for a window, minimize the KL divergence and CE compared to the teacher output for the tokens. 
-
-
-#```python
-def train_skipping_layers(
-    *,
-    model_name: str,
-    dataset_mix: list[tuple[DatasetSpec, float, int]],
-    context_len: int = 256,
-    num_windows_to_use: int,
-    batch_size: int = 10,
-    active_start_layers: int,
-    active_end_layers: int,
-    num_epochs: int = 1, 
-    lr: float = 1e-4,
-    weight_decay: float = 0.0,
-    max_grad_norm: float | None = None,
-    kl_loss_weight: float = 1.0,
-    ce_loss_weight: float = 1.0,
-    hidden_loss_weight: float = 0.0,
-    teacher_temperature: float = 1.0,
-    reference_hidden_source: ReferenceHiddenSource = "final",
-    model_kwargs: dict[str, Any] | None = None,
-    checkpoint_every_steps: int | None = None,
-    log_every: int = 100,
-    measurement_save_interval_seconds: float = 60.0,
-    num_draft_sections: int = 5,
-) -> TrainGapBridgeOutput:
-        ```
+The file `train_skipping_layers.py` exposes the function to train the HVC for a certain LM-model and skip ablation. This function uses infrastructure to load datasets, build windows, load bridge module class, setup model and bridge as frozen and non-frozen respectively. It uses the full model in its standard inference mode to act teacher and the inference setup to skip layers as the student. The optimization objectives are to, for a window, minimize the KL divergence and CE compared to the teacher output for the tokens. 
 
 #figure(
   image("my-figures/training_window.jpg", width: 105%),
@@ -631,6 +603,25 @@ The training aims to produce a good drafter for the full model. When running in 
 To train for this, the teacher runs next-token prediction on the training window and its logits for all positions and the created KV-cache are stored. The window is then conceptually split into multiple sections like Figure @training_window-img shows. The student will do next-token prediction runs on the sections from one starting point to the next. At each boundary, it will start from the KV-cache the teacher has produced at that position. This simulates the objective to start from a verifier prefix and generate from there. 
 
 If the intended block size for the self-speculation is 1–5, then dividing the window into sections of that size would make sense. However, that would be a lot of compute to produce so many versions of the teacher KV-cache history and to run so many small drafter trainings. Therefore, a number of sections that balances compute and realism will have to be selected. The parameter to set the number of sections is `num_draft_sections`. In Figure @training_window-img, `num_draft_sections = 5`.
+
+The loss is calculated on all sections except the first one. Let $S$ be those token positions, and let $p_(t,v)$ and $q_(t,v)$ be the probability assigned to vocabulary token $v$ by the teacher and drafter respectively at position $t$. The KL part compares the full distributions:
+
+$
+L_"KL" = frac(1, |S|) sum_(t in S) sum_v p_(t,v) log frac(p_(t,v), q_(t,v)).
+$
+
+The CE part only uses the teacher's top-1 vocabulary token as the target:
+
+$
+v_t^* = "arg max"_v p_(t,v), quad
+L_"top-1 CE" = - frac(1, |S|) sum_(t in S) log q_(t, v_t^*).
+$
+
+Both losses have a weight of 1.0 which gives a total loss:
+
+$
+L = L_"KL" + L_"top-1 CE".
+$
 
 Every HVC-training produces a run.json file that includes training and loss values for every Nth step. These will be used to then plot training convergence and to do analysis. Examples of such values are:
 
