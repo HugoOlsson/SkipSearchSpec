@@ -2125,7 +2125,7 @@ $
 
 If the right-hand side is greater than 1, then the setup cannot outperform normal inference even if every drafted token is accepted.
 
-Using the measured verifier and drafter costs from the concrete prompt set with gap $(1,1)$, block size $gamma = 2$, and ANNH enabled, the required acceptance rates are relatively low:
+Using the measured verifier and drafter costs from the concrete prompt set with gap $(1,1)$, block size $gamma = 2$, and ANNH enabled, the required acceptance rates are relatively low, as shown in Table @tab-required-acceptance-measured-costs:
 
 #figure(
   text(size: 8pt)[
