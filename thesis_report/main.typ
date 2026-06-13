@@ -1887,7 +1887,7 @@ This can be shown directly from @selfs-speedup. Solving for the required accepta
 $
 a = frac(S (v + gamma d) - 1, gamma).
 $
-For a target speedup of $S = 1.4 times$, a block size of $gamma = 1$, and a verifier cost of $v = 1.05$, the needed acceptance rate increases quickly as the drafter becomes more expensive. For sufficiently expensive drafters, the required acceptance rate is above 100%, meaning that the target speedup is impossible even if every drafted token is accepted. This means that using more layers is only beneficial if the improved drafter quality is large enough to compensate for the increased draft cost.
+For a target speedup of $S = 1.4 times$, a block size of $gamma = 1$, and a verifier cost of $v = 1.05$, Table @tab-required-acceptance-14x shows that the needed acceptance rate increases quickly as the drafter becomes more expensive. For sufficiently expensive drafters, the required acceptance rate is above 100%, meaning that the target speedup is impossible even if every drafted token is accepted. This means that using more layers is only beneficial if the improved drafter quality is large enough to compensate for the increased draft cost.
 
 #figure(
   text(size: 8pt)[
